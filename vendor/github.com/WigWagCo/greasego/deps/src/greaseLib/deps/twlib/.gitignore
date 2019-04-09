@@ -1,0 +1,33 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+prereqs
+.prereqs
+expanded-prereqs
+#README.md#
+#README.md#
+libTW.so.1
+libTW.so.1.0.1
+test_rbtree
+/test_tw_sema
+/test_twcircular
+/test_twcircular_mv
+/test_twcircular_mv_noblock
+/test_twcircular_mv_timeout
+/test_twcircular_slow_consumer
+/test_twcircular_array
+/.csettings/
+/test_twcircular_unblockall
+/test_twcircular_array_transfer
+/.project
+*.cproject

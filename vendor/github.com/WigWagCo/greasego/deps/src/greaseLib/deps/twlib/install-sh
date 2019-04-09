@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# install script for TW lib
+
+function print_usage () {
+    echo "install TW-lib
+    echo "$0 libname full-path-install-dir
+}
+
+
+case "$SYSTYPE" in 
+    Darw)
+# OS X seems to not like this anymore
+#	COLOR_BOLD="echo -n '\\[1m'"
+#	COLOR_RED="echo -n '\\[31m'"
+#	COLOR_MAGENTA="echo -n '\\[35m;'"
+#	COLOR_YELLOW="echo -n '\\[33m'"
+#	COLOR_GREEN="echo -n '\\[32m'"
+#	COLOR_NORMAL="echo -n '\\[0m'"
+	;;
+    Linu|CYGW)   
+	COLOR_BOLD="echo -ne '\E[1m'"
+	COLOR_RED="echo -ne '\E[31m'"
+	COLOR_MAGENTA="echo -ne '\E[35m'"
+	COLOR_YELLOW="echo -ne '\E[33m'"
+	COLOR_GREEN="echo -ne '\E[32m'"
+	COLOR_NORMAL="echo -ne '\E[0m'"
+	;;
+esac
+
+
+
+
+if [ "$#" -lt 2 ]; then
+    print_usage
+    exit -1
+fi
+
+INSTALLD="$2"
+LIBNAME="$1"
+
+if [ ! -d $INSTALLD/lib ]; then
+   mkdir -p $INSTALLD/lib
+fi
+
+if [ ! -d $INSTALLD/include ]; then
+   mkdir -p $INSTALLD/include
+fi
+
+
+if [ ! -e "$LIBNAME" ]; then
+    eval $COLOR_RED
+    echo "Can't find lib $LIBNAME - not built?"
+    eval $COLOR_NORMAL
+    exit
+fi
+
+cp "$LIBNAME" $INSTALLD/lib
+
+if [ ! -d include/TW ]; then
+    eval $COLOR_RED
+    echo "Can't find include/TW - error"
+    eval $COLOR_NORMAL
+    exit
+fi  
+
+if [ ! -d $INSTALLD/include/TW ]; then
+    mkdir $INSTALLD/include/TW
+fi  
+
+cp -r include/TW/*.h $INSTALLD/include/TW
+
+
+

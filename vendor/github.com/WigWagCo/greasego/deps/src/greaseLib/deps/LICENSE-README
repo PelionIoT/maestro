@@ -1,0 +1,8 @@
+install-deps.sh inside this folder is licensed Apache-2.0
+
+Each folder under deps contains their own respective license. 
+    -./gperftools-2.4/COPYING
+    -./libuv-* is a copy from https://github.com/libuv/libuv (See ./libuv-*/LICENSE)
+    -./re2-*/LICENSE
+    -./twlib: see twlib/licenses and twlib/license.txt
+    

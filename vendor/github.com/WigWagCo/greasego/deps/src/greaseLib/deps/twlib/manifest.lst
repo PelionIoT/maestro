@@ -1,0 +1,15 @@
+# test
+# Java prerequisites...
+
+# Google Sparse-hash
+common/google-sparsehash-1.9.tar.gz:common/google-sparsehash.tar.gz
+common/google-sparsehash-1.9.tar.gz.SETUP:common/google-sparsehash.tar.gz.SETUP
+# ICU for Unicode
+#common/icu4c-4_6-src.tgz:common/icu4c-src.tgz
+#common/icu4c-4_6-src.tgz.SETUP:common/icu4c-src.tgz.SETUP
+# SQLite 3.7
+#common/sqlite-amalgamation-3.7.0.tar.gz:common/sqlite-3.7.tgz
+#common/sqlite-amalgamation-3.7.0.tar.gz.SETUP:common/sqlite-3.7.tgz.SETUP
+# Google test framework
+common/gtest-1.5.0.tar.bz2:common/gtest-1.5.tar.bz2
+common/gtest-1.5.0.tar.bz2.SETUP:common/gtest-1.5.tar.bz2.SETUP
