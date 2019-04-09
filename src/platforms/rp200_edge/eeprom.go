@@ -34,8 +34,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestroSpecs/templates"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs/templates"
 	"github.com/mholt/archiver"
 )
 

@@ -40,21 +40,22 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/WigWagCo/hashmap" // thread-safe, fast hashmaps
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestro/networking/arp"
-	"github.com/WigWagCo/maestro/storage"
-	"github.com/WigWagCo/maestro/tasks"
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestroSpecs/netevents"
-	"github.com/WigWagCo/netlink"
-	"github.com/WigWagCo/stow"
-	"github.com/WigWagCo/structmutate"
+	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/networking/arp"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs/netevents"
+	"github.com/armPelionEdge/netlink"
+	"github.com/armPelionEdge/stow"
+	"github.com/armPelionEdge/structmutate"
 	"github.com/boltdb/bolt"
 	"golang.org/x/sys/unix"
+
 	//    "time"
-	"github.com/WigWagCo/dhcp4"
-	"github.com/WigWagCo/dhcp4client"
+	"github.com/armPelionEdge/dhcp4"
+	"github.com/armPelionEdge/dhcp4client"
 )
 
 const (

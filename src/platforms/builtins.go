@@ -16,12 +16,12 @@ package platforms
 // limitations under the License.
 
 import (
-	"github.com/WigWagCo/maestro/platforms/fsonly"
-	"github.com/WigWagCo/maestro/platforms/rp200"
-	"github.com/WigWagCo/maestro/platforms/rp200_edge"
-	"github.com/WigWagCo/maestro/platforms/softRelay"
-	"github.com/WigWagCo/maestro/platforms/testplatform"
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/maestro/platforms/fsonly"
+	"github.com/armPelionEdge/maestro/platforms/rp200"
+	"github.com/armPelionEdge/maestro/platforms/rp200_edge"
+	"github.com/armPelionEdge/maestro/platforms/softRelay"
+	"github.com/armPelionEdge/maestro/platforms/testplatform"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 type builtin struct {

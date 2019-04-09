@@ -26,8 +26,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/WigWagCo/httprouter"
-	"github.com/WigWagCo/maestro/storage"
+	"github.com/armPelionEdge/httprouter"
+	"github.com/armPelionEdge/maestro/storage"
 	"github.com/boltdb/bolt"
 )
 

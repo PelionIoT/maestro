@@ -19,8 +19,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestroSpecs/templates"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs/templates"
 )
 
 type eeprom struct {

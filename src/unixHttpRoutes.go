@@ -23,16 +23,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/WigWagCo/httprouter"
-	"github.com/WigWagCo/maestro/configMgr"
-	"github.com/WigWagCo/maestro/defaults"
-	"github.com/WigWagCo/maestro/events"
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestro/networking"
-	"github.com/WigWagCo/maestro/processes"
-	"github.com/WigWagCo/maestro/storage"
-	"github.com/WigWagCo/maestro/tasks"
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/httprouter"
+	"github.com/armPelionEdge/maestro/configMgr"
+	"github.com/armPelionEdge/maestro/defaults"
+	"github.com/armPelionEdge/maestro/events"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/networking"
+	"github.com/armPelionEdge/maestro/processes"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 func AddProcessRoutes(router *httprouter.Router) {

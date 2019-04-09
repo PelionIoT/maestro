@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 type periodicPluginConfig struct {

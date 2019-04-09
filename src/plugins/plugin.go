@@ -23,9 +23,9 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs"
 
-	"github.com/WigWagCo/maestro/log"
+	"github.com/armPelionEdge/maestro/log"
 )
 
 type Plug struct {

@@ -19,8 +19,8 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/WigWagCo/gopsutil/disk"
-	"github.com/WigWagCo/maestro/log"
+	"github.com/armPelionEdge/gopsutil/disk"
+	"github.com/armPelionEdge/maestro/log"
 )
 
 type DiskConfig struct {

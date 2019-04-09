@@ -27,11 +27,11 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestro/events"
-	"github.com/WigWagCo/maestro/sysstats"
-	"github.com/WigWagCo/maestro/utils"	
-	"github.com/WigWagCo/greasego"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/events"
+	"github.com/armPelionEdge/maestro/sysstats"
+	"github.com/armPelionEdge/maestro/utils"	
+	"github.com/armPelionEdge/greasego"
 )
 
 const (

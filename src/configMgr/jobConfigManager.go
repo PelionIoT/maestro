@@ -16,11 +16,11 @@ package configMgr
 // limitations under the License.
 
 import (
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestro/storage"
-	"github.com/WigWagCo/maestro/maestroConfig"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/boltdb/bolt"
-	"github.com/WigWagCo/stow"
+	"github.com/armPelionEdge/stow"
 	"encoding/gob"	
 	"fmt"
 )

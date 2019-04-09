@@ -17,11 +17,11 @@ package tasks
 
 import (
 	"github.com/boltdb/bolt"
-	"github.com/WigWagCo/stow"
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestro/defaults"	
-	"github.com/WigWagCo/maestro/storage"
-	"github.com/WigWagCo/maestro/log"	
+	"github.com/armPelionEdge/stow"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestro/defaults"	
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/log"	
 	"github.com/satori/go.uuid"
 	"encoding/gob"
 	"unsafe"

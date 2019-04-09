@@ -16,7 +16,7 @@ package tasks
 // limitations under the License.
 
 import (
-    "github.com/WigWagCo/hashmap"  // thread-safe, fast hashmaps
+    "github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 )
 
 var tasks *hashmap.HashMap // threadsafe hashmap string (taskid): *MaestroTask

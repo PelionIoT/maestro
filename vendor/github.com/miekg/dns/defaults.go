@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"strings"
 )
 
 const hexDigit = "0123456789abcdef"
@@ -192,7 +191,11 @@ func IsMsg(buf []byte) error {
 
 // IsFqdn checks if a domain name is fully qualified.
 func IsFqdn(s string) bool {
-	return strings.HasSuffix(s, ".")
+	l := len(s)
+	if l == 0 {
+		return false
+	}
+	return s[l-1] == '.'
 }
 
 // IsRRset checks if a set of RRs is a valid RRset as defined by RFC 2181.
@@ -241,19 +244,12 @@ func ReverseAddr(addr string) (arpa string, err error) {
 	if ip == nil {
 		return "", &Error{err: "unrecognized address: " + addr}
 	}
-	if v4 := ip.To4(); v4 != nil {
-		buf := make([]byte, 0, net.IPv4len*4+len("in-addr.arpa."))
-		// Add it, in reverse, to the buffer
-		for i := len(v4) - 1; i >= 0; i-- {
-			buf = strconv.AppendInt(buf, int64(v4[i]), 10)
-			buf = append(buf, '.')
-		}
-		// Append "in-addr.arpa." and return (buf already has the final .)
-		buf = append(buf, "in-addr.arpa."...)
-		return string(buf), nil
+	if ip.To4() != nil {
+		return strconv.Itoa(int(ip[15])) + "." + strconv.Itoa(int(ip[14])) + "." + strconv.Itoa(int(ip[13])) + "." +
+			strconv.Itoa(int(ip[12])) + ".in-addr.arpa.", nil
 	}
 	// Must be IPv6
-	buf := make([]byte, 0, net.IPv6len*4+len("ip6.arpa."))
+	buf := make([]byte, 0, len(ip)*4+len("ip6.arpa."))
 	// Add it, in reverse, to the buffer
 	for i := len(ip) - 1; i >= 0; i-- {
 		v := ip[i]

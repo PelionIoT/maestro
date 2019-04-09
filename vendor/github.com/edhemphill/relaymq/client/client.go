@@ -1,38 +1,23 @@
 // package relaymq/client provides a client library for
 // consuming messages from a relaymq queue.
 package client
-//
-// Copyright (c) 2018, Arm Limited and affiliates.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
 
 import (
-	"github.com/edhemphill/relaymq"
-	maestrolog "github.com/WigWagCo/maestro/log"
-	"net/http"
-	"sync"
-	"errors"
-	"fmt"
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"time"
-	"strconv"
-	"math"
-	"github.com/gorilla/websocket"
 	"encoding/json"
-	"bytes"
+	"errors"
+	"fmt"
+	"math"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
+
+	maestrolog "github.com/armPelionEdge/maestro/log"
+	"github.com/edhemphill/relaymq"
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -61,9 +46,9 @@ type RelayMQClientConfig struct {
 	// for servers that are not signed by a well known certificate
 	// authority. It will skip the authentication for the server. It
 	// is not recommended outside of a test environment.
-	NoValidate bool	
-	// This is the PEM encoded SSL client certificate. This is required 
-	// for all https based client connections. It provides the relay identity 
+	NoValidate bool
+	// This is the PEM encoded SSL client certificate. This is required
+	// for all https based client connections. It provides the relay identity
 	// to the server
 	ClientCertificate []byte
 	// This is the PEM encoded SSL client private key. This is required
@@ -99,29 +84,29 @@ type RelayMQClientConfig struct {
 
 // A RelayMQClient manages connections to a relaymq server
 type RelayMQClient struct {
-	tlsConfig *tls.Config
-	enableLogging bool
-	host string
-	port int
-	noValidate bool
-	serverName string
-	disconnectChan chan int
-	messageChan chan relaymq.Message
-	ackChan chan string
-	prefetchLimit int
-	queueName string
+	tlsConfig       *tls.Config
+	enableLogging   bool
+	host            string
+	port            int
+	noValidate      bool
+	serverName      string
+	disconnectChan  chan int
+	messageChan     chan relaymq.Message
+	ackChan         chan string
+	prefetchLimit   int
+	queueName       string
 	sessionMessages map[string]relaymq.Message
-	ackCancelMap map[string]chan int
-	lock sync.Mutex
-	identity relaymq.IdentityHeader
-	httpClient *http.Client
+	ackCancelMap    map[string]chan int
+	lock            sync.Mutex
+	identity        relaymq.IdentityHeader
+	httpClient      *http.Client
 }
 
 // This creates a new RelayMQClient
 func New(config RelayMQClientConfig) (*RelayMQClient, error) {
 	var clientTLSConfig *tls.Config
 	rootCAs := x509.NewCertPool()
-	
+
 	if config.RootCA != nil {
 		if !rootCAs.AppendCertsFromPEM(config.RootCA) {
 			return nil, errors.New("Could not append root CA to chain")
@@ -129,7 +114,7 @@ func New(config RelayMQClientConfig) (*RelayMQClient, error) {
 	} else {
 		rootCAs = nil
 	}
-    
+
 	if config.ClientCertificate != nil || config.ClientKey != nil {
 		clientCertificate, err := tls.X509KeyPair(config.ClientCertificate, config.ClientKey)
 
@@ -142,32 +127,32 @@ func New(config RelayMQClientConfig) (*RelayMQClient, error) {
 		}
 
 		clientTLSConfig = &tls.Config{
-			Certificates: []tls.Certificate{ clientCertificate },
-			RootCAs: rootCAs,
+			Certificates:       []tls.Certificate{clientCertificate},
+			RootCAs:            rootCAs,
 			InsecureSkipVerify: config.NoValidate,
-			ServerName: config.ServerName,
+			ServerName:         config.ServerName,
 		}
 	}
 
 	if config.PrefetchLimit <= 0 {
 		config.PrefetchLimit = math.MaxInt32
 	}
-    
+
 	return &RelayMQClient{
-		tlsConfig: clientTLSConfig,
-		enableLogging: config.EnableLogging,
-		host: config.Host,
-		port: config.Port,
-		disconnectChan: make(chan int),
-		messageChan: make(chan relaymq.Message),
-		ackChan: make(chan string),
-		prefetchLimit: config.PrefetchLimit,
-		queueName: config.QueueName,
-		ackCancelMap: make(map[string]chan int),
+		tlsConfig:       clientTLSConfig,
+		enableLogging:   config.EnableLogging,
+		host:            config.Host,
+		port:            config.Port,
+		disconnectChan:  make(chan int),
+		messageChan:     make(chan relaymq.Message),
+		ackChan:         make(chan string),
+		prefetchLimit:   config.PrefetchLimit,
+		queueName:       config.QueueName,
+		ackCancelMap:    make(map[string]chan int),
 		sessionMessages: make(map[string]relaymq.Message),
-		identity: config.Identity,
+		identity:        config.Identity,
 		httpClient: &http.Client{
-			Transport: &http.Transport{ TLSClientConfig: clientTLSConfig },
+			Transport: &http.Transport{TLSClientConfig: clientTLSConfig},
 		},
 	}, nil
 }
@@ -176,18 +161,18 @@ func (client *RelayMQClient) printLog(level string, format string, args ...inter
 	switch level {
 	case "error":
 		relaymq.Log.Errorf(format, args...)
-		maestrolog.MaestroErrorf(format,args...)
+		maestrolog.MaestroErrorf(format, args...)
 	case "warning":
 		relaymq.Log.Errorf(format, args...)
-		maestrolog.MaestroWarnf(format,args...)
+		maestrolog.MaestroWarnf(format, args...)
 	case "debug":
 		relaymq.Log.Debugf(format, args...)
-		maestrolog.MaestroDebugf(format,args...)		
+		maestrolog.MaestroDebugf(format, args...)
 	}
 }
 
 // Connect starts a goroutine that continuously
-// attempts to connect with the relaymq server. It uses 
+// attempts to connect with the relaymq server. It uses
 // an exponential backoff for reconnects with the server.
 // Once a connection is formed it will start deliverying
 // messages on the channel provided by the Messages()
@@ -195,8 +180,8 @@ func (client *RelayMQClient) printLog(level string, format string, args ...inter
 func (client *RelayMQClient) Connect() error {
 	reconnectWaitSeconds := 1
 	dialer := &websocket.Dialer{
-        TLSClientConfig: client.tlsConfig,
-    }
+		TLSClientConfig: client.tlsConfig,
+	}
 
 	go func() {
 		for {
@@ -206,13 +191,13 @@ func (client *RelayMQClient) Connect() error {
 				uriPrefix = "ws"
 			}
 
-			conn, _, err := dialer.Dial(uriPrefix + "://" + client.host + ":" + strconv.Itoa(client.port) + "/sync", client.identity.Header())
+			conn, _, err := dialer.Dial(uriPrefix+"://"+client.host+":"+strconv.Itoa(client.port)+"/sync", client.identity.Header())
 
 			if err != nil {
 				client.printLog("warning", "Unable to connect to message queueing service at %s on port %d: %v. Reconnecting in %ds...", client.host, client.port, err, reconnectWaitSeconds)
-					
+
 				<-time.After(time.Second * time.Duration(reconnectWaitSeconds))
-					
+
 				if reconnectWaitSeconds != ReconnectWaitMaxSeconds {
 					reconnectWaitSeconds *= 2
 				}
@@ -245,7 +230,7 @@ func (client *RelayMQClient) run(conn *websocket.Conn) {
 	stopReads := make(chan int)
 	stopWrites := make(chan int)
 	stopMessages := make(chan int)
-	stopController := make(chan int)	
+	stopController := make(chan int)
 	nextMessage := make(chan relaymq.Message)
 	shutdown := func() {
 		select {
@@ -279,7 +264,7 @@ func (client *RelayMQClient) run(conn *websocket.Conn) {
 			case <-stopController:
 				return
 			}
-		
+
 			// 2) put next message into the queue
 			select {
 			case msg := <-nextMessage:
@@ -298,21 +283,21 @@ func (client *RelayMQClient) run(conn *websocket.Conn) {
 	go func() {
 		for {
 			var nextRawMessage relaymq.RawProtocolEnvelope
-			
+
 			err := conn.ReadJSON(&nextRawMessage)
 
 			if err != nil {
-                if err.Error() == "websocket: close 1000 (normal)" {
-                    client.printLog("debug", "Received a normal websocket close message.")
-                } else {
-                    client.printLog("error", "Experienced a read error: %v", err.Error())
-                }
+				if err.Error() == "websocket: close 1000 (normal)" {
+					client.printLog("debug", "Received a normal websocket close message.")
+				} else {
+					client.printLog("error", "Experienced a read error: %v", err.Error())
+				}
 
 				shutdown()
 
 				break
-            }
-			
+			}
+
 			msg, err := nextRawMessage.ToProtocolEnvelope()
 
 			if err != nil {
@@ -326,7 +311,7 @@ func (client *RelayMQClient) run(conn *websocket.Conn) {
 			if msg.Type == relaymq.MessageTypeMessage {
 				nextMessagePayload := msg.Payload.(relaymq.MessageMessage)
 				client.lock.Lock()
-				client.sessionMessages[nextMessagePayload.ID] = relaymq.Message{ ID: nextMessagePayload.ID, Body: nextMessagePayload.Body }
+				client.sessionMessages[nextMessagePayload.ID] = relaymq.Message{ID: nextMessagePayload.ID, Body: nextMessagePayload.Body}
 				client.lock.Unlock()
 
 				select {
@@ -348,10 +333,10 @@ func (client *RelayMQClient) run(conn *websocket.Conn) {
 			select {
 			case messageID := <-client.ackChan:
 				nextMessage.Type = relaymq.MessageTypeMessageAck
-				nextMessage.Payload = relaymq.MessageAckMessage{ ID: messageID }
+				nextMessage.Payload = relaymq.MessageAckMessage{ID: messageID}
 			case <-requestMore:
 				nextMessage.Type = relaymq.MessageTypeNextMessage
-				nextMessage.Payload = relaymq.NextMessage{ MessageCount: 1 }
+				nextMessage.Payload = relaymq.NextMessage{MessageCount: 1}
 			case <-stopWrites:
 				return
 			}
@@ -374,7 +359,7 @@ func (client *RelayMQClient) run(conn *websocket.Conn) {
 	case <-stopAll:
 	case <-client.disconnectChan:
 	}
-	
+
 	stopController <- 1
 	stopReads <- 1
 	stopWrites <- 1
@@ -382,7 +367,7 @@ func (client *RelayMQClient) run(conn *websocket.Conn) {
 
 	client.shutdownConnection(conn)
 	client.clearSession()
-	
+
 }
 
 func (client *RelayMQClient) doHandshake(conn *websocket.Conn) (int, error) {
@@ -390,7 +375,7 @@ func (client *RelayMQClient) doHandshake(conn *websocket.Conn) (int, error) {
 	handshake := &relaymq.ProtocolEnvelope{
 		Type: relaymq.MessageTypeHandshake,
 		Payload: relaymq.HandshakeMessage{
-		Version: relaymq.ProtocolVersion,
+			Version:   relaymq.ProtocolVersion,
 			QueueName: client.queueName,
 		},
 	}
@@ -420,7 +405,7 @@ func (client *RelayMQClient) doHandshake(conn *websocket.Conn) (int, error) {
 	if handshakeAck.Payload.(relaymq.HandshakeAckMessage).ErrorCode != 0 {
 		errorCode := handshakeAck.Payload.(relaymq.HandshakeAckMessage).ErrorCode
 		errorDescription := handshakeAck.Payload.(relaymq.HandshakeAckMessage).Description
-		
+
 		return 0, errors.New(fmt.Sprintf("Handshake acknowledgement received from server with error code: %d: %s", errorCode, errorDescription))
 	}
 
@@ -434,7 +419,7 @@ func (client *RelayMQClient) doHandshake(conn *websocket.Conn) (int, error) {
 }
 
 func (client *RelayMQClient) shutdownConnection(conn *websocket.Conn) {
-    err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 
 	if err != nil {
 		conn.Close()
@@ -465,7 +450,7 @@ func (client *RelayMQClient) shutdownConnection(conn *websocket.Conn) {
 
 		shutdownDone <- 1
 	}()
-		
+
 	select {
 	case <-shutdownDone:
 	case <-time.After(time.Second):
@@ -523,7 +508,7 @@ func (client *RelayMQClient) Publish(queue string, message string) error {
 		return err
 	}
 
-    request, err := http.NewRequest("POST", fmt.Sprintf("%s://%s:%d/queues/%s", uriPrefix, client.host, client.port, queue), bytes.NewReader(encodedMessageBody))
+	request, err := http.NewRequest("POST", fmt.Sprintf("%s://%s:%d/queues/%s", uriPrefix, client.host, client.port, queue), bytes.NewReader(encodedMessageBody))
 
 	if err != nil {
 		return err
@@ -532,18 +517,18 @@ func (client *RelayMQClient) Publish(queue string, message string) error {
 	request.Header = client.identity.Header()
 	request.Header.Set("Content-Type", "application/json")
 
-    resp, err := client.httpClient.Do(request)
+	resp, err := client.httpClient.Do(request)
 
 	if err != nil {
 		return err
 	}
 
 	defer resp.Body.Close()
-    
-    if resp.StatusCode != http.StatusOK {
+
+	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("SFDSAFSDA %d\n", resp.StatusCode)
-        return errors.New("Unable to publish message")
-    }
+		return errors.New("Unable to publish message")
+	}
 
 	return nil
 }
@@ -567,9 +552,9 @@ func (client *RelayMQClient) Ack(messageID string) error {
 	client.lock.Unlock()
 
 	select {
-		case client.ackChan <- messageID:
-		case <-cancel:
-			return errors.New("Ack request cancelled because the socket was disconnected")
+	case client.ackChan <- messageID:
+	case <-cancel:
+		return errors.New("Ack request cancelled because the socket was disconnected")
 	}
 
 	return nil

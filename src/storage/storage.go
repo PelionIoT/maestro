@@ -17,12 +17,14 @@ package storage
 
 import (
 	"errors"
-//	"encoding/json"
+	//	"encoding/json"
 	"encoding/gob"
-	"github.com/WigWagCo/maestroSpecs"
+
+	"github.com/armPelionEdge/maestroSpecs"
+
 	//"github.com/syndtr/goleveldb/leveldb"
+	"github.com/armPelionEdge/stow"
 	"github.com/boltdb/bolt"
-	"github.com/WigWagCo/stow"
 )
 
 const c_CONFIG_PREFIX = "CONFIG."
@@ -31,19 +33,18 @@ const c_JOB_STORE = "jobs"
 const c_TEMPLATE_STORE = "contTempls"
 const c_CONFIG_STORE = "config"
 
-
-type ForEachJobCB func (job maestroSpecs.JobDefinition)
-type ForEachContainerTemplateCB func (job maestroSpecs.ContainerTemplate)
+type ForEachJobCB func(job maestroSpecs.JobDefinition)
+type ForEachContainerTemplateCB func(job maestroSpecs.ContainerTemplate)
 
 type MaestroDBInstance struct {
-//	db *leveldb.DB
-	Db *bolt.DB
+	//	db *leveldb.DB
+	Db     *bolt.DB
 	dbName string
 
 	// bolt / stow specific:
-	jobStore *stow.Store
+	jobStore               *stow.Store
 	containerTemplateStore *stow.Store
-	configStore *stow.Store
+	configStore            *stow.Store
 	// taskQueue *stow.Store
 }
 
@@ -60,7 +61,6 @@ func (this *MaestroDBInstance) GetDbName() string {
 	return this.dbName
 }
 
-
 var isReady bool
 var needsInit bool
 var singleton *MaestroDBInstance
@@ -73,7 +73,6 @@ func GetStorage() (ret *MaestroDBInstance) {
 		return
 	}
 }
-
 
 // type StorageUser interface {
 // 	// called when the DB is open and ready
@@ -92,15 +91,15 @@ type StorageUser interface {
 	StorageClosed(instance MaestroDBStorageInterface)
 }
 
-type StorageReadyCB func (instance *MaestroDBInstance)
+type StorageReadyCB func(instance *MaestroDBInstance)
 
 var storageUsers []StorageUser
 
 func RegisterStorageUser(user StorageUser) {
-	storageUsers = append(storageUsers,user)
+	storageUsers = append(storageUsers, user)
 	if isReady {
 		// if needsInit {
-			user.StorageInit(singleton)
+		user.StorageInit(singleton)
 		// }
 		user.StorageReady(singleton)
 	}
@@ -110,7 +109,7 @@ func RegisterStorageUser(user StorageUser) {
 // 	if isReady {
 // 		cb(singleton)
 // 	} else {
-// 		onReadyCBs = append(onReadyCBs,cb)		
+// 		onReadyCBs = append(onReadyCBs,cb)
 // 	}
 // }
 
@@ -137,22 +136,22 @@ func InitStorage(path string) (ret *MaestroDBInstance, err error) {
 	gob.Register(&maestroSpecs.JobDefinitionPayload{})
 	gob.Register(&maestroSpecs.ContainerTemplatePayload{})
 	gob.Register(&maestroSpecs.StatsConfigPayload{})
-//	gob.Register(&maestroTasks.MaestroTask{})
+	//	gob.Register(&maestroTasks.MaestroTask{})
 	gob.Register(&maestroSpecs.JobOpPayload{})
 	gob.Register(&maestroSpecs.ImageOpPayload{})
 	gob.Register(&maestroSpecs.JobDefinitionPayload{})
 	gob.Register(&maestroSpecs.ImageDefinitionPayload{})
 
-	ret = &MaestroDBInstance{ Db: nil, dbName: "" }
-	ret.Db, err = bolt.Open(path,0600,nil)
+	ret = &MaestroDBInstance{Db: nil, dbName: ""}
+	ret.Db, err = bolt.Open(path, 0600, nil)
 	if err != nil {
-		
+
 	} else {
 		needsInit = true
 		ret.jobStore = stow.NewStore(ret.Db, []byte(c_JOB_STORE))
 		ret.containerTemplateStore = stow.NewStore(ret.Db, []byte(c_TEMPLATE_STORE))
 		ret.configStore = stow.NewStore(ret.Db, []byte(c_CONFIG_STORE))
-//		ret.taskQueue = stow.NewStore(ret.Db, []byte(c_TASK_QUEUE))
+		//		ret.taskQueue = stow.NewStore(ret.Db, []byte(c_TASK_QUEUE))
 
 		singleton = ret
 
@@ -169,7 +168,6 @@ func InitStorage(path string) (ret *MaestroDBInstance, err error) {
 			user.StorageReady(singleton)
 		}
 
-
 	}
 	return
 }
@@ -181,7 +179,6 @@ func (this *MaestroDBInstance) Close() {
 		this.Db = nil
 	}
 }
-
 
 func (this *MaestroDBInstance) ForEachJob(cb ForEachJobCB) error {
 	if this.Db != nil {
@@ -203,7 +200,7 @@ func (this *MaestroDBInstance) ForEachContainerTemplate(cb ForEachContainerTempl
 
 func (this *MaestroDBInstance) GetStatsConfig() (ret maestroSpecs.StatsConfig, err error) {
 	if this.Db != nil {
-		this.configStore.Get("statsConfig",&ret)
+		this.configStore.Get("statsConfig", &ret)
 	} else {
 		err = errors.New("no database")
 	}
@@ -212,18 +209,12 @@ func (this *MaestroDBInstance) GetStatsConfig() (ret maestroSpecs.StatsConfig, e
 
 func (this *MaestroDBInstance) SetStatsConfig(obj maestroSpecs.StatsConfig) error {
 	if this.Db != nil {
-		this.configStore.Put("statsConfig",&obj)
+		this.configStore.Put("statsConfig", &obj)
 		return nil
 	} else {
 		return errors.New("no database")
 	}
 }
-
-
-
-
-
-
 
 // func (this *MaestroDBInstance) UpsertTask(obj *MaestroTask) error {
 // 	// key := obj.GetJobName()
@@ -231,7 +222,7 @@ func (this *MaestroDBInstance) SetStatsConfig(obj maestroSpecs.StatsConfig) erro
 // 		this.taskQueue.Put(obj.Id, obj)
 // 		return nil
 // 	} else {
-// 		return errors.New("no database")		
+// 		return errors.New("no database")
 // 	}
 // }
 
@@ -247,10 +238,10 @@ func (this *MaestroDBInstance) SetStatsConfig(obj maestroSpecs.StatsConfig) erro
 // 				if ok {
 // 					cb(task)
 // 				} else {
-// 					// should be impossible		
+// 					// should be impossible
 // 				}
 // 			} else {
-// 				// should be impossible, if 'id' did not exist 
+// 				// should be impossible, if 'id' did not exist
 // 				// then callback will not be called
 // 			}
 // 		})
@@ -290,7 +281,7 @@ func (this *MaestroDBInstance) SetStatsConfig(obj maestroSpecs.StatsConfig) erro
 // 			MaestroWarn("Possible DB corruption - not castable to MaestroTask\n")
 // 			return false
 // 		}
-// 	},&temp)	
+// 	},&temp)
 // }
 
 // // If the callback returns true, then the MaestroTask will be removed
@@ -308,7 +299,6 @@ func (this *MaestroDBInstance) SetStatsConfig(obj maestroSpecs.StatsConfig) erro
 // 	},&temp)
 // }
 
-
 // JOBS: storage for Maestro jobs, known processes / containers which Maestro starts and stops
 
 func (this *MaestroDBInstance) UpsertJob(obj maestroSpecs.JobDefinition) error {
@@ -317,7 +307,7 @@ func (this *MaestroDBInstance) UpsertJob(obj maestroSpecs.JobDefinition) error {
 		this.jobStore.Put(obj.GetJobName(), &obj)
 		return nil
 	} else {
-		return errors.New("no database")		
+		return errors.New("no database")
 	}
 }
 
@@ -326,7 +316,7 @@ func (this *MaestroDBInstance) UpsertJobAsPayload(obj *maestroSpecs.JobDefinitio
 		this.jobStore.Put(obj.Job, obj)
 		return nil
 	} else {
-		return errors.New("no database")		
+		return errors.New("no database")
 	}
 	// leveldb:
 	// key := []byte(c_CONFIG_PREFIX+obj.Job)
@@ -337,8 +327,6 @@ func (this *MaestroDBInstance) UpsertJobAsPayload(obj *maestroSpecs.JobDefinitio
 	// return err
 	// return nil
 }
-
-
 
 func (this *MaestroDBInstance) DeleteJob(byname string) error {
 	if this.Db != nil {
@@ -351,7 +339,7 @@ func (this *MaestroDBInstance) DeleteJob(byname string) error {
 
 func (this *MaestroDBInstance) GetJobByName(byname string) (job maestroSpecs.JobDefinition, err error) {
 	if this.Db != nil {
-		this.jobStore.Get(byname,&job)
+		this.jobStore.Get(byname, &job)
 	} else {
 		err = errors.New("no database")
 	}
@@ -363,7 +351,7 @@ func (this *MaestroDBInstance) UpsertContainerTemplate(obj maestroSpecs.Containe
 		this.containerTemplateStore.Put(obj.GetName(), &obj)
 		return nil
 	} else {
-		return errors.New("no database")		
+		return errors.New("no database")
 	}
 }
 
@@ -378,12 +366,9 @@ func (this *MaestroDBInstance) DeleteContainerTemplate(byname string) error {
 
 func (this *MaestroDBInstance) GetContainerTemplateByName(byname string) (templ maestroSpecs.ContainerTemplate, err error) {
 	if this.Db != nil {
-		this.containerTemplateStore.Get(byname,&templ)
+		this.containerTemplateStore.Get(byname, &templ)
 	} else {
 		err = errors.New("no database")
 	}
 	return
 }
-
-
-

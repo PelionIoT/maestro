@@ -21,7 +21,7 @@ import (
 	"sync"
 	"fmt"
 	"errors"
-	"github.com/WigWagCo/maestro/events"
+	"github.com/armPelionEdge/maestro/events"
 )
 
 type statWrapper struct {

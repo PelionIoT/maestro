@@ -18,7 +18,7 @@ package sysstats
 import (
 	"context"
 
-	"github.com/WigWagCo/gopsutil/mem"
+	"github.com/armPelionEdge/gopsutil/mem"
 )
 
 type VMConfig struct {

@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/WigWagCo/maestro/storage"
+	"github.com/armPelionEdge/maestro/storage"
 	"github.com/boltdb/bolt"
 )
 

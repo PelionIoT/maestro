@@ -16,7 +16,7 @@ package configMgr
 // limitations under the License.
 
 import (
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs"
 	IFDEBUG("fmt")
 )
 

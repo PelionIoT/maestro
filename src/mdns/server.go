@@ -22,10 +22,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestro/storage"
-	"github.com/WigWagCo/stow"
-	"github.com/WigWagCo/zeroconf"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/stow"
+	"github.com/armPelionEdge/zeroconf"
 	"github.com/boltdb/bolt"
 )
 

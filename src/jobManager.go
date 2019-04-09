@@ -16,12 +16,12 @@ package maestro
 // limitations under the License.
 
 import (
-	"github.com/WigWagCo/maestroSpecs" 
-	"github.com/WigWagCo/maestro/processes"
-	"github.com/WigWagCo/maestro/storage"
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestro/tasks"
-	"github.com/WigWagCo/hashmap"  // thread-safe, fast hashmaps
+	"github.com/armPelionEdge/maestroSpecs" 
+	"github.com/armPelionEdge/maestro/processes"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 //	"errors"
 	"net/http"
 	IFDEBUG("fmt")

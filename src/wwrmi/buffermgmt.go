@@ -17,7 +17,7 @@ package wwrmi
 
 import (
 	"sync"
-	"github.com/WigWagCo/greasego"
+	"github.com/armPelionEdge/greasego"
 	DEBUG("fmt")
 )
 

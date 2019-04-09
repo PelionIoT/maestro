@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/WigWagCo/maestro-plugins-template/teststructs"
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/maestro-plugins-template/teststructs"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 //var logger *testtools.NonProductionPrefixedLogger

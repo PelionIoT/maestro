@@ -24,13 +24,13 @@ import (
 	"io/ioutil"
 	"archive/zip"
 	"github.com/cavaliercoder/grab"
-	"github.com/WigWagCo/hashmap"  // thread-safe, fast hashmaps	
+	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps	
 	IFDEBUG("fmt")
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestro/maestroutils"
-	"github.com/WigWagCo/maestro/maestroConfig"
-	"github.com/WigWagCo/maestro/tasks"
-	"github.com/WigWagCo/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestro/maestroutils"
+	"github.com/armPelionEdge/maestro/maestroConfig"
+	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/maestro/log"
 )
 
 var mgrImagePath string

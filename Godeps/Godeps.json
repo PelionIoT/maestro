@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/WigWagCo/maestro",
+	"ImportPath": "github.com/armPelionEdge/maestro",
 	"GoVersion": "go1.11",
 	"GodepVersion": "v80",
 	"Packages": [
@@ -12,81 +12,81 @@
 			"Rev": "e0a55b97c70558c92ce14085e41b35a894e93d3d"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/dhcp4",
+			"ImportPath": "github.com/armPelionEdge/dhcp4",
 			"Rev": "7f54fcf15bd77137053279a9bdd7d49f99ac6bbd"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/dhcp4client",
-			"Rev": "5bd24b23ee6417c6e7815f2f3c55f84214851a1c"
+			"ImportPath": "github.com/armPelionEdge/dhcp4client",
+			"Rev": "be924652a34a8f5d0bacf189ec1d395ef7f985ee"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/gopsutil/disk",
-			"Comment": "v2.17.02-265-gdef52d1",
-			"Rev": "def52d173cbb0462cb10b2bce6cefe8622a45aaf"
+			"ImportPath": "github.com/armPelionEdge/gopsutil/disk",
+			"Comment": "v2.17.02-266-gf82339e",
+			"Rev": "f82339e508174d94537cf178144d810d19a6ed41"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/gopsutil/internal/common",
-			"Comment": "v2.17.02-265-gdef52d1",
-			"Rev": "def52d173cbb0462cb10b2bce6cefe8622a45aaf"
+			"ImportPath": "github.com/armPelionEdge/gopsutil/internal/common",
+			"Comment": "v2.17.02-266-gf82339e",
+			"Rev": "f82339e508174d94537cf178144d810d19a6ed41"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/gopsutil/mem",
-			"Comment": "v2.17.02-265-gdef52d1",
-			"Rev": "def52d173cbb0462cb10b2bce6cefe8622a45aaf"
+			"ImportPath": "github.com/armPelionEdge/gopsutil/mem",
+			"Comment": "v2.17.02-266-gf82339e",
+			"Rev": "f82339e508174d94537cf178144d810d19a6ed41"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/greasego",
-			"Rev": "6fa3aafdb9010115e0219ab25644e407686f4404"
+			"ImportPath": "github.com/armPelionEdge/greasego",
+			"Rev": "5b578dd9578b693c0938392a8cb4efbe76ec3918"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/hashmap",
+			"ImportPath": "github.com/armPelionEdge/hashmap",
 			"Rev": "f8b224fcaf91ddc6dc3d4ddff4cb69d0e56afc10"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/httprouter",
+			"ImportPath": "github.com/armPelionEdge/httprouter",
 			"Comment": "v1.1-41-g8a45e95",
 			"Rev": "8a45e95fc75cb77048068a62daed98cc22fdac7c"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/maestro-plugins-template/teststructs",
-			"Rev": "f4e5dd2b68d26992a8e8357ac786d9636afcf453"
+			"ImportPath": "github.com/armPelionEdge/maestro-plugins-template/teststructs",
+			"Rev": "5b22b1f86b05117b61b433d07373cfae44b7ed63"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/maestroSpecs",
-			"Rev": "d842962bdf2bc299079388227882eb45a404708b"
+			"ImportPath": "github.com/armPelionEdge/maestroSpecs",
+			"Rev": "d888bcd38ad8473e5a71bb30809e264d67a4ddeb"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/maestroSpecs/netevents",
-			"Rev": "d842962bdf2bc299079388227882eb45a404708b"
+			"ImportPath": "github.com/armPelionEdge/maestroSpecs/netevents",
+			"Rev": "d888bcd38ad8473e5a71bb30809e264d67a4ddeb"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/maestroSpecs/templates",
-			"Rev": "d842962bdf2bc299079388227882eb45a404708b"
+			"ImportPath": "github.com/armPelionEdge/maestroSpecs/templates",
+			"Rev": "d888bcd38ad8473e5a71bb30809e264d67a4ddeb"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/mustache",
+			"ImportPath": "github.com/armPelionEdge/mustache",
 			"Comment": "0.0.1-17-g6375acf",
 			"Rev": "6375acf62c69d9d3ad20fd0599d82ca94ea12284"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/netlink",
-			"Rev": "13273921d6c91604ce6d7948a7e87776f873cf50"
+			"ImportPath": "github.com/armPelionEdge/netlink",
+			"Rev": "1cddec0bf36869d0be680a3c8c5354c9b4e73e45"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/netlink/nl",
-			"Rev": "13273921d6c91604ce6d7948a7e87776f873cf50"
+			"ImportPath": "github.com/armPelionEdge/netlink/nl",
+			"Rev": "1cddec0bf36869d0be680a3c8c5354c9b4e73e45"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/stow",
+			"ImportPath": "github.com/armPelionEdge/stow",
 			"Comment": "v2.2.0-8-gb0e83fd",
 			"Rev": "b0e83fd073d440ba7544de56fdabca41764b6a2a"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/structmutate",
-			"Rev": "946368f03295fadf8297afa381a6e4f3c85bf8aa"
+			"ImportPath": "github.com/armPelionEdge/structmutate",
+			"Rev": "57b37c3ac1d9d70ca7daa169423f62f63eb0b1b8"
 		},
 		{
-			"ImportPath": "github.com/WigWagCo/zeroconf",
+			"ImportPath": "github.com/armPelionEdge/zeroconf",
 			"Rev": "78d055b6305c685b497944a859f0a7d14483269f"
 		},
 		{
@@ -140,11 +140,11 @@
 		},
 		{
 			"ImportPath": "github.com/edhemphill/relaymq",
-			"Rev": "630c5cec491f1bf339e842c5b5460b946b06600c"
+			"Rev": "2e6085cdc6bb3aeaf1a08d32d527309333217f08"
 		},
 		{
 			"ImportPath": "github.com/edhemphill/relaymq/client",
-			"Rev": "630c5cec491f1bf339e842c5b5460b946b06600c"
+			"Rev": "2e6085cdc6bb3aeaf1a08d32d527309333217f08"
 		},
 		{
 			"ImportPath": "github.com/go-ole/go-ole",
@@ -181,8 +181,8 @@
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Comment": "v1.1.1-10-g2533d752",
-			"Rev": "2533d75276a7519340c387aff0c9ca0719fbce0b"
+			"Comment": "v1.1.1-4-g5f5f2380",
+			"Rev": "5f5f2380fc10ac3069b7b5f3bb043a38dfe68d58"
 		},
 		{
 			"ImportPath": "github.com/nwaples/rardecode",
@@ -279,11 +279,11 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "9a3f9b0469bbc6b8802087ae5c0af9f61502de01"
+			"Rev": "b4a75ba826a64a70990f11a225237acd6ef35c9f"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/windows",
-			"Rev": "9a3f9b0469bbc6b8802087ae5c0af9f61502de01"
+			"Rev": "b4a75ba826a64a70990f11a225237acd6ef35c9f"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

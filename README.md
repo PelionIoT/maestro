@@ -33,7 +33,7 @@ Maestro communicates to DCS over https outbouund. It stores its config locally i
 
 ### Interacting
 
-If you are locally on a box using maestro, you should explore [maestro-shell](https://github.com/WigWagCo/maestro-shell) which will let you interact with maestro directly using the local API.
+If you are locally on a box using maestro, you should explore [maestro-shell](https://github.com/armPelionEdge/maestro-shell) which will let you interact with maestro directly using the local API.
 
 ### Building
 
@@ -78,12 +78,12 @@ Run your build commands from this sub-shell.
 
 #### build instructions
 
-`go get github.com/WigWagCo/maestro`
+`go get github.com/armPelionEdge/maestro`
 
 Enter github credentials as needed. Now, where `$GOPATH` is your go workspace folder, as in the sub-shell above...
 
 ```
-cd $GOPATH/src/github.com/WigWagCo/maestro/vendor/github.com/WigWagCo/greaseg o/deps/src/greaseLib/deps
+cd $GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greaseg o/deps/src/greaseLib/deps
 ```
 
 If in the `libuv-v1.10.1` folder of `deps` a `build` folder does not exist, then do this - otherwise skip it:
@@ -104,7 +104,7 @@ This will take a bit. You're building a bunch of libs used by grease / greaseGo
 
 Next, build greaseGo direct deps and then greaseGo:
 ```
-cd $GOPATH/src/github.com/WigWagCo/maestro/vendor/github.com/WigWagCo/greasego
+cd $GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego
 ./build-deps.sh
 DEBUG=1 DEBUG2=1 ./build.sh
 ```
@@ -114,7 +114,7 @@ Omit the `DEBUG` vars if you don't want copious amount of debug.
 Next build maestro:
 
 ```
-cd $GOPATH/src/github.com/WigWagCo/maestro
+cd $GOPATH/src/github.com/armPelionEdge/maestro
 DEBUG=1 DEBUG2=1 ./build.sh
 ```
 
@@ -133,4 +133,4 @@ cd .. && DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo \
 #### Other examples
 
 The Docker build file, for `djs-soft-relay` shows build instruction also, using this exact above method.
-https://github.com/WigWagCo/cloud-installer/blob/master/djs-soft-relay/build-wwcontainer.sh#L155
+https://github.com/armPelionEdge/cloud-installer/blob/master/djs-soft-relay/build-wwcontainer.sh#L155

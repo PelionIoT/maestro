@@ -21,7 +21,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/WigWagCo/gopsutil/disk"
+	"github.com/armPelionEdge/gopsutil/disk"
 )
 
 func TestMain(m *testing.M) {

@@ -17,7 +17,7 @@ package maestro
 
 import (
 	"time"
-	"github.com/WigWagCo/hashmap"  // thread-safe, fast hashmaps
+	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 )
 
 type ImageManagerInstance struct {

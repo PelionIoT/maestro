@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/WigWagCo/maestro/events"
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestro/utils"
+	"github.com/armPelionEdge/maestro/events"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/utils"
 )
 
 func _dummy() { fmt.Printf("") }

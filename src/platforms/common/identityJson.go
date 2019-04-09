@@ -18,13 +18,13 @@ package common
 import (
 	"encoding/hex"
 	"encoding/json"
-	"os"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestroSpecs/templates"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs/templates"
 	"github.com/mholt/archiver"
 )
 
@@ -119,7 +119,7 @@ type IdentityJSONFile struct {
 	GatewayServicesResource string           `dict:"GW_SERVICES_RESRC"`
 	APIServerAddress        string           `json:"apiServerAddress" dict:"API_SERVICES_URL"`
 	MccConfig               string           `json:"mcc_config" dict:"MCC_CONFIG"`
-	SSL                    *IdentitySSLData  `json:"ssl"`
+	SSL                     *IdentitySSLData `json:"ssl"`
 }
 
 func convertByteSliceToHexString(bytes []byte) (ret string) {
@@ -128,20 +128,20 @@ func convertByteSliceToHexString(bytes []byte) (ret string) {
 }
 
 func IsEmpty(name string) (bool, error) {
-    f, err := os.Open(name)
-    if err != nil {
-        return false, err
-    }
-    defer f.Close()
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
 
 	n, err := f.Readdirnames(1)
 	if len(n) == 0 {
 		return true, nil
 	}
-    if err == io.EOF {
-        return true, nil
-    }
-    return false, err
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err
 }
 
 func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log maestroSpecs.Logger) (identityData *IdentityJSONFile, err error) {

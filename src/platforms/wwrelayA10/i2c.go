@@ -24,10 +24,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestroSpecs/templates"
-	I2C "golang.org/x/exp/io/i2c"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs/templates"
 	"github.com/mholt/archiver"
+	I2C "golang.org/x/exp/io/i2c"
 )
 
 func _dummy() {
@@ -147,8 +147,8 @@ func get_eeprom(prop eeprom_anatomy, log maestroSpecs.Logger) (eeData, error) {
 	}
 
 	if prop.name == "CLOUD_URL" {
-        cloudurl = dataStr
-    }
+		cloudurl = dataStr
+	}
 
 	//remove "https://"
 	if prop.name == "CLOUD_DDB_URL_RES" {
@@ -239,11 +239,11 @@ func GetPlatformVars(dict *templates.TemplateVarDictionary, log maestroSpecs.Log
 	}
 
 	if strings.Contains(cloudurl, "mbed") {
-        err = archiver.TarGz.Open(mcc_config, "/userdata/mbed/")
-        if err != nil {
-            log.Errorf("Failed to untar mcc_config- %s", err)
-        }
-    }
+		err = archiver.TarGz.Open(mcc_config, "/userdata/mbed/")
+		if err != nil {
+			log.Errorf("Failed to untar mcc_config- %s", err)
+		}
+	}
 
 	// put all these found vars into the dictionary
 	if dict != nil {

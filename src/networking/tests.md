@@ -11,7 +11,7 @@ on my box, my USB ethernet dongle goes to `eth2` - so in most cases I change the
 Out of the /networking folder, from the project root, run something like:
 
 ```
-ed@box:~/work/gostuff/src/github.com/WigWagCo/maestro/networking$  
+ed@box:~/work/gostuff/src/github.com/armPelionEdge/maestro/networking$  
    sudo GOROOT=/opt/go PATH="$PATH:/opt/go/bin" \
      GOPATH=/home/ed/work/gostuff \
      LD_LIBRARY_PATH=../../greasego/deps/lib \

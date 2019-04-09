@@ -21,9 +21,9 @@ import (
 	"net"
 	"sync"
 
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/netlink"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/netlink"
 )
 
 const (

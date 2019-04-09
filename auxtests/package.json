@@ -12,7 +12,7 @@
     "node": ">=8.0"
   },
   "dependencies": {
-    "grease-log-client": "https://github.com/WigWagCo/grease-log-client",
+    "grease-log-client": "https://github.com/armPelionEdge/grease-log-client",
     "underscore": "*"
   }
 }

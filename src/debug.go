@@ -49,14 +49,14 @@ runtime.systemstack_switch()
     /opt/go/src/runtime/asm_amd64.s:252 fp=0xc4201b67a0 sp=0xc4201b6798
 runtime.ReadMemStats(0xc4201b6810)
     /opt/go/src/runtime/mstats.go:186 +0x63 fp=0xc4201b67d0 sp=0xc4201b67a0
-github.com/WigWagCo/maestro.DumpMemStats()
-    /home/ed/work/gostuff/src/github.com/WigWagCo/maestro/debug.go:12 +0x67 fp=0xc4201b7f00 sp=0xc4201b67d0
-github.com/WigWagCo/maestro.(*Client).startTicker.func1(0xc42005a9c0)
-    /home/ed/work/gostuff/src/github.com/WigWagCo/maestro/httpSymphonyClient.go:235 +0x14d fp=0xc4201b7f98 sp=0xc4201b7f00
+github.com/armPelionEdge/maestro.DumpMemStats()
+    /home/ed/work/gostuff/src/github.com/armPelionEdge/maestro/debug.go:12 +0x67 fp=0xc4201b7f00 sp=0xc4201b67d0
+github.com/armPelionEdge/maestro.(*Client).startTicker.func1(0xc42005a9c0)
+    /home/ed/work/gostuff/src/github.com/armPelionEdge/maestro/httpSymphonyClient.go:235 +0x14d fp=0xc4201b7f98 sp=0xc4201b7f00
 runtime.goexit()
     /opt/go/src/runtime/asm_amd64.s:2086 +0x1 fp=0xc4201b7fa0 sp=0xc4201b7f98
-created by github.com/WigWagCo/maestro.(*Client).startTicker
-    /home/ed/work/gostuff/src/github.com/WigWagCo/maestro/httpSymphonyClient.go:238 +0x68
+created by github.com/armPelionEdge/maestro.(*Client).startTicker
+    /home/ed/work/gostuff/src/github.com/armPelionEdge/maestro/httpSymphonyClient.go:238 +0x68
 
 
  * 

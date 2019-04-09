@@ -24,9 +24,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/WigWagCo/maestro/log"
-	maestroPlugins "github.com/WigWagCo/maestro/plugins"
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/maestro/log"
+	maestroPlugins "github.com/armPelionEdge/maestro/plugins"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 const (

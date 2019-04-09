@@ -18,9 +18,9 @@ package fsonly
 import (
 	"errors"
 
-	"github.com/WigWagCo/maestro/platforms/common"
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestroSpecs/templates"
+	"github.com/armPelionEdge/maestro/platforms/common"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs/templates"
 )
 
 // The template platform reader for a gateway which has no secure storage or hardware encryption chip / TrustZone.

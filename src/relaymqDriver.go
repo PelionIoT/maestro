@@ -20,14 +20,14 @@ package maestro
 import (
 	"github.com/edhemphill/relaymq"
 	relaymqClient "github.com/edhemphill/relaymq/client"
-	"github.com/WigWagCo/maestro/dcsAPI"
-	"github.com/WigWagCo/hashmap"  // thread-safe, fast hashmaps
+	"github.com/armPelionEdge/maestro/dcsAPI"
+	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 	"encoding/json"
-	"github.com/WigWagCo/maestro/log"
-	"github.com/WigWagCo/maestro/tasks"
-	"github.com/WigWagCo/maestro/processes"	
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestro/maestroConfig"	
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/maestro/processes"	
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestro/maestroConfig"	
 	"time"
 	"unsafe"
 	"strconv"

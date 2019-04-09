@@ -17,9 +17,9 @@ package processes
 
 /*
 #cgo amd64 LDFLAGS: -L/usr/lib/x86_64-linux-gnu 
-#cgo LDFLAGS: -L${SRCDIR}/../vendor/github.com/WigWagCo/greasego/deps/lib
+#cgo LDFLAGS: -L${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/lib
 #cgo LDFLAGS: -lgrease -luv -lTW  -lstdc++ -lm -ltcmalloc_minimal -lm
-#cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/WigWagCo/greasego/deps/include DEBUG(-DDEBUG_BINDINGS) -I${SRCDIR}/processes
+#cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/include DEBUG(-DDEBUG_BINDINGS) -I${SRCDIR}/processes
 #define GREASE_IS_LOCAL 1
 #include <stdio.h>
 #include "process_utils.h"
@@ -30,18 +30,18 @@ import "C"
 
 import (
 	"bytes"
-	"github.com/WigWagCo/greasego"
+	"github.com/armPelionEdge/greasego"
 	"unsafe"
 	"sync"
 	"regexp"
 	"sync/atomic"
 	"encoding/json"
-	"github.com/WigWagCo/hashmap"  // thread-safe, fast hashmaps
-//	"github.com/WigWagCo/gopsutil/mem"
-	"github.com/WigWagCo/maestroSpecs"
-	"github.com/WigWagCo/maestro/storage"
-	"github.com/WigWagCo/maestro/configMgr"
-	"github.com/WigWagCo/maestro/configs"	
+	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
+//	"github.com/armPelionEdge/gopsutil/mem"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/configMgr"
+	"github.com/armPelionEdge/maestro/configs"	
 	"github.com/kardianos/osext"  // not needed in go1.8 - see their README
 	"os"
 	"golang.org/x/sys/unix"

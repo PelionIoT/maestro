@@ -124,8 +124,8 @@ color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
 
 if [ "$1" != "preprocess_only" ]; then
 	pushd $GOPATH/bin
-	color go build -gcflags "-N -l" "$@" github.com/WigWagCo/maestro/maestro 
+	color go build -gcflags "-N -l" "$@" github.com/armPelionEdge/maestro/maestro 
 # 
-#go install -x github.com/WigWagCo/maestro/maestro
+#go install -x github.com/armPelionEdge/maestro/maestro
 	popd
 fi

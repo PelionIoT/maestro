@@ -20,11 +20,11 @@ import (
 	"plugin"
 	"strings"
 
-	"github.com/WigWagCo/maestroSpecs/templates"
+	"github.com/armPelionEdge/maestroSpecs/templates"
 
-	"github.com/WigWagCo/maestro/log"
-	maestroPlugins "github.com/WigWagCo/maestro/plugins"
-	"github.com/WigWagCo/maestroSpecs"
+	"github.com/armPelionEdge/maestro/log"
+	maestroPlugins "github.com/armPelionEdge/maestro/plugins"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 // ReadWithPlatformReader calls the plugin's GetPlatformVars() function

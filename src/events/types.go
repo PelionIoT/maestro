@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/WigWagCo/hashmap" // thread-safe, fast hashmaps
+	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
 )
 
 func debug_out(format string, a ...interface{}) {

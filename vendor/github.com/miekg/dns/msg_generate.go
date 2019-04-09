@@ -153,8 +153,7 @@ if rr.%s != "-" {
 				fallthrough
 			case st.Tag(i) == `dns:"hex"`:
 				o("off, err = packStringHex(rr.%s, msg, off)\n")
-			case st.Tag(i) == `dns:"any"`:
-				o("off, err = packStringAny(rr.%s, msg, off)\n")
+
 			case st.Tag(i) == `dns:"octet"`:
 				o("off, err = packStringOctet(rr.%s, msg, off)\n")
 			case st.Tag(i) == "":
@@ -262,8 +261,6 @@ return rr, off, err
 				o("rr.%s, off, err = unpackStringBase64(msg, off, rdStart + int(rr.Hdr.Rdlength))\n")
 			case `dns:"hex"`:
 				o("rr.%s, off, err = unpackStringHex(msg, off, rdStart + int(rr.Hdr.Rdlength))\n")
-			case `dns:"any"`:
-				o("rr.%s, off, err = unpackStringAny(msg, off, rdStart + int(rr.Hdr.Rdlength))\n")
 			case `dns:"octet"`:
 				o("rr.%s, off, err = unpackStringOctet(msg, off)\n")
 			case "":

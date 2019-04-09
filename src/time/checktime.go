@@ -26,7 +26,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/WigWagCo/maestro/log"
+	"github.com/armPelionEdge/maestro/log"
 )
 
 // Simple sub package to handle getting the time from a server, using a

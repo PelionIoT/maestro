@@ -27,7 +27,7 @@ import (
 	"time"
 	"sync"
 	"fmt"
-	"github.com/WigWagCo/greasego"
+	"github.com/armPelionEdge/greasego"
 	"bytes"
 	"io/ioutil"
 //	DEBUG("runtime")

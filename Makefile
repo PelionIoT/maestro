@@ -19,7 +19,7 @@ ALLOBJS= $($<:%.cpp=%.o)
 
 DEBUG_OPTIONS=-rdynamic -D_TW_TASK_DEBUG_THREADS_ -DLOGGER_HEAVY_DEBUG
 #-D_TW_BUFBLK_DEBUG_STACK_
-CFLAGS= $(DEBUG_OPTIONS) $(GLIBCFLAG) -D_TW_DEBUG -I./include  -D__DEBUG   -fPIC -Ivendor/github.com/WigWagCo/greasego/deps/include
+CFLAGS= $(DEBUG_OPTIONS) $(GLIBCFLAG) -D_TW_DEBUG -I./include  -D__DEBUG   -fPIC -Ivendor/github.com/armPelionEdge/greasego/deps/include
 
 DEBUG_CFLAGS= -g -DERRCMN_DEBUG_BUILD
 

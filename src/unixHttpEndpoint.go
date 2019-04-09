@@ -18,96 +18,91 @@ package maestro
 import (
 	"net"
 	"net/http"
-	"syscall"
 	"sync"
-	"github.com/WigWagCo/httprouter"
-	"github.com/WigWagCo/maestro/log"
-)
+	"syscall"
 
+	"github.com/armPelionEdge/httprouter"
+	"github.com/armPelionEdge/maestro/log"
+)
 
 type UnixHttpEndpoint struct {
 	SocketPath string
-	proper bool
-	server *http.Server
-	WG *sync.WaitGroup 
-//	locker sync.Mutex    // protect internal data, threaded data follows:
-//	conn *net.UnixConn
+	proper     bool
+	server     *http.Server
+	WG         *sync.WaitGroup
+	//	locker sync.Mutex    // protect internal data, threaded data follows:
+	//	conn *net.UnixConn
 	running bool
-//	closing bool
+	//	closing bool
 }
 
+func (sink *UnixHttpEndpoint) Init(path string) error { //, wg *sync.WaitGroup
 
-func (sink *UnixHttpEndpoint) Init(path string) error {  	//, wg *sync.WaitGroup
+	sink.SocketPath = path
+	sink.proper = false
+	sink.running = false
+	sink.server = nil
 
+	if len(path) > 0 {
+		sink.proper = true
+	}
 
-	sink.SocketPath = path;
-	sink.proper = false;
-	sink.running = false;
-	sink.server = nil;
+	err := syscall.Unlink(sink.SocketPath)
+	if err != nil {
+		log.MaestroWarn("Unlink()", err)
+	}
 
-	if(len(path) > 0) {
-		sink.proper = true;
-	}	
-	
-   	err := syscall.Unlink(sink.SocketPath)
-   	if err != nil {
-   		log.MaestroWarn("Unlink()",err)
-   	}
-
-	return nil;
+	return nil
 
 }
 
 func (sink *UnixHttpEndpoint) Start(router *httprouter.Router, wg *sync.WaitGroup) error {
 
-//		Handler: http.FileServer(http.Dir(root)),	
-	sink.server =  &http.Server { Handler: router } 
+	//		Handler: http.FileServer(http.Dir(root)),
+	sink.server = &http.Server{Handler: router}
 	sink.WG = wg
 	unixListener, err := net.Listen("unix", sink.SocketPath)
 	if err != nil {
 		return err
 	}
 	sink.server.Serve(unixListener)
-	sink.running = true;
-	
+	sink.running = true
 
-//	sink.proper = false
-//	sink.SocketPath = path
-//	sink.locker = sync.Mutex{}  // init the mutex
-//	sink.WG = wg
-//	if(len(sink.SocketPath) < 1) {
-//		return errors.New("No socket path");
-//	}
-//	if sink.WG == nil {
-//		return errors.New("No WaitGroup assigned")
-//	}
-//
-//    addr, err := net.ResolveUnixAddr("unixgram", sink.SocketPath)
-//    if err != nil {
-//    	return err;
-//    }
-//
-//   	err = syscall.Unlink(sink.SocketPath)
-//   	if err != nil {
-//   		log.Warning("Unlink()",err)
-//   	}
-//
-//	conn, err := net.ListenUnixgram("unixgram", addr);
-//	if err != nil {
-//		return err;
-//	}
-//
-//	conn.SetReadBuffer(1024*8)
-//
-//	log.Info("Socket bound:",sink.SocketPath)
-//
-//	sink.conn = conn;
-//	sink.proper = true;
+	//	sink.proper = false
+	//	sink.SocketPath = path
+	//	sink.locker = sync.Mutex{}  // init the mutex
+	//	sink.WG = wg
+	//	if(len(sink.SocketPath) < 1) {
+	//		return errors.New("No socket path");
+	//	}
+	//	if sink.WG == nil {
+	//		return errors.New("No WaitGroup assigned")
+	//	}
+	//
+	//    addr, err := net.ResolveUnixAddr("unixgram", sink.SocketPath)
+	//    if err != nil {
+	//    	return err;
+	//    }
+	//
+	//   	err = syscall.Unlink(sink.SocketPath)
+	//   	if err != nil {
+	//   		log.Warning("Unlink()",err)
+	//   	}
+	//
+	//	conn, err := net.ListenUnixgram("unixgram", addr);
+	//	if err != nil {
+	//		return err;
+	//	}
+	//
+	//	conn.SetReadBuffer(1024*8)
+	//
+	//	log.Info("Socket bound:",sink.SocketPath)
+	//
+	//	sink.conn = conn;
+	//	sink.proper = true;
 
-	return nil;
+	return nil
 }
-
-
 
 //func main() {
 //	if len(os.Args) < 2 {

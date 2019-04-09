@@ -15,7 +15,7 @@ package dcsAPI
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import "github.com/WigWagCo/maestroSpecs"
+import "github.com/armPelionEdge/maestroSpecs"
 
 
 /**

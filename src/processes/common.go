@@ -15,7 +15,7 @@ package processes
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import "github.com/WigWagCo/maestro/log"
+import "github.com/armPelionEdge/maestro/log"
 
 func procLogErrorf(format string, a ...interface{}) {
 	log.MaestroErrorf("ProcessMgmt: "+format, a...)
