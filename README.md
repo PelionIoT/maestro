@@ -7,7 +7,7 @@ Maestro is a replacement for a number of typical Linux OS system utilities and m
 
 Major tasks maestro provides:
 - syslog daemon (replaces syslog-ng, syslogd, and others)
-- native deviceJS logging
+- more advanced logging via the [grease-log-client](https://github.com/armPelionEdge/grease-log-client) library
 - to-the-cloud logging
 - periodic system stats to cloud
 - config management for apps / container (config file templating, config API)
@@ -29,11 +29,11 @@ Advantages:
 - cloud connectivity
 - managment via local API
 
-Maestro communicates to DCS over https outbouund. It stores its config locally in a private database, but can also use DeviceDB for storage of applications, network settings, configs and other data when used in conjuction with standard DCS services.
+Maestro communicates to Pelion Cloud over https outbouund. It stores its config locally in a private database, but can also use DeviceDB for storage of applications, network settings, configs and other data when used in conjuction with standard Pelion Cloud services.
 
 ### Interacting
 
-If you are locally on a box using maestro, you should explore [maestro-shell](https://github.com/armPelionEdge/maestro-shell) which will let you interact with maestro directly using the local API.
+If you are locally on a gateway / edge system using maestro, you should explore [maestro-shell](https://github.com/armPelionEdge/maestro-shell) which will let you interact with maestro directly using the local API.
 
 ### Building
 
