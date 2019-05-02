@@ -15,7 +15,7 @@ package events
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import "fmt"
+DEBUG(import "fmt")
 
 DEBUG(func logEvent(format string, a ...interface{}) {)
 DEBUG(s := fmt.Sprintf(format, a...))
