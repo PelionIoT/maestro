@@ -368,7 +368,6 @@ func ReleaseFromServer(ifname string, leasinfo *DhcpLeaseInfo) (ok bool, err err
  */
 func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.DhcpRequestOptions) (ackval int, outleaseinfo *DhcpLeaseInfo, err error) {
 	hwaddr, ifindex, err := GetInterfaceMacAddress(ifname)
-	var success bool
 	var acknowledgementpacket dhcp4.Packet
 	log.MaestroDebugf("NetworkManager: DHCP using interface index (renew) %d / %s has MAC %s", ifindex, ifname, hwaddr.String())
 	if err != nil {
@@ -430,7 +429,7 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 		}
 		defer dhcpclient.Close()
 
-		//        success, acknowledgementpacket, err2 = dhcpclient.Request(opts)
+		//ackval, acknowledgementpacket, err2 = dhcpclient.Request(opts)
 
 		log.MaestroInfof("NetworkManager: DHCP Attempting to renew lease with server %s", serveraddr.String())
 		ackval, acknowledgementpacket, err = dhcpclient.Renew(leaseinfo.LastAckPacket, opts)
@@ -458,7 +457,7 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 			return
 		}
 
-		DEBUG_OUT("DHCP (renew with server %s) Success:%v\n", serveraddr.String(), success)
+		DEBUG_OUT("DHCP (renew with server %s) Success:%v\n", serveraddr.String(), ackval)
 		DEBUG_OUT("DHCP (renew with server %s) Packet:%v\n", serveraddr.String(), acknowledgementpacket)
 
 	} else {
@@ -496,10 +495,11 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
-			for _, ip := range ips {
+			for _, ip = range ips {
 				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
+		_ = ip
 	}
 
 	return
@@ -590,10 +590,11 @@ func InitRebootDhcpLease(ifname string, currentIP net.IP, opts *dhcp4client.Dhcp
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
-			for _, ip := range ips {
+			for _, ip = range ips {
 				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
+		_ = ip
 	}
 
 	return
@@ -700,10 +701,11 @@ func GetFreshDhcpLease(ifname string, opts *dhcp4client.DhcpRequestOptions) (suc
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
-			for _, ip := range ips {
+			for _, ip = range ips {
 				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
+		_ = ip
 	}
 
 	return
@@ -845,10 +847,11 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
-			for _, ip := range ips {
+			for _, ip = range ips {
 				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
+		_ = ip
 	}
 
 	return
