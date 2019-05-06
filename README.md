@@ -125,9 +125,9 @@ Different subsystems have different test suites. Running these may require root 
 Example:
 
 ```
-cd .. && DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo \
+cd .. && DEBUG=1 DEBUG2=1 ./maestro/build.sh && cd ./maestro/networking && sudo \
   LD_LIBRARY_PATH=../../greasego/deps/lib GOROOT=/opt/go \
-  GOPATH=/home/ed/work/gostuff go test -v -run DhcpRequest
+  GOPATH=$HOME/work/gostuff go test -v -run DhcpRequest
 ```
 
 #### Other examples
