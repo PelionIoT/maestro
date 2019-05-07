@@ -1,3 +1,5 @@
+// Generated source file. 
+// Edit files in 'src' folder    
 package networking
 
 // Copyright (c) 2018, Arm Limited and affiliates.
@@ -126,7 +128,11 @@ func TestDhcpRequest(t *testing.T) {
 	requestopts.AddRequestParam(dhcp4.OptionBroadcastAddress)
 	requestopts.AddRequestParam(dhcp4.OptionNetworkTimeProtocolServers)
 
-	newleaseinfo, err := RequestOrRenewDhcpLease("wlan1", &leaseinfo, requestopts)
+	success, newleaseinfo, err := RequestOrRenewDhcpLease("wlan1", &leaseinfo, requestopts)
+
+	if success != int(dhcp4.ACK) {
+		log.Fatalf("Failed to renew DHCP lease: %+v\n", success)
+	}
 
 	if newleaseinfo != &leaseinfo {
 		log.Fatalf("Passed in a valid DhcpLeaseInfo pointer pointing to a struct but failed. %+v", err)
