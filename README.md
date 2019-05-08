@@ -134,3 +134,8 @@ cd .. && DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo \
 
 The Docker build file, for `djs-soft-relay` shows build instruction also, using this exact above method.
 https://github.com/armPelionEdge/cloud-installer/blob/master/djs-soft-relay/build-wwcontainer.sh#L155
+
+#### TroubleShooting
+
+1. Maestro execution on local host creates directories at `/tmp/maestro/images` and `/var/maestro/images` path. Verify the ownership and write permissions for respective directories.
+
