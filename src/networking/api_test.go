@@ -1,5 +1,3 @@
-// Generated source file. 
-// Edit files in 'src' folder    
 package networking
 
 // Copyright (c) 2018, Arm Limited and affiliates.
@@ -25,6 +23,7 @@ import (
 	//    "github.com/armPelionEdge/hashmap"
 	"net"
 	"os"
+	"time"
 
 	"github.com/armPelionEdge/dhcp4"
 	"github.com/armPelionEdge/dhcp4client"
@@ -116,10 +115,18 @@ Outer:
 
 }
 
+func showDhcpRequestProgress(state int, addinfo string) (keepgoing bool) {
+	fmt.Printf("showDhcpRequestProgress: state: %v addinfo: %v\n", state, addinfo)
+	keepgoing = true
+	return
+}
+
 func TestDhcpRequest(t *testing.T) {
 
 	var leaseinfo DhcpLeaseInfo
 	requestopts := new(dhcp4client.DhcpRequestOptions)
+	requestopts.ProgressCB = showDhcpRequestProgress
+	requestopts.StepTimeout = 1 * time.Minute
 	requestopts.AddRequestParam(dhcp4.OptionRouter)
 	requestopts.AddRequestParam(dhcp4.OptionSubnetMask)
 	requestopts.AddRequestParam(dhcp4.OptionDomainNameServer)
@@ -128,9 +135,9 @@ func TestDhcpRequest(t *testing.T) {
 	requestopts.AddRequestParam(dhcp4.OptionBroadcastAddress)
 	requestopts.AddRequestParam(dhcp4.OptionNetworkTimeProtocolServers)
 
-	success, newleaseinfo, err := RequestOrRenewDhcpLease("wlan1", &leaseinfo, requestopts)
+	success, newleaseinfo, err := RequestOrRenewDhcpLease("enp0s3", &leaseinfo, requestopts)
 
-	if success != int(dhcp4.ACK) {
+	if success != dhcp4client.Success {
 		log.Fatalf("Failed to renew DHCP lease: %+v\n", success)
 	}
 
@@ -276,7 +283,7 @@ func testInitNetworkManager(config *maestroSpecs.NetworkConfigPayload, storage *
 	// make the global events channel. 'false' - not a persisten event (won't use storage)
 	_, _, err = events.MakeEventChannel("events", false, false)
 	if err != nil {
-		log.Fatal("NetworkManager: CRITICAL - error creating global channel \"events\" %s", err.Error())
+		log.Fatalf("NetworkManager: CRITICAL - error creating global channel \"events\" %s", err.Error())
 	}
 	return
 }
@@ -339,7 +346,7 @@ func TestNetworkManagerDhcpLoop(t *testing.T) {
 	err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatal("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12
@@ -384,7 +391,7 @@ func TestNetworkManagerNewDbDhcp(t *testing.T) {
 	err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatal("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12
@@ -444,7 +451,7 @@ func TestRestartWithConfigOverride(t *testing.T) {
 
 	err := testInitNetworkManager(config, storage)
 	if err != nil {
-		log.Fatal("Failed to setup test instance of network manager: %+v\n", err)
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
 	}
 	manager := testGetInstance(storage)
 
@@ -472,7 +479,7 @@ func TestRestartWithConfigOverride(t *testing.T) {
 	// err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatal("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12
@@ -515,7 +522,7 @@ func TestRestartWithConfigOverride2(t *testing.T) {
 
 	err := testInitNetworkManager(config, storage)
 	if err != nil {
-		log.Fatal("Failed to setup test instance of network manager: %+v\n", err)
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
 	}
 	manager := testGetInstance(storage)
 
@@ -543,7 +550,7 @@ func TestRestartWithConfigOverride2(t *testing.T) {
 	// err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatal("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12
