@@ -66,10 +66,7 @@ export GIT_TERMINAL_PROMPT=1
 export GOROOT=/opt/go
 export GOPATH="$HOME/work/gostuff"
 export GOBIN="$HOME/work/gostuff/bin"
-export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-
-(env PS1="[golang:work/gostuff] ${debian_chroot:+($debian_chroot)}\u@\h:\w\$ " bash --norc)
-
+export PATH="$PATH:$GOROOT/bin:$GOBIN"
 ```
 
 then just run: `bash ./setup-go.sh` 
