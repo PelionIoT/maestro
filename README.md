@@ -73,6 +73,17 @@ then just run: `bash ./setup-go.sh`
 
 Run your build commands from this sub-shell.
 
+##### On Arch
+
+ * install go:
+  `sudo pacman -S golang`
+
+ * Add generated executables into your path (so that you can do stuff like `maestro` on the command line)
+   ```
+   export PATH="$PATH:$HOME/go/bin"
+   ```
+
+
 #### build instructions
 
 `go get github.com/armPelionEdge/maestro`
