@@ -146,6 +146,19 @@ Notes:
 * The build command is not strictly required to run tests, when you have already built. It's good practice
   to include this in the command so that you don't test a stale build.
 
+#### Running `maestro`
+
+Maestro requires a config in it's working directory called `maestro.config`, so create it:
+
+`touch maestro.config`
+
+Build and run `maestro`:
+```
+DEBUG=1 DEBUG2=1 ./build.sh && LD_LIBRARY_PATH=vendor/github.com/armPelionEdge/greasego/deps/lib maestro
+```
+
+If you get a `maestro: command not found` error, check that your `$GOBIN` is part of your `$PATH`
+
 #### Other examples
 
 The Docker build file, for `djs-soft-relay` shows build instruction also, using this exact above method.
