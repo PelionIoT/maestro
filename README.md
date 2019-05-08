@@ -130,13 +130,21 @@ DEBUG=1 DEBUG2=1 ./build.sh
 
 Different subsystems have different test suites. Running these may require root privleges, for instance networking. You also need to run the pre-processor if making changes.
 
-Example:
+Example, from `$GOPATH/src/github.com/armPelionEdge/maestro`:
 
 ```
-cd .. && DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo \
-  LD_LIBRARY_PATH=../../greasego/deps/lib GOROOT=/opt/go \
-  GOPATH=/home/ed/work/gostuff go test -v -run DhcpRequest
+DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo \
+  LD_LIBRARY_PATH=../vendor/github.com/armPelionEdge/greasego/deps/lib go test -v -run DhcpRequest
 ```
+
+Notes:
+
+* The dependencies of greasego (a native library extension to go) are in
+  `$GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego/deps/lib`,
+  which requires us to add that directory to the `LD_LIBRARY_PATH` environment variable so that
+  go can find these libraries. A relative path is used in the example to reduce overall command length.
+* The build command is not strictly required to run tests, when you have already built. It's good practice
+  to include this in the command so that you don't test a stale build.
 
 #### Other examples
 
