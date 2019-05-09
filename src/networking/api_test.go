@@ -121,6 +121,7 @@ func showDhcpRequestProgress(state int, addinfo string) (keepgoing bool) {
 	return
 }
 
+const DHCP_TEST_INTERFACE_NAME = "wlan1"
 func TestDhcpRequest(t *testing.T) {
 
 	var leaseinfo DhcpLeaseInfo
@@ -135,7 +136,7 @@ func TestDhcpRequest(t *testing.T) {
 	requestopts.AddRequestParam(dhcp4.OptionBroadcastAddress)
 	requestopts.AddRequestParam(dhcp4.OptionNetworkTimeProtocolServers)
 
-	success, newleaseinfo, err := RequestOrRenewDhcpLease("enp0s3", &leaseinfo, requestopts)
+	success, newleaseinfo, err := RequestOrRenewDhcpLease(DHCP_TEST_INTERFACE_NAME, &leaseinfo, requestopts)
 
 	if success != dhcp4client.Success {
 		log.Fatalf("Failed to renew DHCP lease: %+v\n", success)
