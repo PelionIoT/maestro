@@ -19,8 +19,8 @@ const EVENT_CHANNEL_QUEUE_SIZE = 100
 
 // common channel names:
 
-
-// net-ordered is a fanout channel,  
+// net-ordered is a fanout channel,
 const NET_ORDERED_CHANNEL = "net-ordered"
+
 // a non-fanout channel, where events can be missed
 const NET_EVENT_FEED_CHANNEL = "net-feed"

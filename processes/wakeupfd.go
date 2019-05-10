@@ -1,5 +1,5 @@
-// Generated source file. 
-// Edit files in 'src' folder    
+// Generated source file.
+// Edit files in 'src' folder
 package processes
 
 // Copyright (c) 2018, Arm Limited and affiliates.
@@ -23,21 +23,21 @@ import (
 )
 
 const (
-    EFD_SEMAPHORE = 00000001
-    EFD_CLOEXEC = 02000000
-    EFD_NONBLOCK = 00004000
+	EFD_SEMAPHORE = 00000001
+	EFD_CLOEXEC   = 02000000
+	EFD_NONBLOCK  = 00004000
 )
 
 type WakeupFd struct {
-	fd_read int  // on Linux, with eventfd, we only use this
+	fd_read  int // on Linux, with eventfd, we only use this
 	fd_write int
 }
 
 // Linux version:
 func NewWakeupFd() (ret *WakeupFd, errno error) {
-	fd, errno := eventfd(0,EFD_NONBLOCK)
+	fd, errno := eventfd(0, EFD_NONBLOCK)
 	if errno == nil {
-		ret = &WakeupFd{fd,0}		
+		ret = &WakeupFd{fd, 0}
 	}
 	return
 }
@@ -57,8 +57,8 @@ func (this *WakeupFd) ReadWakeup() (ret uint64, errno error) {
 	_p0 = unsafe.Pointer(&ret)
 	len_int64 := int(8)
 	_, _, e1 := syscall.RawSyscall(syscall.SYS_READ, uintptr(this.fd_read), uintptr(_p0), uintptr(len_int64))
-//	r0
-//	n := uint64(r0)
+	//	r0
+	//	n := uint64(r0)
 	if e1 != 0 {
 		errno = e1
 	}
@@ -71,15 +71,15 @@ func (this *WakeupFd) ReadWakeup() (ret uint64, errno error) {
 // }
 
 // Wake's up a wakeup-use FD. Always write a non-zero integer
-// to force the FD to wake up epoll(), select() etc. 
+// to force the FD to wake up epoll(), select() etc.
 // This 64-bit int size is to accomodate eventfd on Linux
 
 // eventfd() is Linux specific
 // C def: int eventfd(unsigned int initval, int flags);
-func eventfd(initval uint, flags int) (fd int, errno error) {	
+func eventfd(initval uint, flags int) (fd int, errno error) {
 	val, _, err := syscall.RawSyscall(syscall.SYS_EVENTFD,
-	   	uintptr(initval),
-   		uintptr(flags),
+		uintptr(initval),
+		uintptr(flags),
 		0)
 	if err == 0 {
 		fd = int(val)

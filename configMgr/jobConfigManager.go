@@ -16,13 +16,13 @@ package configMgr
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/boltdb/bolt"
-	"github.com/armPelionEdge/stow"
-	"encoding/gob"	
+	"encoding/gob"
 	"fmt"
+	"github.com/armPelionEdge/maestro/maestroConfig"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/stow"
+	"github.com/boltdb/bolt"
 )
 
 /**
@@ -34,29 +34,28 @@ const c_JOBCONFIG_STORE = "jobConfigs"
 // initialized in init()
 type configManager struct {
 	globalConfig *maestroConfig.YAMLMaestroConfig
-	db *bolt.DB
-	store *stow.Store
-	_cacheNames map[string]bool
-//	_cache 
+	db           *bolt.DB
+	store        *stow.Store
+	_cacheNames  map[string]bool
+	//	_cache
 }
 
 type ConfigObjectError struct {
 	Name string
-	Job string
+	Job  string
 	Code int
-	Aux string
+	Aux  string
 }
 
 func (this *ConfigObjectError) Error() string {
-	s := fmt.Sprintf("%d",this.Code)
-	return "Error: " + this.Job + ":" + this.Name + " code:" + s + " " + this.Aux;
+	s := fmt.Sprintf("%d", this.Code)
+	return "Error: " + this.Job + ":" + this.Name + " code:" + s + " " + this.Aux
 }
 
 const (
 	CONFIG_NAME_INVALID = iota
-	CONFIG_NO_STORAGE = iota
+	CONFIG_NO_STORAGE   = iota
 )
-
 
 var configMgrInstance *configManager
 
@@ -90,40 +89,40 @@ func JobConfigMgr() (ret *configManager) {
 	return configMgrInstance
 }
 
-func makeJobConfigKey(jobname string,confname string) (string) {
+func makeJobConfigKey(jobname string, confname string) string {
 	return jobname + "$" + confname
 }
 
 func (this *configManager) GetConfig(name string, jobname string) (conf maestroSpecs.ConfigDefinition, err error) {
-	this.store.Get(makeJobConfigKey(jobname,name),&conf)
+	this.store.Get(makeJobConfigKey(jobname, name), &conf)
 	return
 }
 
 func (this *configManager) SetConfig(name string, jobname string, conf maestroSpecs.ConfigDefinition) (err error) {
 	if this.store == nil {
-		err = &ConfigObjectError{Name:name,Job:jobname,Code:CONFIG_NO_STORAGE,Aux:"No storage setup."}
+		err = &ConfigObjectError{Name: name, Job: jobname, Code: CONFIG_NO_STORAGE, Aux: "No storage setup."}
 		return
 	}
 	if len(name) > 0 && len(jobname) > 0 {
-		err = this.store.Put(makeJobConfigKey(jobname,name),&conf)
+		err = this.store.Put(makeJobConfigKey(jobname, name), &conf)
 	} else {
-		err = &ConfigObjectError{Name:name,Job:jobname,Code:CONFIG_NAME_INVALID,Aux:"SetConfig failed."}
+		err = &ConfigObjectError{Name: name, Job: jobname, Code: CONFIG_NAME_INVALID, Aux: "SetConfig failed."}
 	}
 	return
 }
 
 func (this *configManager) GetConfigsByJob(jobname string) (config []maestroSpecs.ConfigDefinition, err error) {
-	config = make([]maestroSpecs.ConfigDefinition,0,10)
+	config = make([]maestroSpecs.ConfigDefinition, 0, 10)
 	// use stow.IterateIf
-//	temp := maestroSpecs.ConfigDefinitionPayload{"testname","tesjob","data","encodingtest",nil,""}
+	//	temp := maestroSpecs.ConfigDefinitionPayload{"testname","tesjob","data","encodingtest",nil,""}
 	var temp maestroSpecs.ConfigDefinition
-	this.store.IterateFromPrefixIf([]byte(makeJobConfigKey(jobname,"")), func(key []byte, val interface{}) bool {	
+	this.store.IterateFromPrefixIf([]byte(makeJobConfigKey(jobname, "")), func(key []byte, val interface{}) bool {
 		el, ok := val.(*maestroSpecs.ConfigDefinition)
 		if ok {
-//			DEBUG_OUT("\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< CONFIG cast %s %+v\n\n",string(key),el)
-			config = append(config,(*el).Dup())
+			//			DEBUG_OUT("\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< CONFIG cast %s %+v\n\n",string(key),el)
+			config = append(config, (*el).Dup())
 		} else {
-//			DEBUG_OUT("\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< CONFIG cast FAILED %s \n\n",string(key))
+			//			DEBUG_OUT("\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< CONFIG cast FAILED %s \n\n",string(key))
 		}
 		return true
 	}, &temp)
@@ -131,13 +130,13 @@ func (this *configManager) GetConfigsByJob(jobname string) (config []maestroSpec
 }
 
 func (this *configManager) DelConfig(name string, jobname string) {
-	key := makeJobConfigKey(jobname,name)
+	key := makeJobConfigKey(jobname, name)
 	this.store.Delete(key)
-	delete(this._cacheNames,key)
+	delete(this._cacheNames, key)
 }
 
 func (this *configManager) GetAllConfigs() (config []maestroSpecs.ConfigDefinition, err error) {
-	config = make([]maestroSpecs.ConfigDefinition,0,10)
+	config = make([]maestroSpecs.ConfigDefinition, 0, 10)
 	// use stow.IterateIf
 	var temp maestroSpecs.ConfigDefinition
 	this._cacheNames = make(map[string]bool)
@@ -145,10 +144,10 @@ func (this *configManager) GetAllConfigs() (config []maestroSpecs.ConfigDefiniti
 		this._cacheNames[string(key[:])] = true
 		el, ok := val.(*maestroSpecs.ConfigDefinition)
 		if ok {
-			config = append(config,(*el).Dup())
+			config = append(config, (*el).Dup())
 		}
 		return true
-	}, &temp)		
+	}, &temp)
 	return
 }
 
@@ -159,12 +158,12 @@ func (this *configManager) LoadAllNames() (err error) {
 	this.store.IterateIf(func(key []byte, val interface{}) bool {
 		this._cacheNames[string(key[:])] = true
 		return true
-	}, &temp)		
+	}, &temp)
 	return
 }
 
-func (this *configManager) Exists(name string, jobname string ) (bool) {
-	if this._cacheNames[makeJobConfigKey(jobname,name)] {
+func (this *configManager) Exists(name string, jobname string) bool {
+	if this._cacheNames[makeJobConfigKey(jobname, name)] {
 		return true
 	} else {
 		return false

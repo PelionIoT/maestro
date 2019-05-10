@@ -431,7 +431,7 @@ func (ysc *YAMLMaestroConfig) GetSyslogSocket() (ret string) {
 // FillInDefaults goes through specific parts of the config and puts in defaults if strings
 // were missing or empty.
 func (ysc *YAMLMaestroConfig) FillInDefaults() {
-	for n, _ := range ysc.JobStarts {
+	for n := range ysc.JobStarts {
 		_job := maestroSpecs.JobDefinition(&ysc.JobStarts[n])
 		if len(ysc.JobStarts[n].ConfigName) < 1 {
 			ysc.JobStarts[n].ConfigName = _job.GetConfigName()

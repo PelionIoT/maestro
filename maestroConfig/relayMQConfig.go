@@ -26,30 +26,30 @@ type RelayMQDriverConfig struct {
 	// by a certificate authority in the default list. If the
 	// server is signed by a certificate authority in the default
 	// list it can be omitted.
-//	RootCA []byte
+	//	RootCA []byte
 	RootCA string `yaml:"rootCA"`
 	// The ServerName is also only required if the root ca chain
 	// is not in the default list. This option should be omitted
 	// if RootCA is not specified. It should match the common name
 	// of the server's certificate.
-//	ServerName string
+	//	ServerName string
 	ServerName string `yaml:"server_name"`
 	// This option can be used in place of the RootCA and ServerName
 	// for servers that are not signed by a well known certificate
 	// authority. It will skip the authentication for the server. It
 	// is not recommended outside of a test environment.
 	// valid values: 'true' 'false' or empty
-	// This value is a string type so that the pre-processor can 
+	// This value is a string type so that the pre-processor can
 	// assign it in maestro
-	NoValidate string	`yaml:"no_validate"`
-	// This is the PEM encoded SSL client certificate. This is required 
-	// for all https based client connections. It provides the relay identity 
+	NoValidate string `yaml:"no_validate"`
+	// This is the PEM encoded SSL client certificate. This is required
+	// for all https based client connections. It provides the relay identity
 	// to the server
-//	ClientCertificate []byte
+	//	ClientCertificate []byte
 	ClientCertificate string `yaml:"client_cert"`
 	// This is the PEM encoded SSL client private key. This is required
 	// for all https based client connections.
-//	ClientKey []byte
+	//	ClientKey []byte
 	ClientKey string `yaml:"client_key"`
 	// This is the hostname or IP address of the relaymq server
 	Host string `yaml:"host"`
@@ -57,7 +57,7 @@ type RelayMQDriverConfig struct {
 	Port string `yaml:"port"`
 	// If this flag is set, client library logging will be printed
 	// valid values: 'true' 'false' or empty
-	// This value is a string type so that the pre-processor can 
+	// This value is a string type so that the pre-processor can
 	// assign it in maestro
 	EnableLogging string `yaml:"logging"`
 	// The prefetch limit describes how many messages can be delivered to
@@ -79,5 +79,5 @@ type RelayMQDriverConfig struct {
 	// The identity header can be set if connecting to a server via http.
 	// This is recommended only for testing in a local environment or
 	// for connecting two backend cloud services together.
-//	Identity relaymq.IdentityHeader
+	//	Identity relaymq.IdentityHeader
 }

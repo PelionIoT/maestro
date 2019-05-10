@@ -41,8 +41,8 @@ import (
 	"unsafe"
 
 	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
-	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/networking/arp"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/tasks"

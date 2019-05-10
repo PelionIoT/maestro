@@ -18,8 +18,8 @@ package debugging
 // limitations under the License.
 
 import (
+	"fmt"
 	"runtime"
- 	"fmt"
 )
 
 const DebugEnabled = true
@@ -33,24 +33,23 @@ func DEBUG_OUT2(args ...interface{}) {
 }
 
 func DumpMemStats() {
-    var stats runtime.MemStats
-    runtime.ReadMemStats(&stats)
-    fmt.Println("------ReadMemStats------\n")
-    //DEBUG_OUT("%v+\n",stats)
-    fmt.Println("  ReadMemStats Alloc      %d\n",stats.Alloc)
-    fmt.Println("  ReadMemStats TotalAlloc %d\n",stats.TotalAlloc)
-    fmt.Println("  ReadMemStats Sys        %d\n",stats.Sys)
-    fmt.Println("  ReadMemStats Mallocs    %d\n",stats.Mallocs)
-    fmt.Println("  ReadMemStats HeapAlloc  %d\n",stats.HeapAlloc)
-    fmt.Println("  ")
-	  fmt.Println("------ReadMemStats done------\n")            
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	fmt.Println("------ReadMemStats------\n")
+	//DEBUG_OUT("%v+\n",stats)
+	fmt.Println("  ReadMemStats Alloc      %d\n", stats.Alloc)
+	fmt.Println("  ReadMemStats TotalAlloc %d\n", stats.TotalAlloc)
+	fmt.Println("  ReadMemStats Sys        %d\n", stats.Sys)
+	fmt.Println("  ReadMemStats Mallocs    %d\n", stats.Mallocs)
+	fmt.Println("  ReadMemStats HeapAlloc  %d\n", stats.HeapAlloc)
+	fmt.Println("  ")
+	fmt.Println("------ReadMemStats done------\n")
 }
 
-
 /**
- * There appears to be a golang runtime bug in ReadMemStats() - make sure you dont call this 
+ * There appears to be a golang runtime bug in ReadMemStats() - make sure you dont call this
  * in production:
- *  
+ *
  *runtime stack:
 panic(0x702f40, 0xc420010140)
     /opt/go/src/runtime/panic.go:389 +0x6d2
@@ -72,5 +71,5 @@ created by github.com/armPelionEdge/maestro.(*Client).startTicker
     /home/ed/work/gostuff/src/github.com/armPelionEdge/maestro/httpSymphonyClient.go:238 +0x68
 
 
- * 
- */
+ *
+*/

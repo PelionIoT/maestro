@@ -16,9 +16,9 @@ package wwrmi
 // limitations under the License.
 
 import (
-	"sync"
 	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/debugging"
+	"sync"
 )
 
 // type outboundBuffer struct {
@@ -39,7 +39,7 @@ import (
 // }
 
 type logBuffer struct {
-	data *greasego.TargetCallbackData
+	data   *greasego.TargetCallbackData
 	godata []byte
 	// the amount of times we have tried to send this log to the cloud
 	tries int
@@ -50,7 +50,6 @@ func (buf *logBuffer) clear() {
 	buf.tries = 0
 }
 
-
 // Generics follow
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,23 +59,22 @@ func (buf *logBuffer) clear() {
 // m4_define({{*NODE*}},{{*logBuffer*}})  m4_define({{*FIFO*}},{{*logBufferFIFO*}})
 // Thread safe queue for LogBuffer
 type logBufferFIFO struct {
-	q []*logBuffer	
-	mutex *sync.Mutex
-	condWait *sync.Cond
-	condFull *sync.Cond
-	maxSize uint32
-	drops int
-	shutdown bool
-	wakeupIter int  // this is to deal with the fact that go developers
-	                // decided not to implement pthread_cond_timedwait()
-	                // So we use this as a work around to temporarily wakeup
-	                // (but not shutdown) the queue. Bring your own timer.
+	q          []*logBuffer
+	mutex      *sync.Mutex
+	condWait   *sync.Cond
+	condFull   *sync.Cond
+	maxSize    uint32
+	drops      int
+	shutdown   bool
+	wakeupIter int // this is to deal with the fact that go developers
+	// decided not to implement pthread_cond_timedwait()
+	// So we use this as a work around to temporarily wakeup
+	// (but not shutdown) the queue. Bring your own timer.
 }
-
 
 func New_logBufferFIFO(maxsize uint32) (ret *logBufferFIFO) {
 	ret = new(logBufferFIFO)
-	ret.mutex =  new(sync.Mutex)
+	ret.mutex = new(sync.Mutex)
 	ret.condWait = sync.NewCond(ret.mutex)
 	ret.condFull = sync.NewCond(ret.mutex)
 	ret.maxSize = maxsize
@@ -90,20 +88,20 @@ func (fifo *logBufferFIFO) Push(n *logBuffer) (drop bool, dropped *logBuffer) {
 	debugging.DEBUG_OUT2(" >>>>>>>>>>>> [ logBufferFIFO ] >>> In Push\n")
 	fifo.mutex.Lock()
 	debugging.DEBUG_OUT2(" ------------ In Push (past Lock)\n")
-    if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
-    	// drop off the queue
-    	dropped = (fifo.q)[0]
-    	fifo.q = (fifo.q)[1:]
-    	fifo.drops++
-    	debugging.DEBUG_OUT("!!! Dropping logBuffer in logBufferFIFO \n")
-    	drop = true
-    }
-    fifo.q = append(fifo.q, n)
+	if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
+		// drop off the queue
+		dropped = (fifo.q)[0]
+		fifo.q = (fifo.q)[1:]
+		fifo.drops++
+		debugging.DEBUG_OUT("!!! Dropping logBuffer in logBufferFIFO \n")
+		drop = true
+	}
+	fifo.q = append(fifo.q, n)
 	debugging.DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
-    fifo.mutex.Unlock()
-    fifo.condWait.Signal()
+	fifo.mutex.Unlock()
+	fifo.condWait.Signal()
 	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
-    return
+	return
 }
 
 // Pushes a batch of logBuffer. Drops older logBuffer to make room
@@ -117,51 +115,50 @@ func (fifo *logBufferFIFO) PushBatch(n []*logBuffer) (drop bool, dropped []*logB
 	if fifo.maxSize > 0 && _inlen > fifo.maxSize {
 		_inlen = fifo.maxSize
 	}
-    if fifo.maxSize > 0 && _len+_inlen > fifo.maxSize {
-    	needdrop := _inlen+_len - fifo.maxSize 
-    	if needdrop >= fifo.maxSize {
-	    	drop = true
-    		dropped = fifo.q
-	    	fifo.q = nil
-    	} else if needdrop > 0 {
-	    	drop = true
-	    	dropped = (fifo.q)[0:needdrop]
-	    	fifo.q=(fifo.q)[needdrop:]
-	    }
-    	// // drop off the queue
-    	// dropped = (fifo.q)[0]
-    	// fifo.q = (fifo.q)[1:]
-    	// fifo.drops++
-    	debugging.DEBUG_OUT2(" ----------- PushBatch() !!! Dropping %d logBuffer in logBufferFIFO \n", len(dropped))
-    }
-    debugging.DEBUG_OUT2(" ----------- In PushBatch (pushed %d)\n",_inlen)
-    fifo.q = append(fifo.q, n[0:int(_inlen)]...)
+	if fifo.maxSize > 0 && _len+_inlen > fifo.maxSize {
+		needdrop := _inlen + _len - fifo.maxSize
+		if needdrop >= fifo.maxSize {
+			drop = true
+			dropped = fifo.q
+			fifo.q = nil
+		} else if needdrop > 0 {
+			drop = true
+			dropped = (fifo.q)[0:needdrop]
+			fifo.q = (fifo.q)[needdrop:]
+		}
+		// // drop off the queue
+		// dropped = (fifo.q)[0]
+		// fifo.q = (fifo.q)[1:]
+		// fifo.drops++
+		debugging.DEBUG_OUT2(" ----------- PushBatch() !!! Dropping %d logBuffer in logBufferFIFO \n", len(dropped))
+	}
+	debugging.DEBUG_OUT2(" ----------- In PushBatch (pushed %d)\n", _inlen)
+	fifo.q = append(fifo.q, n[0:int(_inlen)]...)
 	debugging.DEBUG_OUT2(" ------------ In PushBatch (@ Unlock)\n")
-    fifo.mutex.Unlock()
-    fifo.condWait.Signal()
+	fifo.mutex.Unlock()
+	fifo.condWait.Signal()
 	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return PushBatch\n")
-    return
+	return
 }
-
 
 func (fifo *logBufferFIFO) Pop() (n *logBuffer) {
 	fifo.mutex.Lock()
 	if len(fifo.q) > 0 {
-	    n = (fifo.q)[0]
-	    fifo.q = (fifo.q)[1:]		
+		n = (fifo.q)[0]
+		fifo.q = (fifo.q)[1:]
 		fifo.condFull.Signal()
-	} 
+	}
 	fifo.mutex.Unlock()
-    return
+	return
 }
 
 func (fifo *logBufferFIFO) Peek() (n *logBuffer) {
 	fifo.mutex.Lock()
 	if len(fifo.q) > 0 {
-	    n = (fifo.q)[0]
-	} 
+		n = (fifo.q)[0]
+	}
 	fifo.mutex.Unlock()
-    return
+	return
 }
 
 // func (fifo *logBufferFIFO) PopBatch(max uint32) (n *logBuffer) {
@@ -174,9 +171,9 @@ func (fifo *logBufferFIFO) Peek() (n *logBuffer) {
 
 // 		}
 // 	    n = (fifo.q)[0]
-// 	    fifo.q = (fifo.q)[1:]		
+// 	    fifo.q = (fifo.q)[1:]
 // 		fifo.condFull.Signal()
-// 	} 
+// 	}
 // 	fifo.mutex.Unlock()
 //     return
 // }
@@ -184,21 +181,21 @@ func (fifo *logBufferFIFO) Len() int {
 	fifo.mutex.Lock()
 	ret := len(fifo.q)
 	fifo.mutex.Unlock()
-    return ret
+	return ret
 }
 func (fifo *logBufferFIFO) PopOrWait() (n *logBuffer) {
 	n = nil
 	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
-	if(fifo.shutdown) {
+	if fifo.shutdown {
 		fifo.mutex.Unlock()
 		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
 		return
 	}
 	if len(fifo.q) > 0 {
-	    n = (fifo.q)[0]
-	    fifo.q = (fifo.q)[1:]		
+		n = (fifo.q)[0]
+		fifo.q = (fifo.q)[1:]
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
 		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
@@ -206,22 +203,22 @@ func (fifo *logBufferFIFO) PopOrWait() (n *logBuffer) {
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
-//		fmt.Printf(" --entering wait %+v\n",*fifo);
-	debugging.DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
+		//		fmt.Printf(" --entering wait %+v\n",*fifo);
+		debugging.DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
-//		Wait returns with Lock
-//		fmt.Printf(" --out of wait %+v\n",*fifo);
-		if fifo.shutdown { 
+		//		Wait returns with Lock
+		//		fmt.Printf(" --out of wait %+v\n",*fifo);
+		if fifo.shutdown {
 			fifo.mutex.Unlock()
-	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
-			return 
+			debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
+			return
 		}
 		if len(fifo.q) > 0 {
-		    n = (fifo.q)[0]
-		    fifo.q = (fifo.q)[1:]		
+			n = (fifo.q)[0]
+			fifo.q = (fifo.q)[1:]
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
+			debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
 			return
 		}
 	}
@@ -233,19 +230,19 @@ func (fifo *logBufferFIFO) PopOrWaitBatch(max uint32) (slice []*logBuffer) {
 	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
-	if(fifo.shutdown) {
+	if fifo.shutdown {
 		fifo.mutex.Unlock()
 		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
 		return
 	}
 	_len := uint32(len(fifo.q))
 	if _len > 0 {
-		if  max >= _len {
-	    	slice = fifo.q
-	    	fifo.q = nil  // http://stackoverflow.com/questions/29164375/golang-correct-way-to-initialize-empty-slice
+		if max >= _len {
+			slice = fifo.q
+			fifo.q = nil // http://stackoverflow.com/questions/29164375/golang-correct-way-to-initialize-empty-slice
 		} else {
 			slice = (fifo.q)[0:max]
-			fifo.q = (fifo.q)[max:]		
+			fifo.q = (fifo.q)[max:]
 		}
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
@@ -254,28 +251,28 @@ func (fifo *logBufferFIFO) PopOrWaitBatch(max uint32) (slice []*logBuffer) {
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
-//		fmt.Printf(" --entering wait %+v\n",*fifo);
-	debugging.DEBUG_OUT2(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
+		//		fmt.Printf(" --entering wait %+v\n",*fifo);
+		debugging.DEBUG_OUT2(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
-//		Wait returns with Lock
-//		fmt.Printf(" --out of wait %+v\n",*fifo);
-		if fifo.shutdown { 
+		//		Wait returns with Lock
+		//		fmt.Printf(" --out of wait %+v\n",*fifo);
+		if fifo.shutdown {
 			fifo.mutex.Unlock()
-	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
-			return 
+			debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
+			return
 		}
 		_len = uint32(len(fifo.q))
 		if _len > 0 {
 			if max >= _len {
-		    	slice = fifo.q
-		    	fifo.q = nil  // http://stackoverflow.com/questions/29164375/golang-correct-way-to-initialize-empty-slice
+				slice = fifo.q
+				fifo.q = nil // http://stackoverflow.com/questions/29164375/golang-correct-way-to-initialize-empty-slice
 			} else {
 				slice = (fifo.q)[0:max]
-				fifo.q = (fifo.q)[max:]			
+				fifo.q = (fifo.q)[max:]
 			}
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
+			debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
 			return
 		}
 	}
@@ -286,21 +283,21 @@ func (fifo *logBufferFIFO) PopOrWaitBatch(max uint32) (slice []*logBuffer) {
 func (fifo *logBufferFIFO) PushOrWait(n *logBuffer) (ret bool) {
 	ret = true
 	fifo.mutex.Lock()
-	_wakeupIter := fifo.wakeupIter	
-    for int(fifo.maxSize) > 0 && (len(fifo.q)+1 > int(fifo.maxSize)) && !fifo.shutdown && (fifo.wakeupIter == _wakeupIter) {
-//		fmt.Printf(" --entering push wait %+v\n",*fifo);
-    	fifo.condFull.Wait()
-		if fifo.shutdown { 
+	_wakeupIter := fifo.wakeupIter
+	for int(fifo.maxSize) > 0 && (len(fifo.q)+1 > int(fifo.maxSize)) && !fifo.shutdown && (fifo.wakeupIter == _wakeupIter) {
+		//		fmt.Printf(" --entering push wait %+v\n",*fifo);
+		fifo.condFull.Wait()
+		if fifo.shutdown {
 			fifo.mutex.Unlock()
 			ret = false
 			return
-		}    	
-//		fmt.Printf(" --exiting push wait %+v\n",*fifo);
-    }
-    fifo.q = append(fifo.q, n)
-    fifo.mutex.Unlock()
-    fifo.condWait.Signal()
-    return
+		}
+		//		fmt.Printf(" --exiting push wait %+v\n",*fifo);
+	}
+	fifo.q = append(fifo.q, n)
+	fifo.mutex.Unlock()
+	fifo.condWait.Signal()
+	return
 }
 func (fifo *logBufferFIFO) Shutdown() {
 	fifo.mutex.Lock()
@@ -326,6 +323,7 @@ func (fifo *logBufferFIFO) IsShutdown() (ret bool) {
 	fifo.mutex.Unlock()
 	return
 }
+
 // end generic
-// 
-// 
+//
+//

@@ -21,8 +21,8 @@ import (
 	"plugin"
 	"sync"
 
-	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 type Plug struct {
@@ -30,7 +30,6 @@ type Plug struct {
 	_       chan struct{}
 	Symbols map[string]interface{}
 }
-
 
 // NewPluginLogger returns a new logger object handed to a plugin
 func NewPluginLogger(pluginName string) (logger *log.PrefixedLogger) {

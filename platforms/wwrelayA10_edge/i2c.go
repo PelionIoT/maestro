@@ -62,39 +62,39 @@ type certs_anatomy struct {
 
 // ARCH will be added on automatically  by maestro
 var sslCerts = []certs_anatomy{
-	certs_anatomy{"CLIENT_KEY_PEM", "/mnt/.boot/.ssl/client.key.pem", ""},
-	certs_anatomy{"CLIENT_CERT_PEM", "/mnt/.boot/.ssl/client.cert.pem", ""},
-	certs_anatomy{"SERVER_KEY_PEM", "/mnt/.boot/.ssl/server.key.pem", ""},
-	certs_anatomy{"SERVER_CERT_PEM", "/mnt/.boot/.ssl/server.cert.pem", ""},
-	certs_anatomy{"CA_PEM", "/mnt/.boot/.ssl/ca.cert.pem", ""},
-	certs_anatomy{"CA_INTERMEDIATE_PEM", "/mnt/.boot/.ssl/intermediate.cert.pem", ""},
-	certs_anatomy{"CA_CHAIN_PEM", "/mnt/.boot/.ssl/ca.cert.pem", "/mnt/.boot/.ssl/intermediate.cert.pem"},
+	{"CLIENT_KEY_PEM", "/mnt/.boot/.ssl/client.key.pem", ""},
+	{"CLIENT_CERT_PEM", "/mnt/.boot/.ssl/client.cert.pem", ""},
+	{"SERVER_KEY_PEM", "/mnt/.boot/.ssl/server.key.pem", ""},
+	{"SERVER_CERT_PEM", "/mnt/.boot/.ssl/server.cert.pem", ""},
+	{"CA_PEM", "/mnt/.boot/.ssl/ca.cert.pem", ""},
+	{"CA_INTERMEDIATE_PEM", "/mnt/.boot/.ssl/intermediate.cert.pem", ""},
+	{"CA_CHAIN_PEM", "/mnt/.boot/.ssl/ca.cert.pem", "/mnt/.boot/.ssl/intermediate.cert.pem"},
 }
 
 var metadata = []eeprom_anatomy{
-	eeprom_anatomy{"BRAND", 0x50, 0, 2},
-	eeprom_anatomy{"DEVICE", 0x50, 2, 2},
-	eeprom_anatomy{"UUID", 0x50, 4, 6},
-	eeprom_anatomy{"RELAYID", 0x50, 0, 10},
-	eeprom_anatomy{"HARDWARE_VERSION", 0x50, 10, 5},
-	eeprom_anatomy{"WW_PLATFORM", 0x50, 10, 5},
-	eeprom_anatomy{"FIRMWARE_VERSION", 0x50, 15, 5},
-	eeprom_anatomy{"RADIO_CONFIG", 0x50, 20, 2},
-	eeprom_anatomy{"YEAR", 0x50, 22, 1},
-	eeprom_anatomy{"MONTH", 0x50, 23, 1},
-	eeprom_anatomy{"BATCH", 0x50, 24, 1},
-	eeprom_anatomy{"ETHERNET_MAC", 0x50, 25, 6},
-	eeprom_anatomy{"SIXLBR_MAC", 0x50, 31, 8},
-	eeprom_anatomy{"RELAY_SECRET", 0x50, 39, 32},
-	eeprom_anatomy{"PAIRING_CODE", 0x50, 71, 25},
-	eeprom_anatomy{"LED_CONFIG", 0x50, 96, 2},
-	eeprom_anatomy{"LED_COLOR_PROFILE", 0x50, 96, 2},
-	eeprom_anatomy{"CLOUD_URL", 0x51, 0, 250},
-	eeprom_anatomy{"CLOUD_DEVJS_URL", 0x52, 0, 250},
-	eeprom_anatomy{"CLOUD_DDB_URL", 0x53, 0, 250},
-	eeprom_anatomy{"CLOUD_DDB_URL_RES", 0x53, 0, 250},
-	eeprom_anatomy{"RELAY_SERVICES_HOST", 0x51, 0, 250},
-	eeprom_anatomy{"RELAY_SERVICES_HOST_RES", 0x51, 0, 250},
+	{"BRAND", 0x50, 0, 2},
+	{"DEVICE", 0x50, 2, 2},
+	{"UUID", 0x50, 4, 6},
+	{"RELAYID", 0x50, 0, 10},
+	{"HARDWARE_VERSION", 0x50, 10, 5},
+	{"WW_PLATFORM", 0x50, 10, 5},
+	{"FIRMWARE_VERSION", 0x50, 15, 5},
+	{"RADIO_CONFIG", 0x50, 20, 2},
+	{"YEAR", 0x50, 22, 1},
+	{"MONTH", 0x50, 23, 1},
+	{"BATCH", 0x50, 24, 1},
+	{"ETHERNET_MAC", 0x50, 25, 6},
+	{"SIXLBR_MAC", 0x50, 31, 8},
+	{"RELAY_SECRET", 0x50, 39, 32},
+	{"PAIRING_CODE", 0x50, 71, 25},
+	{"LED_CONFIG", 0x50, 96, 2},
+	{"LED_COLOR_PROFILE", 0x50, 96, 2},
+	{"CLOUD_URL", 0x51, 0, 250},
+	{"CLOUD_DEVJS_URL", 0x52, 0, 250},
+	{"CLOUD_DDB_URL", 0x53, 0, 250},
+	{"CLOUD_DDB_URL_RES", 0x53, 0, 250},
+	{"RELAY_SERVICES_HOST", 0x51, 0, 250},
+	{"RELAY_SERVICES_HOST_RES", 0x51, 0, 250},
 }
 
 var mcc_config string = "/mnt/.boot/.ssl/mcc_config.tar.gz"
@@ -155,7 +155,7 @@ func get_eeprom(prop eeprom_anatomy, log maestroSpecs.Logger) (eeData, error) {
 		if len(dataStr) < 8 {
 			log.Errorf("property CLOUD_DDB_URL_RES looks corrupt. skipping.")
 		} else {
-			dataStr = dataStr[8:len(dataStr)]
+			dataStr = dataStr[8:]
 		}
 	}
 
@@ -168,7 +168,7 @@ func get_eeprom(prop eeprom_anatomy, log maestroSpecs.Logger) (eeData, error) {
 			log.Errorf("property RELAY_SERVICES_HOST_RES looks corrupt. skipping.")
 		} else {
 			dataStr = strings.Replace(dataStr, ".wigwag.io", "-relays.wigwag.io", 17)
-			dataStr = dataStr[8:len(dataStr)]
+			dataStr = dataStr[8:]
 		}
 	}
 

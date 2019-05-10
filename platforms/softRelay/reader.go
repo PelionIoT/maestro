@@ -72,13 +72,13 @@ type certs_anatomy struct {
 }
 
 var sslCerts = []certs_anatomy{
-	certs_anatomy{"CLIENT_KEY_PEM", "/wigwag/outputConfigFiles/ssl/client.key.pem", ""},
-	certs_anatomy{"CLIENT_CERT_PEM", "/wigwag/outputConfigFiles/ssl/client.cert.pem", ""},
-	certs_anatomy{"SERVER_KEY_PEM", "/wigwag/outputConfigFiles/ssl/server.key.pem", ""},
-	certs_anatomy{"SERVER_CERT_PEM", "/wigwag/outputConfigFiles/ssl/server.cert.pem", ""},
-	certs_anatomy{"CA_CERT_PEM", "/wigwag/outputConfigFiles/ssl/ca.cert.pem", ""},
-	certs_anatomy{"INTERMEDIATE_CERT_PEM", "/wigwag/outputConfigFiles/ssl/intermediate.cert.pem", ""},
-	certs_anatomy{"CA_CHAIN_CERT_PEM", "/wigwag/outputConfigFiles/ssl/ca.cert.pem", "/wigwag/outputConfigFiles/ssl/intermediate.cert.pem"},
+	{"CLIENT_KEY_PEM", "/wigwag/outputConfigFiles/ssl/client.key.pem", ""},
+	{"CLIENT_CERT_PEM", "/wigwag/outputConfigFiles/ssl/client.cert.pem", ""},
+	{"SERVER_KEY_PEM", "/wigwag/outputConfigFiles/ssl/server.key.pem", ""},
+	{"SERVER_CERT_PEM", "/wigwag/outputConfigFiles/ssl/server.cert.pem", ""},
+	{"CA_CERT_PEM", "/wigwag/outputConfigFiles/ssl/ca.cert.pem", ""},
+	{"INTERMEDIATE_CERT_PEM", "/wigwag/outputConfigFiles/ssl/intermediate.cert.pem", ""},
+	{"CA_CHAIN_CERT_PEM", "/wigwag/outputConfigFiles/ssl/ca.cert.pem", "/wigwag/outputConfigFiles/ssl/intermediate.cert.pem"},
 }
 
 // var metadata = []eeprom_anatomy {

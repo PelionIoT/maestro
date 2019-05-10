@@ -16,43 +16,42 @@ package maestro
 // limitations under the License.
 
 import (
-	"os"
+	"archive/zip"
+	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
+	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/maestroConfig"
+	"github.com/armPelionEdge/maestro/maestroutils"
+	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/cavaliercoder/grab"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"time"
 	"unsafe"
-	"path/filepath"
-	"io/ioutil"
-	"archive/zip"
-	"github.com/cavaliercoder/grab"
-	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps	
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/maestroutils"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestro/tasks"
-	"github.com/armPelionEdge/maestro/log"
 )
 
 var mgrImagePath string
 var mgrScratchPath string
 
-// internal image operation 
+// internal image operation
 // data
 type imageop struct {
-	client *grab.Client
-	resp *grab.Response
-	req *grab.Request
-	taskId string
+	client   *grab.Client
+	resp     *grab.Response
+	req      *grab.Request
+	taskId   string
 	imageDef maestroSpecs.ImageDefinition
 	// url string
 	// checksum string
-	tempDir string  // used for downloading
-	finalDir string
-	downloadFilepath string // the path to the downloaded file 
-	appName string 
-	version string
+	tempDir          string // used for downloading
+	finalDir         string
+	downloadFilepath string // the path to the downloaded file
+	appName          string
+	version          string
 }
-
 
 var imgInstance *ImageManagerInstance
 
@@ -60,28 +59,27 @@ const (
 	shutdown_manager = iota
 )
 
-func ImageManagerGetInstance() (*ImageManagerInstance) {
+func ImageManagerGetInstance() *ImageManagerInstance {
 	if imgInstance == nil {
 		imgInstance = new(ImageManagerInstance)
 		imgInstance.ticker = time.NewTicker(500 * time.Millisecond)
 		setupHashmapsInstance()
 		imgInstance.controlChan = make(chan uint32, 100)
-	}	
+	}
 	return imgInstance
 }
-
 
 func init() {
 	imageDB = hashmap.New(10)
 }
 
 // quick DB - FIXME - this needs to use the storage driver
-var imageDB *hashmap.HashMap  // appName to StoredImageEntry
+var imageDB *hashmap.HashMap // appName to StoredImageEntry
 
 type StoredImageEntry struct {
-	appName string
-	version string
-	location string  // comes from 'finalDir'
+	appName    string
+	version    string
+	location   string // comes from 'finalDir'
 	entrypoint string // command to start it
 }
 
@@ -96,8 +94,8 @@ func (this *ImageManagerInstance) registerImage(op *imageop) {
 	image.version = op.version
 	image.location = op.finalDir
 	// FIXME what to do about entrypoint??
-	imageDB.Set(op.appName,unsafe.Pointer(image))
-	debugging.DEBUG_OUT("ImageManagerInstance stored image \"%s\"\n",op.appName)
+	imageDB.Set(op.appName, unsafe.Pointer(image))
+	debugging.DEBUG_OUT("ImageManagerInstance stored image \"%s\"\n", op.appName)
 }
 
 func (this *ImageManagerInstance) LookupImage(appname string) (ret *StoredImageEntry, ok bool) {
@@ -112,21 +110,19 @@ func InitImageManager(scratchPath string, imagePath string) (err error) {
 	mgrImagePath = imagePath
 	mgrScratchPath = scratchPath
 
-
 	err = os.MkdirAll(scratchPath, 0700)
 	if err != nil {
-		log.MaestroErrorf("Failed to create scratch path directory: %s\n",err.Error())
+		log.MaestroErrorf("Failed to create scratch path directory: %s\n", err.Error())
 	}
 	err = os.MkdirAll(imagePath, 0700)
 	if err != nil {
-		log.MaestroErrorf("Failed to create scratch path directory: %s\n",err.Error())
+		log.MaestroErrorf("Failed to create scratch path directory: %s\n", err.Error())
 	}
 
 	tasks.RegisterHandler("image", ImageManagerGetInstance())
 
 	return
 }
-
 
 func (this *ImageManagerInstance) initImageDownload(task *tasks.MaestroTask) (err *maestroSpecs.APIError) {
 	requestedOp, ok := task.Op.(*maestroSpecs.ImageOpPayload)
@@ -140,18 +136,18 @@ func (this *ImageManagerInstance) initImageDownload(task *tasks.MaestroTask) (er
 			imgop.appName = requestedOp.GetAppName()
 			imgop.version = requestedOp.GetVersion()
 
-			debugging.DEBUG_OUT(" IMAGE>>>Got image operation definition %+v\n",def)
+			debugging.DEBUG_OUT(" IMAGE>>>Got image operation definition %+v\n", def)
 
 			// make the parent directory for temp directories, just in case not there.
-			os.MkdirAll(mgrScratchPath,0700)
+			os.MkdirAll(mgrScratchPath, 0700)
 
-			dirname, err2 := ioutil.TempDir(mgrScratchPath,def.GetJobName())
+			dirname, err2 := ioutil.TempDir(mgrScratchPath, def.GetJobName())
 
 			if err2 == nil {
-				debugging.DEBUG_OUT(" IMAGE>>>Setting up temporary folder %s\n",dirname)
+				debugging.DEBUG_OUT(" IMAGE>>>Setting up temporary folder %s\n", dirname)
 				imgop.tempDir = dirname
 			} else {
-				debugging.DEBUG_OUT(" IMAGE>>>Failed to setup up temporary dir %s\n",err2)
+				debugging.DEBUG_OUT(" IMAGE>>>Failed to setup up temporary dir %s\n", err2)
 				err = new(maestroSpecs.APIError)
 				err.HttpStatusCode = 500
 				err.ErrorString = "Failed to create temporary directory"
@@ -162,9 +158,9 @@ func (this *ImageManagerInstance) initImageDownload(task *tasks.MaestroTask) (er
 			if imgop.imageDef.GetSize() > 0 {
 				// check disk space availability is Size if provided
 				stats := maestroutils.DiskUsageAtPath(imgop.tempDir)
-				if stats.Avail < imgop.imageDef.GetSize() + maestroConfig.ConfigGetMinDiskSpaceScratch() {
-					debugging.DEBUG_OUT(" IMAGE>>>Disk space low in temp dir %s - can't move image\n",imgop.tempDir)
-					log.MaestroErrorf("IMAGE>>>Disk space low in temp dir %s - can't move image\n",imgop.tempDir)
+				if stats.Avail < imgop.imageDef.GetSize()+maestroConfig.ConfigGetMinDiskSpaceScratch() {
+					debugging.DEBUG_OUT(" IMAGE>>>Disk space low in temp dir %s - can't move image\n", imgop.tempDir)
+					log.MaestroErrorf("IMAGE>>>Disk space low in temp dir %s - can't move image\n", imgop.tempDir)
 					err = new(maestroSpecs.APIError)
 					err.HttpStatusCode = 507 // "Insufficient Storage"
 					err.ErrorString = "Low disk space on scratch"
@@ -178,7 +174,7 @@ func (this *ImageManagerInstance) initImageDownload(task *tasks.MaestroTask) (er
 			// set the final destination path
 			imgop.finalDir = mgrImagePath + "/" + imgop.imageDef.GetJobName()
 
-			this.imageops.Set(task.Id,unsafe.Pointer(imgop))
+			this.imageops.Set(task.Id, unsafe.Pointer(imgop))
 		} else {
 			err = new(maestroSpecs.APIError)
 			err.HttpStatusCode = 400
@@ -198,7 +194,7 @@ func (this *ImageManagerInstance) initImageDownload(task *tasks.MaestroTask) (er
 // download thread loop
 func (this *ImageManagerInstance) doDownload(task *tasks.MaestroTask) {
 
-	imgp, ok := this.imageops.GetStringKey(task.Id)	
+	imgp, ok := this.imageops.GetStringKey(task.Id)
 
 	if ok {
 		img := (*imageop)(imgp)
@@ -207,8 +203,8 @@ func (this *ImageManagerInstance) doDownload(task *tasks.MaestroTask) {
 		img.req, reqErr = grab.NewRequest(img.tempDir, img.imageDef.GetURL())
 
 		if reqErr != nil {
-			log.MaestroErrorf("imageManager: Error on download request: %s\n",reqErr.Error())
-			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Error on creating http request.",Detail:reqErr.Error()})
+			log.MaestroErrorf("imageManager: Error on download request: %s\n", reqErr.Error())
+			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Error on creating http request.", Detail: reqErr.Error()})
 			return
 		}
 
@@ -219,253 +215,251 @@ func (this *ImageManagerInstance) doDownload(task *tasks.MaestroTask) {
 		log.MaestroInfof("IMAGE Downloading %v\n", img.req.URL())
 		resp := img.client.Do(img.req)
 		if resp != nil && resp.HTTPResponse != nil {
-			debugging.DEBUG_OUT("IMAGE>>> download response: %v\n", resp.HTTPResponse.Status)			
+			debugging.DEBUG_OUT("IMAGE>>> download response: %v\n", resp.HTTPResponse.Status)
 		} else {
-			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:0,ErrorString:"No server.",Detail:"Request failed"})
+			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 0, ErrorString: "No server.", Detail: "Request failed"})
 			return
 		}
 
-		Loop:
+	Loop:
 
 		for {
 			select {
-				case <-t.C:
-					debugging.DEBUG_OUT("  transferred %v / %v bytes (%.2f%%)\n",
-						resp.BytesComplete(),
-						resp.Size,
-						100*resp.Progress())
+			case <-t.C:
+				debugging.DEBUG_OUT("  transferred %v / %v bytes (%.2f%%)\n",
+					resp.BytesComplete(),
+					resp.Size,
+					100*resp.Progress())
 
-				case <-resp.Done:
-					debugging.DEBUG_OUT("IMAGE>>>> DOWNLOAD DONE: Request complete: %+v\n",resp)
+			case <-resp.Done:
+				debugging.DEBUG_OUT("IMAGE>>>> DOWNLOAD DONE: Request complete: %+v\n", resp)
 
-					img.downloadFilepath = resp.Filename
-					// download is complete
-					break Loop
+				img.downloadFilepath = resp.Filename
+				// download is complete
+				break Loop
 			}
 		}
 
-		tasks.IterateTask(task.Id,nil)
+		tasks.IterateTask(task.Id, nil)
 	} else {
-		debugging.DEBUG_OUT("IMAGE>>> doDownload() --> Could not find image op: %s\n",task.Id)
-		tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Image not in table.",Detail:"task id:"+task.Id})		
+		debugging.DEBUG_OUT("IMAGE>>> doDownload() --> Could not find image op: %s\n", task.Id)
+		tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Image not in table.", Detail: "task id:" + task.Id})
 	}
 
-
-
 }
-
 
 func pathExists(path string) (bool, error) {
-    _, err := os.Stat(path)
-    if err == nil { return true, nil }
-	if os.IsNotExist(err) { return false, nil }
-    return true, err
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
 
-type unzipCB func (err error)
+type unzipCB func(err error)
 
 func unzipArchive(src, dest string, cb unzipCB) {
-    r, err := zip.OpenReader(src)
-    if err != nil {
-    	cb(err)
-        return
-    }
-    defer func() {
-        if err := r.Close(); err != nil {
-           	log.MaestroErrorf("Image manager: problem closing Zip archive: %s\n",err.Error())
-//            panic(err)
-        }
-    }()
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		cb(err)
+		return
+	}
+	defer func() {
+		if err := r.Close(); err != nil {
+			log.MaestroErrorf("Image manager: problem closing Zip archive: %s\n", err.Error())
+			//            panic(err)
+		}
+	}()
 
-//    os.MkdirAll(dest, 0755)
+	//    os.MkdirAll(dest, 0755)
 
-    // Closure to address file descriptors issue with all the deferred .Close() methods
-    extractAndWriteFile := func(f *zip.File) error {
-        rc, err := f.Open()
-        if err != nil {
-           	log.MaestroErrorf("Image Manager: Error opening zip archive: %s --> %s\n", f.Name, err.Error())
-            return err
-        }
-        defer func() {
-            if err := rc.Close(); err != nil {
-            	log.MaestroErrorf("Image manager: problem closing Zip archive: %s\n",err.Error())
-//            	cb(err)
-            }
-        }()
+	// Closure to address file descriptors issue with all the deferred .Close() methods
+	extractAndWriteFile := func(f *zip.File) error {
+		rc, err := f.Open()
+		if err != nil {
+			log.MaestroErrorf("Image Manager: Error opening zip archive: %s --> %s\n", f.Name, err.Error())
+			return err
+		}
+		defer func() {
+			if err := rc.Close(); err != nil {
+				log.MaestroErrorf("Image manager: problem closing Zip archive: %s\n", err.Error())
+				//            	cb(err)
+			}
+		}()
 
-        var path string
-		path = filepath.Join(dest, f.Name)        	        	
+		var path string
+		path = filepath.Join(dest, f.Name)
 
-        if f.FileInfo().IsDir() {
-        	debugging.DEBUG_OUT("IMAGE>>> extract: topTree %s %+v\n",f.Name, f.FileInfo())
-            os.MkdirAll(path, f.Mode())
-        } else {
-        	debugging.DEBUG_OUT("IMAGE>>> extract: path %s %s\n",path,f.Name)
-            os.MkdirAll(filepath.Dir(path), f.Mode())
-            f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-            if err != nil {
-            	log.MaestroErrorf("Image Manager: Error on extracting file from archive: %s --> %s\n", path, err.Error())
-                return err
-            }
-            defer func(p string) {
-                if err := f.Close(); err != nil {
-	            	log.MaestroErrorf("Image manager: problem closing output file for archive %s: %s\n",p,err.Error())
-//                    panic(err)
-                }
-            }(path)
+		if f.FileInfo().IsDir() {
+			debugging.DEBUG_OUT("IMAGE>>> extract: topTree %s %+v\n", f.Name, f.FileInfo())
+			os.MkdirAll(path, f.Mode())
+		} else {
+			debugging.DEBUG_OUT("IMAGE>>> extract: path %s %s\n", path, f.Name)
+			os.MkdirAll(filepath.Dir(path), f.Mode())
+			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				log.MaestroErrorf("Image Manager: Error on extracting file from archive: %s --> %s\n", path, err.Error())
+				return err
+			}
+			defer func(p string) {
+				if err := f.Close(); err != nil {
+					log.MaestroErrorf("Image manager: problem closing output file for archive %s: %s\n", p, err.Error())
+					//                    panic(err)
+				}
+			}(path)
 
-            _, err = io.Copy(f, rc)
-            if err != nil {
-            	log.MaestroErrorf("Image Manager: Error on extracting file from archive (io.Copy): %s --> %s\n", path, err.Error())
-                return err
-            }
-        }
-        return nil
-    }
+			_, err = io.Copy(f, rc)
+			if err != nil {
+				log.MaestroErrorf("Image Manager: Error on extracting file from archive (io.Copy): %s --> %s\n", path, err.Error())
+				return err
+			}
+		}
+		return nil
+	}
 
-    for _, f := range r.File {
-        err := extractAndWriteFile(f)
-        debugging.DEBUG_OUT("IMAGE>>> EXTRACT\n")
-        if err != nil {
-           	log.MaestroErrorf("Image Manager: Error on extracting zip): %s\n", err.Error())        	
-        	cb(err)
-            return
-        }
-    }
+	for _, f := range r.File {
+		err := extractAndWriteFile(f)
+		debugging.DEBUG_OUT("IMAGE>>> EXTRACT\n")
+		if err != nil {
+			log.MaestroErrorf("Image Manager: Error on extracting zip): %s\n", err.Error())
+			cb(err)
+			return
+		}
+	}
 
-    cb(nil)
-    return
+	cb(nil)
+	return
 }
-
 
 // this unzips the archive, and places it into it's destination directory
 func (this *ImageManagerInstance) relocateImage(task *tasks.MaestroTask) {
-	imgp, ok := this.imageops.GetStringKey(task.Id)	
+	imgp, ok := this.imageops.GetStringKey(task.Id)
 
 	if ok {
 		img := (*imageop)(imgp)
 		// we need to determine the file name for the downloaded image. It should be a single compressed file.
 		exists, err := pathExists(img.finalDir)
 		if exists {
-			debugging.DEBUG_OUT("IMAGE>>> Image manager will replace image at %s for Job %s\n",img.finalDir,img.imageDef.GetJobName())
-			log.MaestroWarnf("Image manager will replace image at %s for Job %s\n",img.finalDir,img.imageDef.GetJobName())
+			debugging.DEBUG_OUT("IMAGE>>> Image manager will replace image at %s for Job %s\n", img.finalDir, img.imageDef.GetJobName())
+			log.MaestroWarnf("Image manager will replace image at %s for Job %s\n", img.finalDir, img.imageDef.GetJobName())
 			err = os.RemoveAll(img.finalDir)
 			if err != nil {
-				debugging.DEBUG_OUT("IMAGE>>> Image Manager: Error removing existing directory: %s - Failing Task (id:%s)\n",img.finalDir, task.Id)
-				log.MaestroErrorf("Image Manager: Error removing existing directory: %s - Failing Task (id:%s)\n",img.finalDir, task.Id)
-				tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Failed to remove existing path",Detail:"Path:"+img.finalDir})
+				debugging.DEBUG_OUT("IMAGE>>> Image Manager: Error removing existing directory: %s - Failing Task (id:%s)\n", img.finalDir, task.Id)
+				log.MaestroErrorf("Image Manager: Error removing existing directory: %s - Failing Task (id:%s)\n", img.finalDir, task.Id)
+				tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Failed to remove existing path", Detail: "Path:" + img.finalDir})
 				return
 			}
 		}
-debugging.DEBUG_OUT2("IMAGE>>> relocateImage #2\n")
-		err = os.MkdirAll(img.finalDir,0755) //os.ModePerm)
+		debugging.DEBUG_OUT2("IMAGE>>> relocateImage #2\n")
+		err = os.MkdirAll(img.finalDir, 0755) //os.ModePerm)
 		if err != nil {
-			debugging.DEBUG_OUT("IMAGE>>>  Image Manager: Failed to create directory for image: %s - Failing Task (id:%s)\n",img.finalDir, task.Id)
-			log.MaestroErrorf("Image Manager: Failed to create directory for image: %s - Failing Task (id:%s)\n",img.finalDir, task.Id)
-			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Failed to create image directory",Detail:"Path:"+img.finalDir})
-			return			
+			debugging.DEBUG_OUT("IMAGE>>>  Image Manager: Failed to create directory for image: %s - Failing Task (id:%s)\n", img.finalDir, task.Id)
+			log.MaestroErrorf("Image Manager: Failed to create directory for image: %s - Failing Task (id:%s)\n", img.finalDir, task.Id)
+			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Failed to create image directory", Detail: "Path:" + img.finalDir})
+			return
 		}
-debugging.DEBUG_OUT2("IMAGE>>> relocateImage #3\n")
-		// directory created. 
+		debugging.DEBUG_OUT2("IMAGE>>> relocateImage #3\n")
+		// directory created.
 
 		// FIXME FIXME FIXME - hack until APIs in cloud finalized
 		if true { //img.imageDef.GetImageType() == maestroSpecs.IMAGE_TYPE_ZIP || img.imageDef.GetImageType() == maestroSpecs.IMAGE_TYPE_DEVICEJS_ZIP
 			tasks.MarkTaskStepAsExecuting(task.Id)
-			// spawn a routine to unpack the archive		
-debugging.DEBUG_OUT2("IMAGE>>> relocateImage #4 unzip\n")
-			go unzipArchive(img.downloadFilepath, img.finalDir, func(err error){
+			// spawn a routine to unpack the archive
+			debugging.DEBUG_OUT2("IMAGE>>> relocateImage #4 unzip\n")
+			go unzipArchive(img.downloadFilepath, img.finalDir, func(err error) {
 				if err != nil {
-					log.MaestroErrorf("Image Manager: Failed to unpack arhive to: %s - Failing Task (id:%s)\n",img.finalDir, task.Id)
-					tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Failed to unpack archive",Detail:err.Error()})
+					log.MaestroErrorf("Image Manager: Failed to unpack arhive to: %s - Failing Task (id:%s)\n", img.finalDir, task.Id)
+					tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Failed to unpack archive", Detail: err.Error()})
 				} else {
-					log.MaestroInfof("Image Manager: Archive unpacked at %s\n",img.finalDir)
-					tasks.IterateTask(task.Id,nil)				
+					log.MaestroInfof("Image Manager: Archive unpacked at %s\n", img.finalDir)
+					tasks.IterateTask(task.Id, nil)
 					this.registerImage(img)
 				}
 			})
 		} else {
-debugging.DEBUG_OUT2("IMAGE>>> relocateImage FAILED test ~310\n")
+			debugging.DEBUG_OUT2("IMAGE>>> relocateImage FAILED test ~310\n")
 			// don't forget to cleanup
-			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Unsupported Image type",Detail:"task id:"+task.Id})							
+			tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Unsupported Image type", Detail: "task id:" + task.Id})
 		}
 	} else {
-		debugging.DEBUG_OUT("IMAGE>>> doDownload() --> Could not find image op: %s\n",task.Id)
-		tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Image not in table.",Detail:"task id:"+task.Id})				
+		debugging.DEBUG_OUT("IMAGE>>> doDownload() --> Could not find image op: %s\n", task.Id)
+		tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Image not in table.", Detail: "task id:" + task.Id})
 	}
-
 
 }
 
 func (this *ImageManagerInstance) cleanupTrash(task *tasks.MaestroTask) {
-	imgp, ok := this.imageops.GetStringKey(task.Id)	
+	imgp, ok := this.imageops.GetStringKey(task.Id)
 
 	if ok {
 		img := (*imageop)(imgp)
 		err := os.RemoveAll(img.tempDir)
 		if err != nil {
-			log.MaestroErrorf("Image Manager: Error attempting to remove temp dir: %s\n",img.tempDir)
+			log.MaestroErrorf("Image Manager: Error attempting to remove temp dir: %s\n", img.tempDir)
 		}
 	} else {
-		debugging.DEBUG_OUT("IMAGE>>> cleanupTrash() --> Could not find image op: %s\n",task.Id)
-		tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode:500,ErrorString:"Image not in table.",Detail:"task id:"+task.Id})				
+		debugging.DEBUG_OUT("IMAGE>>> cleanupTrash() --> Could not find image op: %s\n", task.Id)
+		tasks.FailTask(task.Id, &maestroSpecs.APIError{HttpStatusCode: 500, ErrorString: "Image not in table.", Detail: "task id:" + task.Id})
 	}
 
 }
 
 func (this *ImageManagerInstance) ValidateTask(task *tasks.MaestroTask) (err error) {
 	if task.Op.GetType() == maestroSpecs.OP_TYPE_IMAGE {
-		requestedOp, ok := task.Op.(*maestroSpecs.ImageOpPayload)		
+		requestedOp, ok := task.Op.(*maestroSpecs.ImageOpPayload)
 		if ok {
 			switch requestedOp.GetOp() {
-				case maestroSpecs.OP_ADD:
-					def := requestedOp.GetImageDefinition()
-					if def != nil {
-						url := def.GetURL() 
-						if len(url) < 1 || !IsValidDownloadURL(url)  {
-							apierr := new(maestroSpecs.APIError)
-							apierr.HttpStatusCode = 406
-							apierr.ErrorString = "Invalid image properties"
-							apierr.Detail = "Bad URL"
-							err = apierr
-						}
-						if def.GetImageType() != maestroSpecs.IMAGE_TYPE_ZIP || def.GetImageType() != maestroSpecs.IMAGE_TYPE_DEVICEJS_ZIP {
-							apierr := new(maestroSpecs.APIError)
-							apierr.HttpStatusCode = 406
-							apierr.ErrorString = "Unsupported image type"
-							apierr.Detail = "Only support \"zip\" and \"devicejs_zip\" currently"
-							err = apierr
-						}
+			case maestroSpecs.OP_ADD:
+				def := requestedOp.GetImageDefinition()
+				if def != nil {
+					url := def.GetURL()
+					if len(url) < 1 || !IsValidDownloadURL(url) {
+						apierr := new(maestroSpecs.APIError)
+						apierr.HttpStatusCode = 406
+						apierr.ErrorString = "Invalid image properties"
+						apierr.Detail = "Bad URL"
+						err = apierr
 					}
-				case maestroSpecs.OP_REMOVE:
+					if def.GetImageType() != maestroSpecs.IMAGE_TYPE_ZIP || def.GetImageType() != maestroSpecs.IMAGE_TYPE_DEVICEJS_ZIP {
+						apierr := new(maestroSpecs.APIError)
+						apierr.HttpStatusCode = 406
+						apierr.ErrorString = "Unsupported image type"
+						apierr.Detail = "Only support \"zip\" and \"devicejs_zip\" currently"
+						err = apierr
+					}
+				}
+			case maestroSpecs.OP_REMOVE:
 
-				case maestroSpecs.OP_UPDATE:
+			case maestroSpecs.OP_UPDATE:
 
-				default:
-					apierr := new(maestroSpecs.APIError)
-					apierr.HttpStatusCode = 406
-					apierr.ErrorString = "Unknown op type for image op"
-					apierr.Detail = "Unknown op type " + requestedOp.GetOp()
-					err = apierr
+			default:
+				apierr := new(maestroSpecs.APIError)
+				apierr.HttpStatusCode = 406
+				apierr.ErrorString = "Unknown op type for image op"
+				apierr.Detail = "Unknown op type " + requestedOp.GetOp()
+				err = apierr
 			}
 
 		} else {
 			apierr := new(maestroSpecs.APIError)
 			apierr.HttpStatusCode = 500
 			apierr.ErrorString = "Mismatch task type"
-			apierr.Detail = "internal error imageManager @ValidateTask (2)"	
-			err = apierr		
+			apierr.Detail = "internal error imageManager @ValidateTask (2)"
+			err = apierr
 		}
 	} else {
 		apierr := new(maestroSpecs.APIError)
 		apierr.HttpStatusCode = 500
 		apierr.ErrorString = "Mismatch task type"
-		apierr.Detail = "internal error imageManager @ValidateTask"	
-		err = apierr		
+		apierr.Detail = "internal error imageManager @ValidateTask"
+		err = apierr
 	}
 	return
 
 }
-
 
 // implements TaskHandler interface:
 func (this *ImageManagerInstance) SubmitTask(task *tasks.MaestroTask) (err error) {
@@ -477,9 +471,9 @@ func (this *ImageManagerInstance) SubmitTask(task *tasks.MaestroTask) (err error
 			case 0:
 				err := this.initImageDownload(task)
 				if err != nil {
-					tasks.FailTask(task.Id,err)
+					tasks.FailTask(task.Id, err)
 				} else {
-					tasks.IterateTask(task.Id,nil)
+					tasks.IterateTask(task.Id, nil)
 				}
 			case 1:
 				debugging.DEBUG_OUT("IMAGE>>>> doing doDownload()\n")
@@ -489,13 +483,13 @@ func (this *ImageManagerInstance) SubmitTask(task *tasks.MaestroTask) (err error
 			case 2:
 				debugging.DEBUG_OUT("IMAGE>>>> doing relocateImage()\n")
 				this.relocateImage(task)
-			case 3: 
+			case 3:
 				debugging.DEBUG_OUT("IMAGE>>>> doing cleanupTrash()\n")
 				this.cleanupTrash(task)
 				tasks.CompleteTask(task.Id)
 			}
 		default:
-			debugging.DEBUG_OUT("IMAGE>>>ImageManagerInstance.SubmitTask() unknown Op:%s\n",task.Op.GetOp())
+			debugging.DEBUG_OUT("IMAGE>>>ImageManagerInstance.SubmitTask() unknown Op:%s\n", task.Op.GetOp())
 
 		}
 	} else {
@@ -503,18 +497,13 @@ func (this *ImageManagerInstance) SubmitTask(task *tasks.MaestroTask) (err error
 		err := new(maestroSpecs.APIError)
 		err.HttpStatusCode = 500
 		err.ErrorString = "op was not an ImageOperation"
-		err.Detail = "in initImageDownload()"		
-		log.MaestroErrorf("imageManager got missplaced task %+v\n",task)
+		err.Detail = "in initImageDownload()"
+		log.MaestroErrorf("imageManager got missplaced task %+v\n", task)
 	}
-	return 
+	return
 }
-
 
 func ShutdownImageManager() {
-//	i := GetInstance()
+	//	i := GetInstance()
 
 }
-
-
-
-
