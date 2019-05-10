@@ -140,5 +140,5 @@ https://github.com/armPelionEdge/cloud-installer/blob/master/djs-soft-relay/buil
 1. `[ERROR] Failed to create scratch path directory: mkdir /tmp/maestro/images: permission denied`
    `[ERROR] Failed to create scratch path directory: mkdir /var/maestro/images: permission denied`
 
-Maestro execution on local host creates directories at `/tmp/maestro/images` and `/var/maestro/images` path. Verify the ownership and write permissions for respective directories.
+Maestro execution on local host creates directories at `/tmp/maestro/images` and `/var/maestro/images` path. Verify that the user running `maestro` has the proper permissions to access the respective directories.
 
