@@ -34,38 +34,7 @@ else
 	make native.a
 fi
 
-for f in $(find  src -name '*\.go'); do
-	FILENAME=`basename $f`
-	DIR1=`dirname $f`
-	DIR1=${DIR1#*/}
-	if [ "$DIR1" != "src" ]; then
-		mkdir -p $DIR1
-		cp src/$DIR1/$FILENAME $DIR1/$FILENAME
-	else
-		cp src/$FILENAME $FILENAME
-	fi
-done
-
-for f in $(find  src -name '*\.[ch]'); do
-	FILENAME=`basename $f`
-	DIR1=`dirname $f`
-	DIR1=${DIR1#*/}
-	if [ "$DIR1" != "src" ]; then
-		mkdir -p $DIR1
-		cp src/$DIR1/$FILENAME $DIR1/$FILENAME
-	else
-		cp src/$FILENAME $FILENAME
-	fi
-done
-
 popd
-
-if [ "$1" == "removesrc" ]; then
-	if [ -d src ]; then
-		mv src .src
-	fi
-	shift
-fi
 
 # let's get the current commit, and make sure Version() has this.
 COMMIT=`git rev-parse --short=7 HEAD`
@@ -84,6 +53,5 @@ if [ "$1" != "preprocess_only" ]; then
 	else
 	    go build $GOTAGS "$@" github.com/armPelionEdge/maestro/maestro 
 	fi
-  echo $?
 	popd
 fi
