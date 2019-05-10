@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/sysstats"
@@ -444,7 +445,7 @@ func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byt
 
 	dropped, droppedbuf := client.willSendFifo.Push(buf)
 	if dropped {
-		DEBUG_OUT("RMI: FIFO full - Dropped some old log entries!!!!!!\n\n")
+		debugging.DEBUG_OUT("RMI: FIFO full - Dropped some old log entries!!!!!!\n\n")
 		log.MaestroErrorf("RMI: FIFO full - Dropped some old log entries!")
 		if droppedbuf != nil {
 			client.locker.Lock()
@@ -469,19 +470,18 @@ func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byt
 	return
 }
 
-DEBUG(var _count int)
+var _count int
 
 // This is a target callback to assign to the grease subsystem.
 func TargetCB(err *greasego.GreaseError, data *greasego.TargetCallbackData){
 
-	DEBUG(_count++)
-	DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
+	_count++
+	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
 	if(err != nil) {
 		fmt.Printf("ERROR in toCloud target CB %s\n", err.Str)
 	} else {
 		buf := data.GetBufferAsSlice()
-		DEBUG(s := string(buf))
-		DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,s);
+		debugging.DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,string(buf));
 		client, err2 := GetMainClient(nil)
 		if err2 == nil {
 			client.locker.Lock()
@@ -548,7 +548,7 @@ func (client *Client) StartWorkers() (err error) {
 // 	go func() {
 // 	// only dump ticker info when in debug build:
 //         DEBUG(for t := range client.ticker.C { )
-//             DEBUG_OUT("Tick at", t)
+//             debugging.DEBUG_OUT("Tick at", t)
 //         DEBUG(    DumpMemStats() )
 // 	        DEBUG(	client.fifo.WakeupAll() )
 //         DEBUG(} )
@@ -567,7 +567,7 @@ func (client *Client) Read(p []byte) (copied int, err error) {
 	client.readOngoing = true
 	buf := client.willSendFifo.Peek()
 	for buf != nil {
-		DEBUG_OUT("RMI Read() (logs) to of loop\n")
+		debugging.DEBUG_OUT("RMI Read() (logs) to of loop\n")
 		buflen = len(buf.godata) 
 		if copied >= len(p) {
 			client.sentBytes += uint32(copied-1)
@@ -588,7 +588,7 @@ func (client *Client) Read(p []byte) (copied int, err error) {
 		client.sendingFifo.Push(buf)
 		buf = client.willSendFifo.Peek()
 	}
-	DEBUG_OUT("RMI Read() (logs) EOF\n")
+	debugging.DEBUG_OUT("RMI Read() (logs) EOF\n")
 	if copied > 1 {
 		// we ran out of buffers, so say EOF
 		client.sentBytes += uint32(copied-1)
@@ -603,7 +603,7 @@ func (client *Client) Read(p []byte) (copied int, err error) {
 			return
 		}
 	}
-//	DEBUG_OUT("RMI - READ EOF >>%s<<\n",string(p))
+//	debugging.DEBUG_OUT("RMI - READ EOF >>%s<<\n",string(p))
 	client.readOngoing = false
 	err = io.EOF
 	return
@@ -617,7 +617,7 @@ func (client *Client) clientLogWorker() {
 	// closeit := func(r *http.Response, buf *logBuffer) {
 	// 	r.Body.Close()
 	// 	greasego.RetireCallbackData(buf.data)
-	// 	DEBUG_OUT("  OKOKOKOKOKOKOKOKOK -----> retired callback data\n\n")
+	// 	debugging.DEBUG_OUT("  OKOKOKOKOKOKOKOKOK -----> retired callback data\n\n")
 	// }
 	var timeout time.Duration
 	client.locker.Lock()
@@ -632,11 +632,11 @@ func (client *Client) clientLogWorker() {
 	client.locker.Unlock()
 
 	var handleErr = func(clienterr error) {
-		DEBUG_OUT("RMI clientLogWorker.handleErr(%+v)\n",clienterr)
+		debugging.DEBUG_OUT("RMI clientLogWorker.handleErr(%+v)\n",clienterr)
 		if clienterr != nil {
 			errs := clienterr.Error()
 			if strings.HasSuffix(errs,"no data") {
-				DEBUG_OUT("handleErr(no data) - NOOP\n")
+				debugging.DEBUG_OUT("handleErr(no data) - NOOP\n")
 				// do nothing. No data was sent.
 				return
 			}
@@ -645,20 +645,20 @@ func (client *Client) clientLogWorker() {
 			buf := client.sendingFifo.Pop()
 			for buf != nil {
 				if buf.tries > maxLogTries {
-					DEBUG_OUT("RMI ERROR: dropping a log buffer (max tries)\n")
+					debugging.DEBUG_OUT("RMI ERROR: dropping a log buffer (max tries)\n")
 					greasego.RetireCallbackData(buf.data)
 					buf.clear()
 					client.availableFifo.Push(buf)
 				} else {
-					DEBUG_OUT("RMI clientLogWorker.handleErr() returning buf for another try.\n")
+					debugging.DEBUG_OUT("RMI clientLogWorker.handleErr() returning buf for another try.\n")
 					client.willSendFifo.Push(buf)
 				}
 				buf = client.sendingFifo.Pop()
 			}
 			// do a backoff
-			DEBUG_OUT("RMI @lock 1\n")
+			debugging.DEBUG_OUT("RMI @lock 1\n")
 			client.locker.Lock()
-			DEBUG_OUT("RMI @pastlock 1\n")
+			debugging.DEBUG_OUT("RMI @pastlock 1\n")
 			client.backingOff = true
 			client.locker.Unlock()
 		} else {
@@ -699,11 +699,11 @@ func (client *Client) clientLogWorker() {
 
 	commandLoop:
 	for {		
-		DEBUG_OUT("RMI clientLogWorker top of for{} (%d)\n",int(timeout))
+		debugging.DEBUG_OUT("RMI clientLogWorker top of for{} (%d)\n",int(timeout))
 		start = time.Now()
 		select {
 		case <-time.After(timeout):
-			DEBUG_OUT("RMI triggered - timeout after %d\n",timeout)
+			debugging.DEBUG_OUT("RMI triggered - timeout after %d\n",timeout)
 			err := client.postLogs()
 			handleErr(err)
 
@@ -727,15 +727,15 @@ func (client *Client) clientLogWorker() {
 					elapsed = time.Since(start)
 					timeout = timeout - elapsed
 					if timeout > 10000 {
-						DEBUG_OUT("RMI ignoring cmdSendLogs\n")
+						debugging.DEBUG_OUT("RMI ignoring cmdSendLogs\n")
 						continue
 					}	
 					// here to see how well this is working		
-					DEBUG_OUT("RMI triggered - (ALMOST IGNORED) cmdSendLogs\n")
+					debugging.DEBUG_OUT("RMI triggered - (ALMOST IGNORED) cmdSendLogs\n")
 				} else {
 					client.locker.Unlock()
 				}
-				DEBUG_OUT("RMI triggered - cmdSendLogs\n")
+				debugging.DEBUG_OUT("RMI triggered - cmdSendLogs\n")
 				err := client.postLogs()
 				handleErr(err)
 			case cmdShutdown:
@@ -755,7 +755,7 @@ func (client *Client) clientLogWorker() {
 				client.backoff = timeout
 			}
 			timeout = client.backoff
-			DEBUG_OUT("RMI send logs is backing off %d ms\n",client.backoff)
+			debugging.DEBUG_OUT("RMI send logs is backing off %d ms\n",client.backoff)
 		}
 		client.locker.Unlock()
 	}
@@ -764,7 +764,7 @@ func (client *Client) clientLogWorker() {
 	// 	next = client.willSendFifo.PopOrWait()
 	// 	if next == nil {
 	// 		if client.fifo.IsShutdown() {
-	// 			DEBUG_OUT("clientWorker @shutdown - via FIFO")
+	// 			debugging.DEBUG_OUT("clientWorker @shutdown - via FIFO")
 	// 			break
 	// 		} else {
 	// 			// was woken, but no new data
@@ -780,7 +780,7 @@ func (client *Client) clientLogWorker() {
 
 	// 	// resp, err := client.httpClient.Do(req)
 	// 	// if err != nil {
-	// 	// 	DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
+	// 	// 	debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
 	// 	// 	greasego.RetireCallbackData(next.data)
 	// 	// } else {
 	// 	// 	fmt.Println("response Status:", resp.Status)
@@ -788,18 +788,18 @@ func (client *Client) clientLogWorker() {
 	// 	// 	body, _ := ioutil.ReadAll(resp.Body)
 	// 	// 	fmt.Println("response Body:", string(body))
 
-	// 	// 	DEBUG_OUT("CALLING closeit()\n")
+	// 	// 	debugging.DEBUG_OUT("CALLING closeit()\n")
 	// 	// 	closeit(resp, next)
 	// 	// }
 
 	// 	err := client.postLogs(next.data.GetBufferAsSlice())
 	// 	if err != nil {
-	// 		DEBUG_OUT("RMI API error - could not push logs: %s\n", err.Error())
+	// 		debugging.DEBUG_OUT("RMI API error - could not push logs: %s\n", err.Error())
 	// 		if next.tries < maxLogTries {
 	// 			next.tries++
 	// 			drop, dropped := client.fifo.Push(next)
 	// 			if drop {
-	// 				DEBUG_OUT("Causing us to drop a log entry!!\n")
+	// 				debugging.DEBUG_OUT("Causing us to drop a log entry!!\n")
 	// 				log.MaestroErrorf("RMI - log entries dropped.")
 	// 				if dropped != nil {
 	// 					greasego.RetireCallbackData(dropped.data)
@@ -810,7 +810,7 @@ func (client *Client) clientLogWorker() {
 	// 			greasego.RetireCallbackData(next.data)
 	// 		}
 	// 	} else {
-	// 		DEBUG_OUT("RMI --> Pushed log entry.\n")
+	// 		debugging.DEBUG_OUT("RMI --> Pushed log entry.\n")
 	// 		greasego.RetireCallbackData(next.data)
 	// 	}
 	// }
@@ -828,7 +828,7 @@ func (client *Client) clientLogWorker() {
 func (client *Client) postLogs() (err error) {
 	var req *http.Request
 	var resp *http.Response
-	DEBUG_OUT("RMI POST %s >>>\n",client.postLogsUrl)
+	debugging.DEBUG_OUT("RMI POST %s >>>\n",client.postLogsUrl)
 	// Client implements io.Reader's Read(), so we do this
 	client.sentBytes = 0
 	req, err = http.NewRequest("POST", client.postLogsUrl, client)
@@ -841,16 +841,16 @@ func (client *Client) postLogs() (err error) {
 				defer resp.Body.Close()
 			}
 		}
-		DEBUG_OUT("RMI --> response +%v",resp)
+		debugging.DEBUG_OUT("RMI --> response +%v",resp)
 		if err == nil && resp != nil && resp.StatusCode != 200 {
-			DEBUG_OUT("RMI bad response - creating error object\n")
+			debugging.DEBUG_OUT("RMI bad response - creating error object\n")
 			bodystring, _ := utils.StringifyReaderWithLimit(resp.Body,300)
 			log.MaestroErrorf("RMI: Error on POST request for logs: Response was %d (Body <%s>)",resp.StatusCode,bodystring)
 			err = newClientError(resp)
 		}
 	} else {
 		log.MaestroErrorf("Error on POST request: %s\n",err.Error())		
-		DEBUG_OUT("RMI ERROR: %s\n",err.Error())
+		debugging.DEBUG_OUT("RMI ERROR: %s\n",err.Error())
 	}
 	return
 }

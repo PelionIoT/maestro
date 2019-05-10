@@ -19,6 +19,7 @@ import (
 	"github.com/boltdb/bolt"
 	"bytes"
 	"encoding/gob"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/log"
 	"sync"
@@ -565,10 +566,10 @@ func init() {
 //  begin generic
 // m4_define({{*NODE*}},{{*MaestroEvent*}})  m4_define({{*FIFO*}},{{*eventFIFO*}})  
 // Thread safe queue for LogBuffer
-type FIFO struct {
+type eventFIFO struct {
 	nextUidOut uint32 // the 'uid' of the next
 	nextUid uint32
-	q []*NODE	
+	q []*MaestroEvent	
 	mutex *sync.Mutex
 	condWait *sync.Cond
 	condFull *sync.Cond
@@ -580,8 +581,8 @@ type FIFO struct {
 	                // So we use this as a work around to temporarily wakeup
 	                // (but not shutdown) the queue. Bring your own timer.
 }
-func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
-	ret = new(FIFO)
+func New_eventFIFO(maxsize uint32) (ret *eventFIFO) {
+	ret = new(eventFIFO)
 	ret.mutex =  new(sync.Mutex)
 	ret.condWait = sync.NewCond(ret.mutex)
 	ret.condFull = sync.NewCond(ret.mutex)
@@ -593,13 +594,13 @@ func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
 	ret.nextUidOut = 0
 	return
 }
-// returns a duplicate of the FIFO 
-// the FIFO's queue will be a new queue, 
-// but, the queue's elements will still be pointing at the same NODE elements
-// as the original (since FIFO always uses pointers to NODE)
-// The new FIFO's drop count will be zero
-func (this *FIFO) Duplicate() (ret *FIFO) {
-	ret = new(FIFO)
+// returns a duplicate of the eventFIFO 
+// the eventFIFO's queue will be a new queue, 
+// but, the queue's elements will still be pointing at the same MaestroEvent elements
+// as the original (since eventFIFO always uses pointers to MaestroEvent)
+// The new eventFIFO's drop count will be zero
+func (this *eventFIFO) Duplicate() (ret *eventFIFO) {
+	ret = new(eventFIFO)
 	ret.mutex =  new(sync.Mutex)
 	ret.condWait = sync.NewCond(ret.mutex)
 	ret.condFull = sync.NewCond(ret.mutex)
@@ -609,37 +610,37 @@ func (this *FIFO) Duplicate() (ret *FIFO) {
 	ret.wakeupIter = 0
 	ret.nextUid = this.nextUid
 	ret.nextUidOut = this.nextUidOut
-	ret.q = make([]*NODE,len(this.q),cap(this.q))
+	ret.q = make([]*MaestroEvent,len(this.q),cap(this.q))
 	copy(ret.q,this.q)
 	return
 }
-func (fifo *FIFO) Push(n *NODE) (drop bool, dropped *NODE) {
+func (fifo *eventFIFO) Push(n *MaestroEvent) (drop bool, dropped *MaestroEvent) {
 	drop = false
-	DEBUG_OUT(" >>>>>>>>>>>> In Push\n")
+	debugging.DEBUG_OUT(" >>>>>>>>>>>> In Push\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT(" ------------ In Push (past Lock)\n")
+	debugging.DEBUG_OUT(" ------------ In Push (past Lock)\n")
     if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
     	// drop off the queue
     	dropped = (fifo.q)[0]
     	fifo.q = (fifo.q)[1:]
     	fifo.drops++
     	fifo.nextUidOut++
-    	DEBUG_OUT("!!! Dropping NODE in FIFO \n")
+    	debugging.DEBUG_OUT("!!! Dropping MaestroEvent in eventFIFO \n")
     	drop = true
     }
     fifo.q = append(fifo.q, n)
     fifo.nextUid++
-	DEBUG_OUT(" ------------ In Push (@ Unlock)\n")
+	debugging.DEBUG_OUT(" ------------ In Push (@ Unlock)\n")
     fifo.mutex.Unlock()
     fifo.condWait.Signal()
-	DEBUG_OUT(" <<<<<<<<<<< Return Push\n")
+	debugging.DEBUG_OUT(" <<<<<<<<<<< Return Push\n")
     return
 }
-func (fifo *FIFO) PushBatch(n []*NODE) (drop bool, dropped []*NODE) {
+func (fifo *eventFIFO) PushBatch(n []*MaestroEvent) (drop bool, dropped []*MaestroEvent) {
 	drop = false
-	DEBUG_OUT(" >>>>>>>>>>>> In PushBatch\n")
+	debugging.DEBUG_OUT(" >>>>>>>>>>>> In PushBatch\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT(" ------------ In PushBatch (past Lock)\n")
+	debugging.DEBUG_OUT(" ------------ In PushBatch (past Lock)\n")
 	_len := uint32(len(fifo.q))
 	_inlen := uint32(len(n))
 	if fifo.maxSize > 0 && _inlen > fifo.maxSize {
@@ -662,20 +663,20 @@ func (fifo *FIFO) PushBatch(n []*NODE) (drop bool, dropped []*NODE) {
     	// dropped = (fifo.q)[0]
     	// fifo.q = (fifo.q)[1:]
     	// fifo.drops++
-    	DEBUG_OUT(" ----------- PushBatch() !!! Dropping %d NODE in FIFO \n", len(dropped))
+    	debugging.DEBUG_OUT(" ----------- PushBatch() !!! Dropping %d MaestroEvent in eventFIFO \n", len(dropped))
     }
-    DEBUG_OUT(" ----------- In PushBatch (pushed %d)\n",_inlen)
+    debugging.DEBUG_OUT(" ----------- In PushBatch (pushed %d)\n",_inlen)
     fifo.q = append(fifo.q, n[0:int(_inlen)]...)
     fifo.nextUid += _inlen
-	DEBUG_OUT(" ------------ In PushBatch (@ Unlock)\n")
+	debugging.DEBUG_OUT(" ------------ In PushBatch (@ Unlock)\n")
     fifo.mutex.Unlock()
     fifo.condWait.Signal()
-	DEBUG_OUT(" <<<<<<<<<<< Return PushBatch\n")
+	debugging.DEBUG_OUT(" <<<<<<<<<<< Return PushBatch\n")
     return
 }
 
 
-func (fifo *FIFO) Pop() (n *NODE) {
+func (fifo *eventFIFO) Pop() (n *MaestroEvent) {
 	fifo.mutex.Lock()
 	if len(fifo.q) > 0 {
 	    n = (fifo.q)[0]
@@ -686,7 +687,7 @@ func (fifo *FIFO) Pop() (n *NODE) {
 	fifo.mutex.Unlock()
     return
 }
-// func (fifo *FIFO) PopBatch(max uint32) (n *NODE) {
+// func (fifo *eventFIFO) PopBatch(max uint32) (n *MaestroEvent) {
 // 	fifo.mutex.Lock()
 // 	_len := len(fifo.q)
 // 	if _len > 0 {
@@ -702,13 +703,13 @@ func (fifo *FIFO) Pop() (n *NODE) {
 // 	fifo.mutex.Unlock()
 //     return
 // }
-func (fifo *FIFO) PopBatch(max uint32) (slice []*NODE) {
-	DEBUG_OUT(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
+func (fifo *eventFIFO) PopBatch(max uint32) (slice []*MaestroEvent) {
+	debugging.DEBUG_OUT(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
 	fifo.mutex.Lock()
 //	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
 		return
 	}
 	_len := uint32(len(fifo.q))
@@ -724,7 +725,7 @@ func (fifo *FIFO) PopBatch(max uint32) (slice []*NODE) {
 		}
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
 		return
 	}
 	fifo.mutex.Unlock()
@@ -734,40 +735,40 @@ func (fifo *FIFO) PopBatch(max uint32) (slice []*NODE) {
 // Works by copying a batch of queued values to a slice.
 // If the caller decided it really want to remove that which 
 // it earlier Peek(ed) then it will use the 'uid' value to tell
-// the FIFO which Peek it was. If that batch is not already gone, it will 
+// the eventFIFO which Peek it was. If that batch is not already gone, it will 
 // then be removed. 
-func (fifo *FIFO) PeekBatch(max uint32) (slice []*NODE, uid uint32) {
-	DEBUG_OUT(" >>>>>>>>>>>> In PeekBatch (Lock)\n")
+func (fifo *eventFIFO) PeekBatch(max uint32) (slice []*MaestroEvent, uid uint32) {
+	debugging.DEBUG_OUT(" >>>>>>>>>>>> In PeekBatch (Lock)\n")
 	fifo.mutex.Lock()
 //	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch (Unlock 1 - shutdown)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch (Unlock 1 - shutdown)\n")
 		return
 	}
 	_len := uint32(len(fifo.q))
-		DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch %d\n",_len)
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch %d\n",_len)
 	if _len > 0 {
 		uid = fifo.nextUidOut
-		DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch uid %d\n",uid)
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch uid %d\n",uid)
 		// we make a copy of the slice, so that all elements will be available, regardless if 
-		// the FIFO itself bumps these off the queue later
+		// the eventFIFO itself bumps these off the queue later
 		if  max >= _len {
-			slice = make([]*NODE,_len)
+			slice = make([]*MaestroEvent,_len)
 			copy(slice,fifo.q)
 	    	slice = fifo.q
 //	    	fifo.nextUidOut+= _len
 //	    	fifo.q = nil  // http://stackoverflow.com/questions/29164375/golang-correct-way-to-initialize-empty-slice
 		} else {
 //			fifo.nextUidOut += max
-			slice = make([]*NODE,max)
+			slice = make([]*MaestroEvent,max)
 			copy(slice,fifo.q)
 //			slice = (fifo.q)[0:max]
 //			fifo.q = (fifo.q)[max:]
 		}
 		fifo.mutex.Unlock()
 //		fifo.condFull.Signal()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch (Unlock 2)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PeekBatch (Unlock 2)\n")
 		return
 	}
 	fifo.mutex.Unlock()
@@ -778,7 +779,7 @@ func (fifo *FIFO) PeekBatch(max uint32) (slice []*NODE, uid uint32) {
 // Removes the stated 'peek', which is the slice of nodes
 // provided by the PeekBatch function, and the 'uid' that
 // was returned by that function
-func (fifo *FIFO) RemovePeeked(slice []*NODE, uid uint32) {
+func (fifo *eventFIFO) RemovePeeked(slice []*MaestroEvent, uid uint32) {
 	// if for some reason the nextUidOut is less than 
 	// the uid provided, it means the uid value was high it flowed over
 	// and just ignore this call
@@ -790,14 +791,14 @@ func (fifo *FIFO) RemovePeeked(slice []*NODE, uid uint32) {
 			_fifolen := uint32(len(fifo.q))			
 			if _len > _offset {
 			_removelen := _len - _offset
-//				DEBUG_OUT("RemovePeeked nextUidOut %d %d %d %d %d %d\n",fifo.nextUidOut, uid, _offset, _len, _fifolen, _removelen)
-				DEBUG_OUT("RemovePeeked _removelen %d \n", _removelen)
+//				debugging.DEBUG_OUT("RemovePeeked nextUidOut %d %d %d %d %d %d\n",fifo.nextUidOut, uid, _offset, _len, _fifolen, _removelen)
+				debugging.DEBUG_OUT("RemovePeeked _removelen %d \n", _removelen)
 					if  _removelen >= _fifolen {
-						DEBUG_OUT("RemovePeeked (1) nil\n")
+						debugging.DEBUG_OUT("RemovePeeked (1) nil\n")
 				    	fifo.nextUidOut+= _removelen
 				    	fifo.q = nil  // http://stackoverflow.com/questions/29164375/golang-correct-way-to-initialize-empty-slice
 					} else {
-						DEBUG_OUT("RemovePeeked (2) %d\n",_removelen)
+						debugging.DEBUG_OUT("RemovePeeked (2) %d\n",_removelen)
 						fifo.nextUidOut += _removelen
 						fifo.q = (fifo.q)[_removelen:]
 					}
@@ -807,26 +808,26 @@ func (fifo *FIFO) RemovePeeked(slice []*NODE, uid uint32) {
 			}					
 		}
 	}
-	DEBUG_OUT("RemovePeeked (3) noop\n")	
+	debugging.DEBUG_OUT("RemovePeeked (3) noop\n")	
 	fifo.mutex.Unlock()
 	return
 }
 
 
-func (fifo *FIFO) Len() int {
+func (fifo *eventFIFO) Len() int {
 	fifo.mutex.Lock()
 	ret := len(fifo.q)
 	fifo.mutex.Unlock()
     return ret
 }
-func (fifo *FIFO) PopOrWait() (n *NODE) {
+func (fifo *eventFIFO) PopOrWait() (n *MaestroEvent) {
 	n = nil
-	DEBUG_OUT(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
+	debugging.DEBUG_OUT(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
 		return
 	}
 	if len(fifo.q) > 0 {
@@ -835,19 +836,19 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 	    fifo.nextUidOut++
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
 		return
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
 //		fmt.Printf(" --entering wait %+v\n",*fifo);
-	DEBUG_OUT(" ----------- In PopOrWait (Wait / Unlock 1)\n")
+	debugging.DEBUG_OUT(" ----------- In PopOrWait (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
 //		Wait returns with Lock
 //		fmt.Printf(" --out of wait %+v\n",*fifo);
 		if fifo.shutdown { 
 			fifo.mutex.Unlock()
-	DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
+	debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
 			return 
 		}
 		if len(fifo.q) > 0 {
@@ -856,21 +857,21 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 		    fifo.nextUidOut++
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
 			return
 			}
 	}
-	DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
+	debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
 	fifo.mutex.Unlock()
 	return
 }
-func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
-	DEBUG_OUT(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
+func (fifo *eventFIFO) PopOrWaitBatch(max uint32) (slice []*MaestroEvent) {
+	debugging.DEBUG_OUT(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
 		return
 	}
 	_len := uint32(len(fifo.q))
@@ -886,19 +887,19 @@ func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
 		}
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
 		return
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
 //		fmt.Printf(" --entering wait %+v\n",*fifo);
-	DEBUG_OUT(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
+	debugging.DEBUG_OUT(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
 //		Wait returns with Lock
 //		fmt.Printf(" --out of wait %+v\n",*fifo);
 		if fifo.shutdown { 
 			fifo.mutex.Unlock()
-	DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
+	debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
 			return 
 		}
 		_len = uint32(len(fifo.q))
@@ -914,15 +915,15 @@ func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
 			}
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
+		debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
 			return
 		}
 	}
-	DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 5)\n")
+	debugging.DEBUG_OUT(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 5)\n")
 	fifo.mutex.Unlock()
 	return
 }
-func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
+func (fifo *eventFIFO) PushOrWait(n *MaestroEvent) (ret bool) {
 	ret = true
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter	
@@ -942,33 +943,33 @@ func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
     fifo.condWait.Signal()
     return
 }
-func (fifo *FIFO) DumpDebug() {
-	DEBUG_OUT("[DUMP FIFO]>>>> ")
+func (fifo *eventFIFO) DumpDebug() {
+	debugging.DEBUG_OUT("[DUMP eventFIFO]>>>> ")
 	for _, item := range fifo.q {
-		DEBUG_OUT("[%+v] ",item)
+		debugging.DEBUG_OUT("[%+v] ",item)
 		item = item
 	}
-	DEBUG_OUT("\n")
+	debugging.DEBUG_OUT("\n")
 }
-func (fifo *FIFO) Shutdown() {
+func (fifo *eventFIFO) Shutdown() {
 	fifo.mutex.Lock()
 	fifo.shutdown = true
 	fifo.mutex.Unlock()
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
 }
-func (fifo *FIFO) WakeupAll() {
-	DEBUG_OUT(" >>>>>>>>>>> in WakeupAll @Lock\n")
+func (fifo *eventFIFO) WakeupAll() {
+	debugging.DEBUG_OUT(" >>>>>>>>>>> in WakeupAll @Lock\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT(" +++++++++++ in WakeupAll\n")
+	debugging.DEBUG_OUT(" +++++++++++ in WakeupAll\n")
 	fifo.wakeupIter++
 	fifo.mutex.Unlock()
-	DEBUG_OUT(" +++++++++++ in WakeupAll @Unlock\n")
+	debugging.DEBUG_OUT(" +++++++++++ in WakeupAll @Unlock\n")
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
-	DEBUG_OUT(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
+	debugging.DEBUG_OUT(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
 }
-func (fifo *FIFO) IsShutdown() (ret bool) {
+func (fifo *eventFIFO) IsShutdown() (ret bool) {
 	fifo.mutex.Lock()
 	ret = fifo.shutdown
 	fifo.mutex.Unlock()

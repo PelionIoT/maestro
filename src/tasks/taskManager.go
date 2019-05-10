@@ -19,6 +19,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/armPelionEdge/stow"
 	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"	
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/log"	
@@ -28,7 +29,6 @@ import (
 	"errors"
 	"sync"
 	"time"
-	IFDEBUG("fmt")
 )
 const TASK_COMPLETE_STEP = ^uint32(0)
 const MAX_TASK_LIFE = maestroSpecs.MAX_TASK_LIFE
@@ -386,7 +386,7 @@ func CreateNewBatchTasks(ops []maestroSpecs.Operation, masterid string, src stri
 					return
 				}
 			} else {
-				DEBUG_OUT("Corrupted Task passed to CreateNewBatchTask() - had nil\n")
+				debugging.DEBUG_OUT("Corrupted Task passed to CreateNewBatchTask() - had nil\n")
 			}
 		}
 
@@ -395,7 +395,7 @@ func CreateNewBatchTasks(ops []maestroSpecs.Operation, masterid string, src stri
 		// 		ret.waitingOnIds[t.Id] = true
 		// 		t.parentTaskId = ret.Id
 		// 	} else {
-		// 		DEBUG_OUT("Corrupted Task passed to CreateNewBatchTask() - had no Id\n")
+		// 		debugging.DEBUG_OUT("Corrupted Task passed to CreateNewBatchTask() - had no Id\n")
 		// 	}
 		// }
 	}
@@ -499,7 +499,7 @@ func CreateNewTask(op maestroSpecs.Operation, src string) (ret *MaestroTask, err
 // Used if a Task starts a new goroutine, or defers an operation
 // This is automatically cleared by IterateTask
 func MarkTaskStepAsExecuting(id string) {
-	DEBUG_OUT(" TASK>>>>>> MarkTaskStepAsExecuting(\"%s\")\n",id)
+	debugging.DEBUG_OUT(" TASK>>>>>> MarkTaskStepAsExecuting(\"%s\")\n",id)
 	meta := getMetaTaskData(id)
 	meta.stepExecuting = true
 	meta.release()
@@ -511,7 +511,7 @@ func MarkTaskStepAsExecuting(id string) {
 // which makes changes to the MaestroTask and automatically iterates
 // the Step field
 func IterateTask(id string, cb UpdateTaskCB) (err error) {
-	DEBUG_OUT(" TASK>>>>>> IterateTask(\"%s\")\n",id)
+	debugging.DEBUG_OUT(" TASK>>>>>> IterateTask(\"%s\")\n",id)
 	ptask, ok := tasks.GetStringKey(id)
 	if instance == nil || instance.db == nil  {
 		err = errors.New("task db not ready")
@@ -595,7 +595,7 @@ func FailTask(id string, cause *maestroSpecs.APIError) (err error) {
 			task.Error = cause
 			task.CompleteTime = time.Now().Unix()
 		}
-		DEBUG_OUT(" FAILED TASK >>>>>>  %s\n",id)
+		debugging.DEBUG_OUT(" FAILED TASK >>>>>>  %s\n",id)
 
 		// ok - sucks - but let's see if we have a failed Ack handler
 		meta := getMetaTaskData(task.Id)
@@ -689,7 +689,7 @@ func StartTaskManager() {
 
 
 func cleanOutStaleTasks() {
-	DEBUG_OUT("TASK>>>>>>>>>  cleanOutStaleTasks()\n")
+	debugging.DEBUG_OUT("TASK>>>>>>>>>  cleanOutStaleTasks()\n")
 	oldest := time.Now().Unix() - MAX_TASK_LIFE
 	getInstance().deleteIfTask(func(task *MaestroTask) bool {
 		if task.enqueTime < oldest {
@@ -701,7 +701,7 @@ func cleanOutStaleTasks() {
 	var removeids []string
 	for item := range tasks.Iter() {
 		if item.Value == nil {
-			DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")						
+			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")						
 			continue
 		}
 		if item.Value != nil {
@@ -713,7 +713,7 @@ func cleanOutStaleTasks() {
 	}
 	// remove stale Tasks
 	for id := range removeids {
-		DEBUG_OUT("TASK>>>>>>>>>  removing Task %s\n",id)		
+		debugging.DEBUG_OUT("TASK>>>>>>>>>  removing Task %s\n",id)		
 		tasks.Del(id)
 	}
 
@@ -749,7 +749,7 @@ func newAPIErrorRunawayTask(taskid string) (err *maestroSpecs.APIError) {
 func runFinishAck(task *MaestroTask, handler AckHandler) {
 	err := handler.SendFinishedAck(task)
 	if err != nil {
-		DEBUG_OUT("Task %s ackHandler.SendFinishedAck() failed %s\n",task.Id,err.Error())
+		debugging.DEBUG_OUT("Task %s ackHandler.SendFinishedAck() failed %s\n",task.Id,err.Error())
 		log.MaestroErrorf("Task %s ackHandler.SendFinishedAck() failed %s",task.Id,err.Error())
 	}
 }
@@ -757,7 +757,7 @@ func runFinishAck(task *MaestroTask, handler AckHandler) {
 func runFailedAck(task *MaestroTask, handler AckHandler) {
 	err := handler.SendFailedAck(task)
 	if err != nil {
-		DEBUG_OUT("Task %s ackHandler.SendFailedAck() failed %s\n",task.Id,err.Error())
+		debugging.DEBUG_OUT("Task %s ackHandler.SendFailedAck() failed %s\n",task.Id,err.Error())
 		log.MaestroErrorf("Task %s ackHandler.SendFailedAck() failed %s",task.Id,err.Error())
 	}
 }
@@ -792,18 +792,18 @@ func taskRunner() {
 			meta.release()
 			if taskitem.Op == nil {
 				if len(taskitem.childrenOrder) > 0 {
-					for IFDEBUG(n,_), child := range taskitem.childrenOrder {
+					for n, child := range taskitem.childrenOrder {
 						task, ok := getTask(child)
 						if ok {
 							// check steps
 
 							if !isRunning(child) {
-								DEBUG_OUT(" TASK>>>>>> batch Task %s - found child %d  - %s\n",taskitem.Id,n,task.Id)
+								debugging.DEBUG_OUT(" TASK>>>>>> batch Task %s - found child %d  - %s\n",taskitem.Id,n,task.Id)
 
 								_handler, ok := handlers.GetStringKey(task.Op.GetType())
 								if ok && _handler != nil {
 									markAsRunning(task.Id)
-									DEBUG_OUT(" TASK>>>>>> Executing task %s on step %d (%s) %+v\n", task.Id, task.Step, task.Op.GetType(), isRunning(task.Id))
+									debugging.DEBUG_OUT(" TASK>>>>>> Executing task %s on step %d (%s) %+v\n", task.Id, task.Step, task.Op.GetType(), isRunning(task.Id))
 									handler := (*TaskHandler)(_handler)
 									taskcopy := new(MaestroTask)
 									*taskcopy = *task
@@ -811,21 +811,21 @@ func taskRunner() {
 									anyran = true
 									return
 								} else {
-									DEBUG_OUT(" TASK>>>>>> (batch) No TaskHandler for task type %s\n",task.Op.GetType())								
+									debugging.DEBUG_OUT(" TASK>>>>>> (batch) No TaskHandler for task type %s\n",task.Op.GetType())								
 									log.MaestroErrorf(" TASK>>>>>> (batch) No TaskHandler for task type %s\n",task.Op.GetType())
 									FailTask(taskitem.Id, newAPIErrorNoOpTypeHandler("@ taskRunner()::handleTask() (batch)"))
 								}
 							} else {
-								DEBUG_OUT(" TASK>>>>>> batch Task %s - child %d is already running\n",taskitem.Id,n)
+								debugging.DEBUG_OUT(" TASK>>>>>> batch Task %s - child %d is already running\n",taskitem.Id,n)
 								return
 							}
 						} else {
-							DEBUG_OUT(" TASK>>>>>> ERROR - nil task in children of %s\n",taskitem.Id)
+							debugging.DEBUG_OUT(" TASK>>>>>> ERROR - nil task in children of %s\n",taskitem.Id)
 							return
 						}
 					}
 				} else {
-					DEBUG_OUT(" TASK>>>>>> ERROR You have what looks to be a batch task, but has no children, task:%s\n",taskitem.Id)
+					debugging.DEBUG_OUT(" TASK>>>>>> ERROR You have what looks to be a batch task, but has no children, task:%s\n",taskitem.Id)
 					FailTask(taskitem.Id,newAPIErrorNoOpTypeHandler("@ taskRunner()::handleTask() - broke Batch task? - no children\n"))
 					return
 				}
@@ -835,14 +835,14 @@ func taskRunner() {
 				_handler, ok := handlers.GetStringKey(taskitem.Op.GetType())
 				if ok && _handler != nil {
 					markAsRunning(taskitem.Id)
-					DEBUG_OUT(" TASK>>>>>> Executing task %s on step %d (%s) %+v\n", taskitem.Id, taskitem.Step, taskitem.Op.GetType(), isRunning(taskitem.Id))
+					debugging.DEBUG_OUT(" TASK>>>>>> Executing task %s on step %d (%s) %+v\n", taskitem.Id, taskitem.Step, taskitem.Op.GetType(), isRunning(taskitem.Id))
 					handler := (*TaskHandler)(_handler)
 					taskitemcopy := new(MaestroTask)
 					*taskitemcopy = *taskitem
 					(*handler).SubmitTask(taskitemcopy)
 					anyran = true
 				} else {
-					DEBUG_OUT(" TASK>>>>>> No TaskHandler for task type %s\n",taskitem.Op.GetType())								
+					debugging.DEBUG_OUT(" TASK>>>>>> No TaskHandler for task type %s\n",taskitem.Op.GetType())								
 					log.MaestroErrorf(" TASK>>>>>> No TaskHandler for task type %s\n",taskitem.Op.GetType())
 					FailTask(taskitem.Id, newAPIErrorNoOpTypeHandler("@ taskRunner()::handleTask()"))
 				}
@@ -864,19 +864,19 @@ func taskRunner() {
 		outerTaskLoop:
 		for item := range tasks.Iter() {
 			if item.Value == nil {
-				DEBUG_OUT(" TASK>>>>>> CORRUPTION in hashmap - have null value pointer\n")						
+				debugging.DEBUG_OUT(" TASK>>>>>> CORRUPTION in hashmap - have null value pointer\n")						
 				continue
 			}
 			if item.Value != nil {
 				taskitem := (*MaestroTask)(item.Value)
-				DEBUG_OUT(" TASK>>>>>> Looking at task %s on step %d  {%+v}\n", taskitem.Id, taskitem.Step, *taskitem)
+				debugging.DEBUG_OUT(" TASK>>>>>> Looking at task %s on step %d  {%+v}\n", taskitem.Id, taskitem.Step, *taskitem)
 
 				meta := getMetaTaskData(taskitem.Id)
 				// failed tasks are kept around until an ACK
 				// for the Task is sent successfully
 				// Just skip them
 				if meta.failed {
-					DEBUG_OUT2(" TASK>>>>>> Task %s is marked failed. next...\n", taskitem.Id)
+					debugging.DEBUG_OUT2(" TASK>>>>>> Task %s is marked failed. next...\n", taskitem.Id)
 					meta.release()
 					continue
 				}
@@ -884,7 +884,7 @@ func taskRunner() {
 				// the Task is already executing a step
 				// so leave it alone
 				if meta.stepExecuting {
-					DEBUG_OUT2(" TASK>>>>>> Task %s is marked executing now. next...\n", taskitem.Id)
+					debugging.DEBUG_OUT2(" TASK>>>>>> Task %s is marked executing now. next...\n", taskitem.Id)
 					meta.release()
 					continue
 				}
@@ -896,9 +896,9 @@ func taskRunner() {
 					//markAsRunning(taskitem.Id) // mark the batch task as running
 					meta.running = true
 					meta.release()
-					DEBUG_OUT(" TASK>>>>>> Task %s is a batch task.\n",taskitem.Id)
+					debugging.DEBUG_OUT(" TASK>>>>>> Task %s is a batch task.\n",taskitem.Id)
 					innerBatchLoop:
-					for IFDEBUG(n,_), child := range taskitem.childrenOrder {
+					for n, child := range taskitem.childrenOrder {
 						childtask, ok := getTask(child)
 						if ok {
 							// check steps
@@ -913,18 +913,18 @@ func taskRunner() {
 									continue outerTaskLoop
 								} else {
 									childmeta.release()
-									DEBUG_OUT(" TASK>>>>>> batch Task %s - found child %d  - %s\n",taskitem.Id,n,childtask.Id)
+									debugging.DEBUG_OUT(" TASK>>>>>> batch Task %s - found child %d  - %s\n", taskitem.Id, n, childtask.Id)
 									ret = childtask									
 								}
 								return
 							// } else {
-							// 	DEBUG_OUT(" TASK>>>>>> batch Task %s - child %d is already running\n",taskitem.Id,n)
+							// 	debugging.DEBUG_OUT(" TASK>>>>>> batch Task %s - child %d is already running\n",taskitem.Id,n)
 							// 	// TODO - check timeout
 
 							// 	continue outerTaskLoop
 							// }
 						} else {
-							DEBUG_OUT(" TASK>>>>>> ERROR - nil task in children of %s\n",taskitem.Id)
+							debugging.DEBUG_OUT(" TASK>>>>>> ERROR - nil task in children of %s\n",taskitem.Id)
 							continue innerBatchLoop
 						}
 					}
@@ -941,16 +941,16 @@ func taskRunner() {
 
 					} else {
 						if taskitem.Op != nil {
-							DEBUG_OUT(" TASK>>>>>> Eligible task %s on step %d (%s) %+v\n", taskitem.Id, taskitem.Step, taskitem.Op.GetType(), isRunning(taskitem.Id))
+							debugging.DEBUG_OUT(" TASK>>>>>> Eligible task %s on step %d (%s) %+v\n", taskitem.Id, taskitem.Step, taskitem.Op.GetType(), isRunning(taskitem.Id))
 						} else {
-							DEBUG_OUT(" TASK>>>>>> Eligible task %s on step %d (nil) %+v\n", taskitem.Id, taskitem.Step, isRunning(taskitem.Id))
+							debugging.DEBUG_OUT(" TASK>>>>>> Eligible task %s on step %d (nil) %+v\n", taskitem.Id, taskitem.Step, isRunning(taskitem.Id))
 						}
 
 						ret = taskitem
 //						handleTask(taskitem)
 					}
 				} else {
-					DEBUG_OUT2(" TASK>>>>>> Task %s is at TASK_COMPLETE_STEP (%d)\n",taskitem.Id, taskitem.Step)
+					debugging.DEBUG_OUT2(" TASK>>>>>> Task %s is at TASK_COMPLETE_STEP (%d)\n",taskitem.Id, taskitem.Step)
 					// ok cool, now check to see if we have an ackHandler
 					meta := getMetaTaskData(taskitem.Id)
 					handler := meta.ackHandler
@@ -973,7 +973,7 @@ func taskRunner() {
 	for true {
 		anyran = false
 
-		DEBUG_OUT("********************* top of taskRunner %d ***********************\n",n)
+		debugging.DEBUG_OUT("********************* top of taskRunner %d ***********************\n",n)
 		n++
 		select {
 		case <-internalTicker.C:
@@ -984,14 +984,14 @@ func taskRunner() {
 			}
 
 			if token.op == op_next_finished {
-				DEBUG_OUT(" TASK>>>>>>>> op_next_finished\n")
+				debugging.DEBUG_OUT(" TASK>>>>>>>> op_next_finished\n")
 				// if a task has completed, then let's see if it was part of a Batch?
 				// 
 				if token.task != nil {
 					task, ok := getTask(*token.task)
 					if ok {
 						if isRunning(*token.task) {
-							DEBUG_OUT(" TASK>>>>>>>> ERROR - got a op_next_finished for task %s but it is still running?\n",*token.task)
+							debugging.DEBUG_OUT(" TASK>>>>>>>> ERROR - got a op_next_finished for task %s but it is still running?\n",*token.task)
 						} else {
 							if len(task.parentTaskId) > 0 {
 								parenttask, ok := getTask(task.parentTaskId)
@@ -1004,24 +1004,24 @@ func taskRunner() {
 											if ok {
 												handleTask(nexttask)												
 											} else {
-												DEBUG_OUT(" TASK>>>>>>>> ERROR missing next task - %s parent was %s\n",parenttask.childrenOrder[int(task.batchOrder)+1], parenttask.Id)
+												debugging.DEBUG_OUT(" TASK>>>>>>>> ERROR missing next task - %s parent was %s\n",parenttask.childrenOrder[int(task.batchOrder)+1], parenttask.Id)
 											}
 										} else {
 											// Batch complete!
-											DEBUG_OUT(" TASK>>>>>>>> OK. Batch task is complete: %s\n", parenttask.Id)
+											debugging.DEBUG_OUT(" TASK>>>>>>>> OK. Batch task is complete: %s\n", parenttask.Id)
 											CompleteTask(parenttask.Id)
 										}
 									} else {
-										DEBUG_OUT(" TASK>>>>>>>> ERROR mismatched order of parent / child task - %s\n",task.Id)										
+										debugging.DEBUG_OUT(" TASK>>>>>>>> ERROR mismatched order of parent / child task - %s\n",task.Id)										
 									}
 								} else {
-									DEBUG_OUT(" TASK>>>>>>>> ERROR Can't find parent task - %s\n",task.parentTaskId)
+									debugging.DEBUG_OUT(" TASK>>>>>>>> ERROR Can't find parent task - %s\n",task.parentTaskId)
 								}
 							}
 						}
 //						handleTask(task)
 					} else {
-						DEBUG_OUT(" TASK>>>>>>>> ERROR - could not find referenced task %s\n",*token.task)
+						debugging.DEBUG_OUT(" TASK>>>>>>>> ERROR - could not find referenced task %s\n",*token.task)
 					}
 				} else {
 
@@ -1031,11 +1031,11 @@ func taskRunner() {
 
 
 			if token.op == op_next_task {
-				DEBUG_OUT(" TASK>>>>>>>> op_next_task\n")
+				debugging.DEBUG_OUT(" TASK>>>>>>>> op_next_task\n")
 				// if a task has completed, then let's see if it was part of a 
 				if token.task != nil {
 					nexttask, ok := getTask(*token.task)
-					DEBUG_OUT(" TASK>>>>>>>> op_next_task task -> %s\n",*token.task)
+					debugging.DEBUG_OUT(" TASK>>>>>>>> op_next_task task -> %s\n",*token.task)
 					if ok {
 						handleTask(nexttask)
 
@@ -1078,8 +1078,8 @@ func taskRunner() {
 //  begin generic
 // m4_define({{*NODE*}},{{*MaestroTask*}})  m4_define({{*FIFO*}},{{*taskFIFO*}})
 // Thread safe queue for LogBuffer
-type FIFO struct {
-	q []*NODE	
+type taskFIFO struct {
+	q []*MaestroTask	
 	mutex *sync.Mutex
 	condWait *sync.Cond
 	condFull *sync.Cond
@@ -1091,8 +1091,8 @@ type FIFO struct {
 	                // So we use this as a work around to temporarily wakeup
 	                // (but not shutdown) the queue. Bring your own timer.
 }
-func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
-	ret = new(FIFO)
+func New_taskFIFO(maxsize uint32) (ret *taskFIFO) {
+	ret = new(taskFIFO)
 	ret.mutex =  new(sync.Mutex)
 	ret.condWait = sync.NewCond(ret.mutex)
 	ret.condFull = sync.NewCond(ret.mutex)
@@ -1102,33 +1102,33 @@ func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
 	ret.wakeupIter = 0
 	return
 }
-func (fifo *FIFO) Push(n *NODE) (drop bool, dropped *NODE) {
+func (fifo *taskFIFO) Push(n *MaestroTask) (drop bool, dropped *MaestroTask) {
 	drop = false
-	DEBUG_OUT2(" >>>>>>>>>>>> [ FIFO ] >>> In Push\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> [ taskFIFO ] >>> In Push\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" ------------ In Push (past Lock)\n")
+	debugging.DEBUG_OUT2(" ------------ In Push (past Lock)\n")
     if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
     	// drop off the queue
     	dropped = (fifo.q)[0]
     	fifo.q = (fifo.q)[1:]
     	fifo.drops++
-    	DEBUG_OUT("!!! Dropping NODE in FIFO \n")
+    	debugging.DEBUG_OUT("!!! Dropping MaestroTask in taskFIFO \n")
     	drop = true
     }
     fifo.q = append(fifo.q, n)
-	DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
+	debugging.DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
     fifo.mutex.Unlock()
     fifo.condWait.Signal()
-	DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
     return
 }
 
-// Pushes a batch of NODE. Drops older NODE to make room
-func (fifo *FIFO) PushBatch(n []*NODE) (drop bool, dropped []*NODE) {
+// Pushes a batch of MaestroTask. Drops older MaestroTask to make room
+func (fifo *taskFIFO) PushBatch(n []*MaestroTask) (drop bool, dropped []*MaestroTask) {
 	drop = false
-	DEBUG_OUT2(" >>>>>>>>>>>> [ FIFO ] >>> In PushBatch\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> [ taskFIFO ] >>> In PushBatch\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" ------------ In PushBatch (past Lock)\n")
+	debugging.DEBUG_OUT2(" ------------ In PushBatch (past Lock)\n")
 	_len := uint32(len(fifo.q))
 	_inlen := uint32(len(n))
 	if fifo.maxSize > 0 && _inlen > fifo.maxSize {
@@ -1149,19 +1149,19 @@ func (fifo *FIFO) PushBatch(n []*NODE) (drop bool, dropped []*NODE) {
     	// dropped = (fifo.q)[0]
     	// fifo.q = (fifo.q)[1:]
     	// fifo.drops++
-    	DEBUG_OUT2(" ----------- PushBatch() !!! Dropping %d NODE in FIFO \n", len(dropped))
+    	debugging.DEBUG_OUT2(" ----------- PushBatch() !!! Dropping %d MaestroTask in taskFIFO \n", len(dropped))
     }
-    DEBUG_OUT2(" ----------- In PushBatch (pushed %d)\n",_inlen)
+    debugging.DEBUG_OUT2(" ----------- In PushBatch (pushed %d)\n",_inlen)
     fifo.q = append(fifo.q, n[0:int(_inlen)]...)
-	DEBUG_OUT2(" ------------ In PushBatch (@ Unlock)\n")
+	debugging.DEBUG_OUT2(" ------------ In PushBatch (@ Unlock)\n")
     fifo.mutex.Unlock()
     fifo.condWait.Signal()
-	DEBUG_OUT2(" <<<<<<<<<<< Return PushBatch\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return PushBatch\n")
     return
 }
 
 
-func (fifo *FIFO) Pop() (n *NODE) {
+func (fifo *taskFIFO) Pop() (n *MaestroTask) {
 	fifo.mutex.Lock()
 	if len(fifo.q) > 0 {
 	    n = (fifo.q)[0]
@@ -1171,7 +1171,7 @@ func (fifo *FIFO) Pop() (n *NODE) {
 	fifo.mutex.Unlock()
     return
 }
-// func (fifo *FIFO) PopBatch(max uint32) (n *NODE) {
+// func (fifo *taskFIFO) PopBatch(max uint32) (n *MaestroTask) {
 // 	fifo.mutex.Lock()
 // 	_len := len(fifo.q)
 // 	if _len > 0 {
@@ -1187,20 +1187,20 @@ func (fifo *FIFO) Pop() (n *NODE) {
 // 	fifo.mutex.Unlock()
 //     return
 // }
-func (fifo *FIFO) Len() int {
+func (fifo *taskFIFO) Len() int {
 	fifo.mutex.Lock()
 	ret := len(fifo.q)
 	fifo.mutex.Unlock()
     return ret
 }
-func (fifo *FIFO) PopOrWait() (n *NODE) {
+func (fifo *taskFIFO) PopOrWait() (n *MaestroTask) {
 	n = nil
-	DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
 		return
 	}
 	if len(fifo.q) > 0 {
@@ -1208,19 +1208,19 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 	    fifo.q = (fifo.q)[1:]		
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
 		return
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
 //		fmt.Printf(" --entering wait %+v\n",*fifo);
-	DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
+	debugging.DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
 //		Wait returns with Lock
 //		fmt.Printf(" --out of wait %+v\n",*fifo);
 		if fifo.shutdown { 
 			fifo.mutex.Unlock()
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
 			return 
 		}
 		if len(fifo.q) > 0 {
@@ -1228,21 +1228,21 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 		    fifo.q = (fifo.q)[1:]		
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
 			return
 		}
 	}
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
 	fifo.mutex.Unlock()
 	return
 }
-func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
-	DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
+func (fifo *taskFIFO) PopOrWaitBatch(max uint32) (slice []*MaestroTask) {
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
 		return
 	}
 	_len := uint32(len(fifo.q))
@@ -1256,19 +1256,19 @@ func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
 		}
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
 		return
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
 //		fmt.Printf(" --entering wait %+v\n",*fifo);
-	DEBUG_OUT2(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
+	debugging.DEBUG_OUT2(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
 //		Wait returns with Lock
 //		fmt.Printf(" --out of wait %+v\n",*fifo);
 		if fifo.shutdown { 
 			fifo.mutex.Unlock()
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
 			return 
 		}
 		_len = uint32(len(fifo.q))
@@ -1282,15 +1282,15 @@ func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
 			}
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
 			return
 		}
 	}
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 5)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 5)\n")
 	fifo.mutex.Unlock()
 	return
 }
-func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
+func (fifo *taskFIFO) PushOrWait(n *MaestroTask) (ret bool) {
 	ret = true
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter	
@@ -1309,25 +1309,25 @@ func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
     fifo.condWait.Signal()
     return
 }
-func (fifo *FIFO) Shutdown() {
+func (fifo *taskFIFO) Shutdown() {
 	fifo.mutex.Lock()
 	fifo.shutdown = true
 	fifo.mutex.Unlock()
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
 }
-func (fifo *FIFO) WakeupAll() {
-	DEBUG_OUT2(" >>>>>>>>>>> in WakeupAll @Lock\n")
+func (fifo *taskFIFO) WakeupAll() {
+	debugging.DEBUG_OUT2(" >>>>>>>>>>> in WakeupAll @Lock\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" +++++++++++ in WakeupAll\n")
+	debugging.DEBUG_OUT2(" +++++++++++ in WakeupAll\n")
 	fifo.wakeupIter++
 	fifo.mutex.Unlock()
-	DEBUG_OUT2(" +++++++++++ in WakeupAll @Unlock\n")
+	debugging.DEBUG_OUT2(" +++++++++++ in WakeupAll @Unlock\n")
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
-	DEBUG_OUT2(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
 }
-func (fifo *FIFO) IsShutdown() (ret bool) {
+func (fifo *taskFIFO) IsShutdown() (ret bool) {
 	fifo.mutex.Lock()
 	ret = fifo.shutdown
 	fifo.mutex.Unlock()

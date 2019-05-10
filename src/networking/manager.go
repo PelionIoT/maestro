@@ -42,6 +42,7 @@ import (
 
 	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
 	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/networking/arp"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/tasks"
@@ -102,9 +103,9 @@ type NetworkInterfaceData struct {
 
 func (addr *NetlinkAddr) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString("")
-	DEBUG_OUT("NetlinkAddr1\n")
+	debugging.DEBUG_OUT("NetlinkAddr1\n")
 	if addr != nil && addr.IPNet != nil {
-		DEBUG_OUT("NetlinkAddr2\n")
+		debugging.DEBUG_OUT("NetlinkAddr2\n")
 		buffer.WriteString(fmt.Sprintf("\"%s\"", addr.String()))
 	} else {
 		buffer.WriteString(fmt.Sprintf("null"))
@@ -307,7 +308,7 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 	if err == nil {
 		log.MaestroSuccessf("NetworkManager: wrote out DNS resolv.conf (%s) ok", path)
 	}
-	DEBUG_OUT("finalizeDNS() wrote %s ok\n", path)
+	debugging.DEBUG_OUT("finalizeDNS() wrote %s ok\n", path)
 	return
 }
 
@@ -328,7 +329,7 @@ func (this *networkManagerInstance) decIfThreadCount() {
 		this.interfaceThreadCountMutex.Lock()
 		this.interfaceThreadCount--
 		if this.interfaceThreadCount < 1 {
-			DEBUG_OUT("submit to threadCountChan no_interface_threads\n")
+			debugging.DEBUG_OUT("submit to threadCountChan no_interface_threads\n")
 			this.threadCountChan <- networkThreadMessage{cmd: no_interface_threads}
 		}
 		this.interfaceThreadCountMutex.Unlock()
@@ -345,11 +346,11 @@ func (this *networkManagerInstance) waitForActiveInterfaceThreads(timeout_second
 	select {
 	case cmd := <-this.threadCountChan:
 		if cmd.cmd != no_interface_threads {
-			DEBUG_OUT("Uknown command entered threadCountChan channel")
+			debugging.DEBUG_OUT("Uknown command entered threadCountChan channel")
 		}
 		// break CountLoop
 	case <-time.After(timeout):
-		DEBUG_OUT("TIMEOUT in waitForNowActiveInterfaceThreads\n")
+		debugging.DEBUG_OUT("TIMEOUT in waitForNowActiveInterfaceThreads\n")
 		wastimeout = true
 		// break CountLoop
 	}
@@ -394,7 +395,7 @@ func (this *networkManagerInstance) GetInterfacesAsJson(enabled_only bool, up_on
 
 	for item := range this.byInterfaceName.Iter() {
 		if item.Value == nil {
-			DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
+			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
 			continue
 		}
 		// ifname := "<interface name>"
@@ -514,7 +515,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 			continue
 		}
 		ifname := ifconf.IfName
-		DEBUG_OUT("------> ifname: [%s]\n", ifname)
+		debugging.DEBUG_OUT("------> ifname: [%s]\n", ifname)
 		var storedifconfig NetworkInterfaceData
 		err := this.networkConfigDB.Get(ifname, &storedifconfig)
 		if err != nil {
@@ -552,10 +553,10 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				}
 
 			} else if ifconf.Existing == "override" {
-				DEBUG_OUT("ifconfig: %+v\n", ifconf)
+				debugging.DEBUG_OUT("ifconfig: %+v\n", ifconf)
 				// override fields where the incoming config has data
 				if storedifconfig.StoredIfconfig != nil {
-					DEBUG_OUT("merging...\n")
+					debugging.DEBUG_OUT("merging...\n")
 					// structmutate.SetupUtilsLogs(func (format string, a ...interface{}) {
 					//     s := fmt.Sprintf(format, a...)
 					//     fmt.Printf("[debug-typeutils]  %s\n", s)
@@ -568,7 +569,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				} else {
 					storedifconfig.StoredIfconfig = ifconf
 				}
-				DEBUG_OUT("storedifconfig: %+v\n", storedifconfig.StoredIfconfig)
+				debugging.DEBUG_OUT("storedifconfig: %+v\n", storedifconfig.StoredIfconfig)
 				this.byInterfaceName.Set(ifname, unsafe.Pointer(&storedifconfig))
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
@@ -588,7 +589,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 func (this *networkManagerInstance) getIfFromDb(ifname string) (ret *NetworkInterfaceData) {
 	err := this.networkConfigDB.Get(ifname, ret)
 	if err != nil {
-		//            DEBUG_OUT("getOrNewInterfaceData: %s - error %s\n",ifname,err.Error())
+		//            debugging.DEBUG_OUT("getOrNewInterfaceData: %s - error %s\n",ifname,err.Error())
 		if err != stow.ErrNotFound {
 			log.MaestroErrorf("NetworkManager: problem with database Get: %s", err.Error())
 		}
@@ -615,7 +616,7 @@ func (this *networkManagerInstance) getOrNewInterfaceData(ifname string) (ret *N
 		}
 		this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
 		this.commitInterfaceData(ifname)
-		//        DEBUG_OUT("HERE getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
+		//        debugging.DEBUG_OUT("HERE getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
 	} else {
 		// ok, let's try the database
 		ret = this.getIfFromDb(ifname)
@@ -629,7 +630,7 @@ func (this *networkManagerInstance) getOrNewInterfaceData(ifname string) (ret *N
 			this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
 			this.commitInterfaceData(ifname)
 		} else {
-			//            DEBUG_OUT("HERE(2) getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
+			//            debugging.DEBUG_OUT("HERE(2) getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
 			// store in in-memory map
 			this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
 		}
@@ -661,13 +662,13 @@ func (this *networkManagerInstance) loadAllInterfaceData() (err error) {
 				// if there is an existing in-memory entry, overwrite it
 				this.byInterfaceName.Set(ifname, unsafe.Pointer(ifdata))
 				this.newInterfaceMutex.Unlock()
-				DEBUG_OUT("loadAllInterfaceData() see if: %s --> %+v\n", ifname, ifdata)
+				debugging.DEBUG_OUT("loadAllInterfaceData() see if: %s --> %+v\n", ifname, ifdata)
 			} else {
 				log.MaestroErrorf("NetworkManager: Critical problem with interface [%s] config. Not loading config.", ifname)
 			}
 		} else {
 			err = errors.New("Internal DB corruption")
-			DEBUG_OUT("NetworkManager: internal DB corruption - @if %s\n", ifname)
+			debugging.DEBUG_OUT("NetworkManager: internal DB corruption - @if %s\n", ifname)
 			log.MaestroErrorf("NetworkManager: internal DB corruption")
 		}
 		return true
@@ -705,7 +706,7 @@ func (this *networkManagerInstance) SetupExistingInterfaces(config *maestroSpecs
 	// if err != nil {
 	for item := range this.byInterfaceName.Iter() {
 		if item.Value == nil {
-			DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
+			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
 			continue
 		}
 		ifname := "<interface name>"
@@ -776,7 +777,7 @@ func (mgr *networkManagerInstance) commitInterfaceData(ifname string) error {
 	if ok {
 		ifdata := (*NetworkInterfaceData)(pdata)
 		err := mgr.networkConfigDB.Put(ifname, ifdata)
-		DEBUG_OUT("NetworkManager: --> commitInterfaceData() for [%s]\n", ifname)
+		debugging.DEBUG_OUT("NetworkManager: --> commitInterfaceData() for [%s]\n", ifname)
 		return err
 	}
 	return ErrNoInterface
@@ -873,7 +874,7 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 	leaseinfo := ifdata.DhcpLease
 
 	if leaseinfo != nil && leaseinfo.IsValid() {
-		//		DEBUG_OUT("DHCP goDhcp() LEASE IS VALID :)")
+		//		debugging.DEBUG_OUT("DHCP goDhcp() LEASE IS VALID :)")
 		// Step #1
 		// if still have a lease, and the lease is not out yet, then just set the IP
 		// and engage the watcher for the lease
@@ -901,16 +902,16 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 			ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease} // rebind?
 		}
 	} else {
-		DEBUG_OUT("NetworkManager: doDhcp() DHCP: no lease or lease invalid! Will get new lease.\n")
+		debugging.DEBUG_OUT("NetworkManager: doDhcp() DHCP: no lease or lease invalid! Will get new lease.\n")
 		// ok - get a completely fresh lease then.
 		ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease}
 	}
 
-	DEBUG_OUT("@DhcpLoop\n")
+	debugging.DEBUG_OUT("@DhcpLoop\n")
 	// yeap, this is gonna run forever, or until it's shutdown
 DhcpLoop:
 	for {
-		DEBUG_OUT("DhcpLoop to - if %s\n", ifname)
+		debugging.DEBUG_OUT("DhcpLoop to - if %s\n", ifname)
 		select {
 		case statechange := <-ifdata.interfaceChange:
 			// happens if the interface goes up or down
@@ -936,7 +937,7 @@ DhcpLoop:
 				// if we should use an alternate network, by asking for DHCP
 				// we call this without just sending ourselves an event, b/c we want the timeouts to be
 				// very fast in this case.
-				DEBUG_OUT("DhcpLoop - Saw LOWER_UP change - if %s. Checking for new DHCP?\n", ifname)
+				debugging.DEBUG_OUT("DhcpLoop - Saw LOWER_UP change - if %s. Checking for new DHCP?\n", ifname)
 				ifdata = this.getInterfaceData(ifname)
 				if ifdata != nil {
 
@@ -1024,7 +1025,7 @@ DhcpLoop:
 		case workstate = <-ifdata.dhcpWorkerControl:
 			switch workstate.cmd {
 			case dhcp_get_lease:
-				DEBUG_OUT("DhcpLoop to - @dhcp_get_lease [%s]\n", ifname)
+				debugging.DEBUG_OUT("DhcpLoop to - @dhcp_get_lease [%s]\n", ifname)
 				ifdata = this.getInterfaceData(ifname)
 				var success int
 				if ifdata != nil {
@@ -1083,7 +1084,7 @@ DhcpLoop:
 					}
 
 					// ok, setup the interface.
-					DEBUG_OUT("@DhcpLoop - setup interface\n")
+					debugging.DEBUG_OUT("@DhcpLoop - setup interface\n")
 					if ifdata.RunningIfconfig == nil {
 						if ifconfig != nil {
 							ifdata.RunningIfconfig = ifconfig
@@ -1095,7 +1096,6 @@ DhcpLoop:
 
 					result, err := SetupInterfaceFromLease(ifdata.RunningIfconfig, newlease)
 					if err != nil {
-						DEBUG
 						log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease. Details: %s", err.Error())
 						leaseinfo = nil
 						ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease} // rebind?
@@ -1136,7 +1136,7 @@ DhcpLoop:
 					}
 
 					if leaseinfo != nil {
-						DEBUG_OUT("@DhcpLoop - setup gw and dns\n")
+						debugging.DEBUG_OUT("@DhcpLoop - setup gw and dns\n")
 						// setup default route
 						routeset, gw, err := setupDefaultRouteInPrimaryTable(this, ifdata.RunningIfconfig, leaseinfo)
 						if routeset {
@@ -1175,7 +1175,7 @@ DhcpLoop:
 					break DhcpLoop
 				}
 			case dhcp_renew_lease:
-				DEBUG_OUT("DhcpLoop to - @dhcp_renew_lease [%s]\n", ifname)
+				debugging.DEBUG_OUT("DhcpLoop to - @dhcp_renew_lease [%s]\n", ifname)
 				ifdata = this.getInterfaceData(ifname)
 				var success int
 				if ifdata != nil {
@@ -1289,13 +1289,13 @@ DhcpLoop:
 					break DhcpLoop
 				}
 			case dhcp_rebind_lease:
-				DEBUG_OUT("DhcpLoop to - @dhcp_rebind_lease [%s]\n", ifname)
+				debugging.DEBUG_OUT("DhcpLoop to - @dhcp_rebind_lease [%s]\n", ifname)
 				// the same as get lease for now
 				ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease}
 				continue DhcpLoop
 
 			case stop_and_release_IP:
-				DEBUG_OUT("DhcpLoop to - @stop_and_release_IP [%s]\n", ifname)
+				debugging.DEBUG_OUT("DhcpLoop to - @stop_and_release_IP [%s]\n", ifname)
 				ifdata = this.getInterfaceData(ifname)
 				if ifdata != nil {
 					if ifdata.DhcpLease != nil {
@@ -1315,14 +1315,14 @@ DhcpLoop:
 				// stop this thread
 
 			case thread_shutdown:
-				DEBUG_OUT("DhcpLoop to - @thread_shutdown [%s]\n", ifname)
+				debugging.DEBUG_OUT("DhcpLoop to - @thread_shutdown [%s]\n", ifname)
 				log.MaestroInfof("NetworkManager: DHCP worker for if %s got shutdown", ifname)
 				break DhcpLoop
 			}
 
 		case <-time.After(timeout):
 			if nextstate != nil {
-				DEBUG_OUT("DHCP worker *timeout* for if %s - nextstate %+v\n", ifname, nextstate)
+				debugging.DEBUG_OUT("DHCP worker *timeout* for if %s - nextstate %+v\n", ifname, nextstate)
 				log.MaestroWarnf("NetworkManager: DHCP worker *timeout* for if %s - nextstate %+v", ifname, nextstate)
 				ifdata.dhcpWorkerControl <- *nextstate
 				nextstate = nil
@@ -1431,7 +1431,7 @@ Outer:
 			}
 		case update := <-ch:
 			nmLogDebugf("link state change for if <%s>: %+v", update.Attrs().Name, update)
-			DEBUG_OUT("NetworkManager>>> saw link update: %+v\n", update)
+			debugging.DEBUG_OUT("NetworkManager>>> saw link update: %+v\n", update)
 			ifname := update.Attrs().Name
 			ifdata := mgr.getInterfaceData(ifname)
 			if ifdata != nil {
@@ -1450,7 +1450,7 @@ Outer:
 					if !up {
 						// ok this is a change. The interface was down, is now up
 						nmLogDebugf("interface %s now LOWER_UP\n", ifname)
-						DEBUG_OUT("NetworkManager>>> Interface %s LOWER_UP now\n", ifname)
+						debugging.DEBUG_OUT("NetworkManager>>> Interface %s LOWER_UP now\n", ifname)
 						// mark as up, and check for preferred default route
 						err := netlink.LinkSetUp(update.Link)
 						if err != nil {
@@ -1506,7 +1506,7 @@ Outer:
 						}
 						if up {
 							nmLogWarnf("interface %s now DOWN - (LOWER_UP false)\n", ifname)
-							DEBUG_OUT("NetworkManager>>> Interface %s is now DOWN (LOWER_UP off)\n", ifname)
+							debugging.DEBUG_OUT("NetworkManager>>> Interface %s is now DOWN (LOWER_UP off)\n", ifname)
 							err := netlink.LinkSetDown(update.Link)
 							if err != nil {
 								nmLogErrorf("error bringing down interface %s - details: %s", ifname, err.Error())
@@ -1561,7 +1561,7 @@ Outer:
 				ifdata.lastFlags = update.IfInfomsg.Flags
 			} else {
 				nmLogDebugf("interface state change %s - ignoring. Not managed", ifname)
-				DEBUG_OUT("NetworkManager>>> ignoring interface %s\n", ifname)
+				debugging.DEBUG_OUT("NetworkManager>>> ignoring interface %s\n", ifname)
 			}
 
 		}
@@ -1598,7 +1598,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 					// first, save this record. Even if the interface does not exist, if it does
 					// come up then we will set it up.
 					ifdata = mgr.getOrNewInterfaceData(ifconfig.IfName)
-					DEBUG_OUT("past getOrNewInterfaceData(%s) - %+v\n", ifconfig.IfName, ifdata)
+					debugging.DEBUG_OUT("past getOrNewInterfaceData(%s) - %+v\n", ifconfig.IfName, ifdata)
 					ifdata.StoredIfconfig = ifconfig
 					err = mgr.commitInterfaceData(ifconfig.IfName)
 					if err != nil {
@@ -1660,7 +1660,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 							// mgr.networkConfigDB.Get(ifname,&ifdata)
 							// // we do DHCP with a new go routine, as it may take some time
 							// if ifdata != nil {
-							DEBUG_OUT("ok, running goDhcp for if %s\n", ifname)
+							debugging.DEBUG_OUT("ok, running goDhcp for if %s\n", ifname)
 							mgr.watchInterface(ifconfig.IfName)
 							go mgr.doDhcp(ifname, requestedOp)
 							// }
@@ -1669,13 +1669,13 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 
 							// we do DHCP with a new go routine, as it may take some time
 							if ifdata != nil && ifdata.dhcpRunning {
-								DEBUG_OUT("waiting on DHCP thread shutdown for if %s\n", ifname)
+								debugging.DEBUG_OUT("waiting on DHCP thread shutdown for if %s\n", ifname)
 								ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: stop_and_release_IP}
 								// wait on that shutdown
 								<-ifdata.dhcpWaitOnShutdown
 							}
 
-							DEBUG_OUT("Setting up static IP for if %s\n", ifname)
+							debugging.DEBUG_OUT("Setting up static IP for if %s\n", ifname)
 
 							confs := []*maestroSpecs.NetIfConfigPayload{}
 							confs = append(confs, ifconfig)
@@ -1684,7 +1684,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 							if err != nil {
 								errout = err
 								log.MaestroErrorf("NetworkManager: Failed to setup static address on interface %s - %s", ifname, err.Error())
-								DEBUG_OUT("NetworkManager: Failed to setup static address on interface %s - %s\n", ifname, err.Error())
+								debugging.DEBUG_OUT("NetworkManager: Failed to setup static address on interface %s - %s\n", ifname, err.Error())
 							} else {
 								log.MaestroSuccessf("Network Manager: Static address set on %s of %s", ifname, confs[0].IPv4Addr)
 								_, err = addDefaultRoutesToPrimaryTable(mgr, confs)
@@ -1709,7 +1709,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 						}
 					} else {
 						// Interface could not be found!
-						DEBUG_OUT("NetworkManager: Inteface could not be found %s (%d) - %+v\n", ifconfig.IfName, ifconfig.IfIndex, err.Error())
+						debugging.DEBUG_OUT("NetworkManager: Inteface could not be found %s (%d) - %+v\n", ifconfig.IfName, ifconfig.IfIndex, err.Error())
 						err2 := new(maestroSpecs.APIError)
 						err2.HttpStatusCode = 500
 						err2.ErrorString = "Interface could not be found"
@@ -1734,7 +1734,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 						errout = err2
 					}
 
-					// DEBUG_OUT("past getOrNewInterfaceData(%s) - %+v\n", ifconfig.IfName, ifdata)
+					// debugging.DEBUG_OUT("past getOrNewInterfaceData(%s) - %+v\n", ifconfig.IfName, ifdata)
 					// ifdata.StoredIfconfig = ifconfig
 					// err = mgr.commitInterfaceData(ifconfig.IfName)
 					// if err != nil {
@@ -1755,7 +1755,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 				case maestroSpecs.OP_RELEASE_DHCP:
 
 				default:
-					DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() unknown Op\n")
+					debugging.DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() unknown Op\n")
 					err := new(maestroSpecs.APIError)
 					err.HttpStatusCode = 500
 					err.ErrorString = "Uknown op"
@@ -1764,7 +1764,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 					errout = err
 				}
 			} else {
-				DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() unknown Op\n")
+				debugging.DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() unknown Op\n")
 				err := new(maestroSpecs.APIError)
 				err.HttpStatusCode = 500
 				err.ErrorString = "No config"
@@ -1773,7 +1773,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 				errout = err
 			}
 		} else {
-			DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() not correct Op type\n")
+			debugging.DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() not correct Op type\n")
 			err := new(maestroSpecs.APIError)
 			err.HttpStatusCode = 500
 			err.ErrorString = "op was not an network operation"
@@ -1795,7 +1795,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 		}
 
 	default:
-		DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() not correct Op type\n")
+		debugging.DEBUG_OUT("NETWORK>>>networkManagerInstance.SubmitTask() not correct Op type\n")
 		err := new(maestroSpecs.APIError)
 		err.HttpStatusCode = 500
 		err.ErrorString = "op was not an network operation"

@@ -28,6 +28,7 @@ import (
 	"github.com/armPelionEdge/httprouter"	
 	"github.com/armPelionEdge/greasego"
     "github.com/op/go-logging"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestroSpecs/templates"
 	"github.com/armPelionEdge/maestro/storage"
@@ -99,7 +100,7 @@ func main() {
 	}
 
 	if configFlag != nil {
-		DEBUG_OUT("config file:",*configFlag)
+		debugging.DEBUG_OUT("config file:",*configFlag)
 	}
 
 	// Initialization starts off with reading in the entire config file,
@@ -149,7 +150,7 @@ func main() {
 
 	config.FinalizeConfig()
 
-	DEBUG_OUT("RelayMQ: %+v\n",config.RelayMQDriver)
+	debugging.DEBUG_OUT("RelayMQ: %+v\n",config.RelayMQDriver)
 	  
 	if *dumpMetaVars {
 		fmt.Printf(" Format: {{VARNAME}} = [[VALUE]]\n\n")
@@ -194,7 +195,7 @@ func main() {
 	}
 
 	if err == nil {
-		DEBUG_OUT("Loaded config file");
+		debugging.DEBUG_OUT("Loaded config file");
 	} else {
 		fmt.Fprintln(os.Stderr,"Error loading config:",err);
 	}
@@ -225,10 +226,10 @@ func main() {
 	processes.InitProcessMgmt(config.Processes)
 
 	unixLogSocket := config.GetUnixLogSocket()
-	DEBUG_OUT("Starting greaselib. %s\n", unixLogSocket)
+	debugging.DEBUG_OUT("Starting greaselib. %s\n", unixLogSocket)
 
 	greasego.StartGreaseLib(func(){
-		DEBUG(fmt.Printf("Grease start cb: Got to here 1\n"))
+		debugging.DEBUG_OUT("Grease start cb: Got to here 1\n")
 	});
 	greasego.SetupStandardLevels()
 	greasego.SetupStandardTags()
@@ -246,7 +247,7 @@ func main() {
 		greasego.AddSink(kernelSink)
 	}
 	
-	DEBUG_OUT("UnixLogSocket: %s\n", unixLogSocket);
+	debugging.DEBUG_OUT("UnixLogSocket: %s\n", unixLogSocket);
 	unixSockSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_UNIXDGRAM, &unixLogSocket)
 	greasego.AddSink(unixSockSink)
 	
@@ -263,7 +264,7 @@ func main() {
 			if err != nil {
 				log.Errorf("Container templ [%s] failed to register: %s\n",templ.GetName())
 			} else {
-				DEBUG_OUT("Container templ found in DB: %+v\n", templ)
+				debugging.DEBUG_OUT("Container templ found in DB: %+v\n", templ)
 			}
 		})
 
@@ -273,7 +274,7 @@ func main() {
 			if err != nil {
 				log.Errorf("Job [%s] failed to register job: %s\n",job.GetJobName())
 			} else {
-				DEBUG_OUT("Job found in DB: %+v\n", job)
+				debugging.DEBUG_OUT("Job found in DB: %+v\n", job)
 			}
 		})
 	}
@@ -314,7 +315,7 @@ func main() {
 		fmt.Printf("Symphony / RMI API server not configured.\n")
 	}
 
-	DEBUG_OUT("targets:",len(config.Targets))
+	debugging.DEBUG_OUT("targets:",len(config.Targets))
 	for n:=0; n < len(config.Targets);n++ {
 		if len(config.Targets[n].File) > 0 { // honor any substitution vars for the File targets
 			config.Targets[n].File = maestroConfig.GetInterpolatedConfigString(config.Targets[n].File)
@@ -326,9 +327,9 @@ func main() {
 			greasego.TargetOptsSetFlags(opts,greasego.GREASE_JSON_ESCAPE_STRINGS)
 		}
 
-		DEBUG_OUT("%+v\n", opts.FileOpts)
-		DEBUG_OUT("%+v\n", opts)
-		DEBUG_OUT("%+v\n", *opts.Format_time)
+		debugging.DEBUG_OUT("%+v\n", opts.FileOpts)
+		debugging.DEBUG_OUT("%+v\n", opts)
+		debugging.DEBUG_OUT("%+v\n", *opts.Format_time)
 
 		if(strings.Compare(config.Targets[n].Name,"toCloud")==0) {
 			fmt.Printf("\nFound toCloud target-------->\n")
@@ -344,13 +345,13 @@ func main() {
 			
 			// func(err *greasego.GreaseError, data *greasego.TargetCallbackData){
 			// 	DEBUG(_count++)
-			// 	DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
+			// 	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
 			// 	if(err != nil) {
 			// 		fmt.Printf("ERROR in toCloud target CB %s\n", err.Str)
 			// 	} else {
 			// 		buf := data.GetBufferAsSlice()
 			// 		DEBUG(s := string(buf))
-			// 		DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,s);
+			// 		debugging.DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,s);
 			// 		client.SubmitLogs(data,buf)
 			// 	}
 			// }
@@ -358,14 +359,14 @@ func main() {
 
 		func(n int, opts *greasego.GreaseLibTargetOpts){
 			greasego.AddTarget(opts,func(err *greasego.GreaseError, optsId int, targId uint32){
-				DEBUG(fmt.Println("IN CALLBACK %d\n",optsId))
+				debugging.DEBUG_OUT("IN CALLBACK %d\n",optsId)
 				if(err != nil) {
 					fmt.Printf("ERROR on creating target: %s\n",err.Str);
 				} else {
 					// after the Target is added, we can setup the Filters for it
 					if(len(config.Targets[n].Filters) > 0) {
 						for l:=0; l<len(config.Targets[n].Filters);l++ {
-							DEBUG(fmt.Printf("Have filter %+v\n",config.Targets[n].Filters[l]))
+							debugging.DEBUG_OUT("Have filter %+v\n",config.Targets[n].Filters[l])
 							filter := greasego.NewGreaseLibFilter();
 							filter.Target = targId
 							// handle the strings:
@@ -379,9 +380,9 @@ func main() {
 								tag :=  maestroConfig.ConvertTagStringToUint32(config.Targets[n].Filters[l].Tag)
 								greasego.SetFilterValue(filter,greasego.GREASE_LIB_SET_FILTER_MASK,tag);
 							}		
-							DEBUG(fmt.Printf("Filter -----------> %+v\n", filter))
-							DEBUG(filterid := )greasego.AddFilter(filter)
-							DEBUG(fmt.Printf("Filter ID: %d\n",filterid))
+							debugging.DEBUG_OUT("Filter -----------> %+v\n", filter)
+							filterid := greasego.AddFilter(filter)
+							debugging.DEBUG_OUT("Filter ID: %d\n",filterid)
 						}
 					} else {
 						// by default, send all traffic to any target
@@ -415,7 +416,7 @@ func main() {
 
 
 	// Process static config files before we start any processes
-	DEBUG_OUT("Processing static file generators...\n")
+	debugging.DEBUG_OUT("Processing static file generators...\n")
 	for _, fileop := range config.StaticFileGenerators {
 		if (len(fileop.TemplateFile) > 0 || len(fileop.TemplateString) > 0) && len(fileop.OutputFile) > 0 {
 			op := templates.NewFileOp(fileop.Name,fileop.TemplateFile,fileop.TemplateString,fileop.OutputFile,maestroConfig.GetGlobalConfigDictionary())			
@@ -423,15 +424,15 @@ func main() {
 			if err != nil {
 				log.Errorf("Error processing template file %s: %s\n", fileop.TemplateFile,err.Error())
 			} else {
-				err, wrote, IFDEBUG(checksum,_) := op.MaybeGenerateFile()
+				err, wrote, checksum := op.MaybeGenerateFile()
 				if err != nil {
 					log.Errorf("Error creating generated file (%s) %s: %s\n", fileop.Name, fileop.OutputFile,err.Error())					
 				} else {
-					DEBUG_OUT("Static file generator, template %d - checksum is %s\n", fileop.Name,checksum)
+					debugging.DEBUG_OUT("Static file generator, template %d - checksum is %s\n", fileop.Name,checksum)
 					if wrote {
-						DEBUG_OUT("Static file generator - wrote out new file for template %s: %s\n", fileop.Name, fileop.OutputFile)
+						debugging.DEBUG_OUT("Static file generator - wrote out new file for template %s: %s\n", fileop.Name, fileop.OutputFile)
 					} else {
-						DEBUG_OUT("Static file generator - skipping file, no change for template %s: %s\n", fileop.Name, fileop.OutputFile)
+						debugging.DEBUG_OUT("Static file generator - skipping file, no change for template %s: %s\n", fileop.Name, fileop.OutputFile)
 					}
 				}
 			}
@@ -439,7 +440,7 @@ func main() {
 			log.Errorf("Poorly formed 'static_file_generators' entry in config file. Skipping %s\n",fileop.Name)
 		}
 	}
-	DEBUG_OUT("Done with static file generators.\n")
+	debugging.DEBUG_OUT("Done with static file generators.\n")
 
 	/*********************************************/
 	/*             Events Manager start          */
@@ -454,7 +455,7 @@ func main() {
 	// the TaskManager is needed to process tasks and 
 	// is used by the JobsManager and the NetworkManager
 
-	DEBUG_OUT("doing task.StartTaskManager()\n")
+	debugging.DEBUG_OUT("doing task.StartTaskManager()\n")
 	tasks.StartTaskManager()
 
 
@@ -568,16 +569,16 @@ func main() {
 	/*               Jobs startup                */
 	/*********************************************/
 
-	DEBUG_OUT("doing InitImageManager()\n")
+	debugging.DEBUG_OUT("doing InitImageManager()\n")
 	InitImageManager(config.GetScratchPath(),config.GetImagePath())
-	DEBUG_OUT("doing StartJobConfigManager()\n")
+	debugging.DEBUG_OUT("doing StartJobConfigManager()\n")
 	configMgr.StartJobConfigManager(config)
 
-	DEBUG_OUT("doing processes.InitProcessEvents()\n")
+	debugging.DEBUG_OUT("doing processes.InitProcessEvents()\n")
 	processes.InitProcessEvents(config.Stats)
 
-	DEBUG_OUT("starts:%+v\n",config.JobStarts)
-	DEBUG_OUT("container_templates:%+v\n",config.ContainerTemplates)
+	debugging.DEBUG_OUT("starts:%+v\n",config.JobStarts)
+	debugging.DEBUG_OUT("container_templates:%+v\n",config.ContainerTemplates)
 
 	// First load existing Jobs / Templates from database:
 		
@@ -592,7 +593,7 @@ func main() {
 				log.Errorf("Error on saving job in DB: %s\n", err.Error())
 			}			
 		} else {
-			DEBUG_OUT("Immutable: Not storing config file Container: %s\n",container.GetName())			
+			debugging.DEBUG_OUT("Immutable: Not storing config file Container: %s\n",container.GetName())			
 		}
 		processes.RegisterContainer( &config.ContainerTemplates[i] )
 	}
@@ -608,7 +609,7 @@ func main() {
 				log.Errorf("Error on saving job in DB: %s\n", err.Error())
 			}			
 		} else {
-			DEBUG_OUT("Immutable: Not storing config file Job: %s\n",job.GetJobName())			
+			debugging.DEBUG_OUT("Immutable: Not storing config file Job: %s\n",job.GetJobName())			
 		}
 		processes.RegisterJob( &config.JobStarts[i] )
 	}
@@ -634,7 +635,7 @@ func main() {
 		log.Error("Error on sink start:",err)
 	} else {
 		defer unixEndpoint.Start(router, &waitGroup)
-		DEBUG_OUT("Started unix socket HTTP endpoint.")
+		debugging.DEBUG_OUT("Started unix socket HTTP endpoint.")
 //		sink.Shutdown()
 //		waitGroup.Wait()
 	}
@@ -652,7 +653,7 @@ func main() {
 	if config.RelayMQDriver != nil {
 		log.Info("Starting RelayMQDriver...")
 
-		DEBUG_OUT("\nClientCert [%s]\n\n",config.RelayMQDriver.ClientCertificate)
+		debugging.DEBUG_OUT("\nClientCert [%s]\n\n",config.RelayMQDriver.ClientCertificate)
 
 
 		driver, err := NewRelayMQDriver(config.RelayMQDriver)

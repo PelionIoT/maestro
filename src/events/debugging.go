@@ -1,3 +1,5 @@
+// +build debug
+
 package events
 
 // Copyright (c) 2018, Arm Limited and affiliates.
@@ -17,10 +19,7 @@ package events
 
 import "fmt"
 
-DEBUG(func logEvent(format string, a ...interface{}) {)
-DEBUG(s := fmt.Sprintf(format, a...))
-DEBUG(	fmt.Printf("debug <EventManager>   %s\n", s))
-DEBUG(})
-
-NODEBUG(func logEvent(format string, a ...interface{}) {)
-NODEBUG(})
+func logEvent(format string, a ...interface{}) {
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("debug <EventManager>   %s\n", s)
+}

@@ -20,11 +20,11 @@ import (
 	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/tasks"
 	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 //	"errors"
 	"net/http"
-	IFDEBUG("fmt")
 )
 
 type jobManagerInstance struct {
@@ -49,7 +49,7 @@ func (this *jobManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout erro
 	// if task.Op.GetType() == maestroSpecs.OP_TYPE_JOB {
 	// 	requestedOp, ok := task.Op.(*maestroSpecs.JobOpPayload)
 	// } else {
-	 	DEBUG_OUT("IMAGE>>>JobManagerInstance.SubmitTask() not correct Op type\n")
+	 	debugging.DEBUG_OUT("IMAGE>>>JobManagerInstance.SubmitTask() not correct Op type\n")
 	// 	err := new(maestroSpecs.APIError)
 	// 	err.HttpStatusCode = 500
 	// 	err.ErrorString = "op was not an ImageOperation"

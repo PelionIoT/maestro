@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/stow"
@@ -234,7 +234,6 @@ func (mgr *Manager) PublishEntry(entry *ConfigEntry) (err error) {
 func (mgr *Manager) loadAllData() (err error) {
 	var temp ConfigEntry
 	mgr.mdnsConfigDB.IterateIf(func(key []byte, val interface{}) bool {
-		DEBUG(hash := string(key[:]))
 		entry, ok := val.(*ConfigEntry)
 		if ok {
 			mgr.PublishEntry(entry)
@@ -250,7 +249,7 @@ func (mgr *Manager) loadAllData() (err error) {
 			// }
 		} else {
 			err = errors.New("Internal DB corruption")
-			DEBUG_OUT(logPrefix+"internal DB corruption - @ %s\n", hash)
+			debugging.DEBUG_OUT(logPrefix+"internal DB corruption - @ %s\n", string(key[:]))
 			log.MaestroErrorf(logPrefix + "internal DB corruption")
 		}
 		return true
@@ -264,7 +263,7 @@ func (mgr *Manager) LoadFromConfigFile(entries []*ConfigEntry) (allok bool, errs
 	allok = true
 	for _, entry := range entries {
 		entry.NotPersistent = true
-		DEBUG_OUT("mdns: record: %+v\n", entry)
+		debugging.DEBUG_OUT("mdns: record: %+v\n", entry)
 		err := mgr.PublishEntry(entry)
 		if err != nil {
 			log.MaestroErrorf(logPrefix+"Failed to publish mdns record: %s %s %s - %s", entry.Name, entry.Service, entry.Text, err.Error())

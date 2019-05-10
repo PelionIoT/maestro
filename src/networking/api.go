@@ -25,6 +25,7 @@ import (
 	"github.com/armPelionEdge/dhcp4"
 	"github.com/armPelionEdge/dhcp4client"
 	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/netlink"
 	"golang.org/x/sys/unix"
@@ -458,11 +459,11 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 			return
 		}
 
-		DEBUG_OUT("DHCP (renew with server %s) Success:%v\n", serveraddr.String(), success)
-		DEBUG_OUT("DHCP (renew with server %s) Packet:%v\n", serveraddr.String(), acknowledgementpacket)
+		debugging.DEBUG_OUT("DHCP (renew with server %s) Success:%v\n", serveraddr.String(), success)
+		debugging.DEBUG_OUT("DHCP (renew with server %s) Packet:%v\n", serveraddr.String(), acknowledgementpacket)
 
 	} else {
-		DEBUG_OUT("RenewFromServer wasn't handed a lease.\n")
+		debugging.DEBUG_OUT("RenewFromServer wasn't handed a lease.\n")
 		iferr := &NetworkAPIError{
 			Code:      ERROR_DHCP_INVALID_LEASE,
 			Errstring: fmt.Sprintf("Error on DHCP socket renew request: %s - no lease", ifname),
@@ -489,15 +490,15 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 		}
 		//     test.Error("We didn't sucessfully get a DHCP Lease?")
 		// } else {
-		DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
+		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
 		if ok {
-			DEBUG_OUT("DHCP router is %s\n", ip.String())
+			debugging.DEBUG_OUT("DHCP router is %s\n", ip.String())
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
 			for _, ip := range ips {
-				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
+				debugging.DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
 	}
@@ -583,15 +584,15 @@ func InitRebootDhcpLease(ifname string, currentIP net.IP, opts *dhcp4client.Dhcp
 		}
 		//     test.Error("We didn't sucessfully get a DHCP Lease?")
 		// } else {
-		DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
+		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
 		if ok {
-			DEBUG_OUT("DHCP router is %s\n", ip.String())
+			debugging.DEBUG_OUT("DHCP router is %s\n", ip.String())
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
 			for _, ip := range ips {
-				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
+				debugging.DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
 	}
@@ -647,8 +648,8 @@ func GetFreshDhcpLease(ifname string, opts *dhcp4client.DhcpRequestOptions) (suc
 
 	success, acknowledgementpacket, err2 = dhcpclient.Request(opts)
 
-	DEBUG_OUT("DHCP Success:%v\n", success)
-	DEBUG_OUT("DHCP Packet:%v\n", acknowledgementpacket)
+	debugging.DEBUG_OUT("DHCP Success:%v\n", success)
+	debugging.DEBUG_OUT("DHCP Packet:%v\n", acknowledgementpacket)
 
 	if err2 != nil {
 		networkError, ok := err2.(*net.OpError)
@@ -693,15 +694,15 @@ func GetFreshDhcpLease(ifname string, opts *dhcp4client.DhcpRequestOptions) (suc
 		}
 		//     test.Error("We didn't sucessfully get a DHCP Lease?")
 		// } else {
-		DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
+		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
 		if ok {
-			DEBUG_OUT("DHCP router is %s\n", ip.String())
+			debugging.DEBUG_OUT("DHCP router is %s\n", ip.String())
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
 			for _, ip := range ips {
-				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
+				debugging.DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
 	}
@@ -762,17 +763,17 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 	defer dhcpclient.Close()
 
 	if leaseinfo == nil {
-		DEBUG_OUT("leaseinfo is nil!\n")
+		debugging.DEBUG_OUT("leaseinfo is nil!\n")
 	}
-	DEBUG_OUT("leaseinfo %+v\n", leaseinfo)
+	debugging.DEBUG_OUT("leaseinfo %+v\n", leaseinfo)
 
 	if leaseinfo == nil || !leaseinfo.IsValid() {
 		// totally new lease
 
 		success, acknowledgementpacket, err2 = dhcpclient.Request(opts)
 
-		DEBUG_OUT("DHCP Success:%v\n", success)
-		DEBUG_OUT("DHCP Packet:%v\n", acknowledgementpacket)
+		debugging.DEBUG_OUT("DHCP Success:%v\n", success)
+		debugging.DEBUG_OUT("DHCP Packet:%v\n", acknowledgementpacket)
 
 		if err2 != nil {
 			networkError, ok := err2.(*net.OpError)
@@ -838,15 +839,15 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 		}
 		//     test.Error("We didn't sucessfully get a DHCP Lease?")
 		// } else {
-		DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
+		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
 		if ok {
-			DEBUG_OUT("DHCP router is %s\n", ip.String())
+			debugging.DEBUG_OUT("DHCP router is %s\n", ip.String())
 		}
 		ok, ips := outleaseinfo.GetDNS()
 		if ok {
 			for _, ip := range ips {
-				DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
+				debugging.DEBUG_OUT("DHCP: DNS nameserver %s\n", ip.String())
 			}
 		}
 	}
@@ -886,7 +887,7 @@ func ClearAllAddressesByLinkName(name string, exceptions []net.IP) (err error) {
 	if err != nil {
 		return
 	}
-	DEBUG_OUT("ClearAllAddressesByLinkName link: %+v\n", link)
+	debugging.DEBUG_OUT("ClearAllAddressesByLinkName link: %+v\n", link)
 	if link.Attrs().Name == name {
 		addrlist, err := netlink.AddrList(link, netlink.FAMILY_V4)
 		if err == nil {
@@ -901,7 +902,7 @@ func ClearAllAddressesByLinkName(name string, exceptions []net.IP) (err error) {
 					}
 					netlink.AddrDel(link, &addr)
 				} else {
-					DEBUG_OUT("del addr: %+v\n", addr)
+					debugging.DEBUG_OUT("del addr: %+v\n", addr)
 					netlink.AddrDel(link, &addr)
 				}
 			}
@@ -927,7 +928,7 @@ func IsIPv4AddressSet(ifname string, thisaddr *netlink.Addr) (response bool, err
 				addrlist, err = netlink.AddrList(link, netlink.FAMILY_V4)
 				if err == nil {
 					for _, addr := range addrlist {
-						DEBUG_OUT("Check %+v %+v\n", addr, *thisaddr)
+						debugging.DEBUG_OUT("Check %+v %+v\n", addr, *thisaddr)
 						if addr.Equal(*thisaddr) {
 							response = true
 							return
@@ -941,7 +942,7 @@ func IsIPv4AddressSet(ifname string, thisaddr *netlink.Addr) (response bool, err
 						//     }
 						//     netlink.AddrDel(link,&addr)
 						// } else {
-						//     DEBUG_OUT("del addr: %+v\n",addr)
+						//     debugging.DEBUG_OUT("del addr: %+v\n",addr)
 						//     netlink.AddrDel(link,&addr)
 						// }
 					}
@@ -1227,7 +1228,7 @@ func AppendDNSResolver(ifconfig *maestroSpecs.NetIfConfigPayload, leaseinfo *Dhc
 				}
 				dnsFileBuffer.buf.WriteString(fmt.Sprintf("nameserver %s\n", ip.String()))
 			}
-			DEBUG_OUT("AppendDNSResolve() output %s\n", dnsFileBuffer.buf.String())
+			debugging.DEBUG_OUT("AppendDNSResolve() output %s\n", dnsFileBuffer.buf.String())
 			dnsFileBuffer.lock.Unlock()
 		}
 		ok, localdomain := leaseinfo.GetLocalDomain()
@@ -1244,7 +1245,7 @@ func AppendDNSResolver(ifconfig *maestroSpecs.NetIfConfigPayload, leaseinfo *Dhc
 }
 
 func SetupInterfaceFromLease(ifconfig *maestroSpecs.NetIfConfigPayload, leaseinfo *DhcpLeaseInfo) (result *InterfaceStatus, err error) {
-	DEBUG_OUT("SetupInterfaceFromLease() -->\n")
+	debugging.DEBUG_OUT("SetupInterfaceFromLease() -->\n")
 	ifname, ifindex, err := GetInterfaceIndexAndName(ifconfig.IfName, ifconfig.IfIndex)
 	if err != nil {
 		return
@@ -1264,7 +1265,7 @@ func SetupInterfaceFromLease(ifconfig *maestroSpecs.NetIfConfigPayload, leaseinf
 	linkaddr := &netlink.Addr{IPNet: ip}
 	isset, err := IsIPv4AddressSet(ifname, linkaddr)
 	if err != nil {
-		DEBUG_OUT("IPv4 Addr: %s already set\n", linkaddr.String())
+		debugging.DEBUG_OUT("IPv4 Addr: %s already set\n", linkaddr.String())
 		return
 	}
 	result = new(InterfaceStatus)
@@ -1303,7 +1304,7 @@ func SetupInterfaceFromLease(ifconfig *maestroSpecs.NetIfConfigPayload, leaseinf
 	if (link.Attrs().Flags & net.FlagUp) > 0 {
 		result.Up = true
 	}
-	DEBUG_OUT("SetupInterfaceFromLease() IP addr set.\n")
+	debugging.DEBUG_OUT("SetupInterfaceFromLease() IP addr set.\n")
 	result.IfName = ifname
 	result.IfIndex = ifindex
 	result.ipv4 = leaseinfo.CurrentIP
@@ -1316,7 +1317,7 @@ func addDefaultRoutesToPrimaryTable(inst *networkManagerInstance, ifs []*maestro
 	linklist, err := netlink.LinkList()
 	if err == nil {
 		for _, link := range linklist {
-			DEBUG_OUT("link: %+v\n", link)
+			debugging.DEBUG_OUT("link: %+v\n", link)
 			link = link
 		}
 	}
@@ -1398,12 +1399,12 @@ func addDefaultRoutesToPrimaryTable(inst *networkManagerInstance, ifs []*maestro
 
 // SetupStaticInterfaces sets up static interfaces
 func SetupStaticInterfaces(ifs []*maestroSpecs.NetIfConfigPayload) (results []InterfaceStatus, err error) {
-	DEBUG_OUT("SetupStaticInterfaces() -->\n")
+	debugging.DEBUG_OUT("SetupStaticInterfaces() -->\n")
 	// find out what we already have...
 	addrlist, err := netlink.AddrList(nil, netlink.FAMILY_V4)
 	if err == nil {
 		for _, addr := range addrlist {
-			DEBUG_OUT("addr: %+v\n", addr)
+			debugging.DEBUG_OUT("addr: %+v\n", addr)
 			addr = addr // dummy code for compiler annoying errors when debug is off
 		}
 	}
@@ -1411,7 +1412,7 @@ func SetupStaticInterfaces(ifs []*maestroSpecs.NetIfConfigPayload) (results []In
 	linklist, err := netlink.LinkList()
 	if err == nil {
 		for _, link := range linklist {
-			DEBUG_OUT("link: %+v\n", link)
+			debugging.DEBUG_OUT("link: %+v\n", link)
 			link = link
 		}
 	}
@@ -1504,6 +1505,6 @@ func SetupStaticInterfaces(ifs []*maestroSpecs.NetIfConfigPayload) (results []In
 	// for _, ifconf := range ifs {
 	// // setup a static IP config
 	// }
-	DEBUG_OUT("<-- returning SetupInterfaces()\n")
+	debugging.DEBUG_OUT("<-- returning SetupInterfaces()\n")
 	return
 }

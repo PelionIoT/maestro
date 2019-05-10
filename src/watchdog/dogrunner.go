@@ -17,13 +17,11 @@ package watchdog
 
 import (
 	"errors"
-	"fmt"
 	"plugin"
-	"reflect"
 	"sync"
 	"time"
-	"unsafe"
 
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	maestroPlugins "github.com/armPelionEdge/maestro/plugins"
 	"github.com/armPelionEdge/maestroSpecs"
@@ -63,16 +61,6 @@ type Plug struct {
 	Symbols map[string]interface{}
 }
 
-func inspectPlugin(p *plugin.Plugin) {
-	pl := (*Plug)(unsafe.Pointer(p))
-
-	fmt.Printf("Plugin %s exported symbols (%d): \n", pl.Path, len(pl.Symbols))
-
-	for name, pointers := range pl.Symbols {
-		fmt.Printf("symbol: %s, pointer: %v, type: %v\n", name, pointers, reflect.TypeOf(pointers))
-	}
-}
-
 // LoadWatchdog loads the specified watchdog plugin. Only
 // one watchdog plugin can be run at any given time. There is no way to
 // unload a watchdog. Once loaded the watchdog is active.
@@ -84,7 +72,7 @@ func LoadWatchdog(conf *maestroSpecs.WatchdogConfig) (err error) {
 			return
 		}
 
-		DEBUG(inspectPlugin(pluginWD))
+		maestroPlugins.InspectPlugin(pluginWD)
 
 		var initSym plugin.Symbol
 		var wdSym plugin.Symbol
@@ -166,7 +154,7 @@ func intervalRunner() {
 		interval = activeWD.CriticalInterval()
 	mainLoop:
 		for {
-			DEBUG_OUT("Watchdog: intervalRunner() top (interval %s)\n", interval)
+			debugging.DEBUG_OUT("Watchdog: intervalRunner() top (interval %s)\n", interval)
 			if activeWD == nil {
 				break
 			}

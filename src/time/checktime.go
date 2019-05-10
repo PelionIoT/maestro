@@ -26,6 +26,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 )
 
@@ -264,7 +265,7 @@ func (client *TimeClient) getTime() (err error, errcode int, ret *timeResponse) 
 
 	var req *http.Request
 	var resp *http.Response
-	DEBUG_OUT("TIME GET %s >>>\n", client.url)
+	debugging.DEBUG_OUT("TIME GET %s >>>\n", client.url)
 	// Client implements io.Reader's Read(), so we do this
 	req, err = http.NewRequest("GET", client.url, nil)
 	//	req.Cancel = c
@@ -276,11 +277,11 @@ func (client *TimeClient) getTime() (err error, errcode int, ret *timeResponse) 
 				defer resp.Body.Close()
 			}
 		}
-		DEBUG_OUT("TIME --> response +%v\n", resp)
+		debugging.DEBUG_OUT("TIME --> response +%v\n", resp)
 		if err == nil {
 			if resp != nil {
 				if resp.StatusCode != 200 {
-					DEBUG_OUT("TIME bad response - creating error object\n")
+					debugging.DEBUG_OUT("TIME bad response - creating error object\n")
 					err = newClientError(resp)
 					errcode = BadResponse
 					return
@@ -306,7 +307,7 @@ func (client *TimeClient) getTime() (err error, errcode int, ret *timeResponse) 
 		}
 	} else {
 		log.MaestroErrorf("Error on GET request: %s", err.Error())
-		DEBUG_OUT("TIME ERROR: %s\n", err.Error())
+		debugging.DEBUG_OUT("TIME ERROR: %s\n", err.Error())
 		err = errors.New("Failed to create request")
 		errcode = BadResponse
 	}

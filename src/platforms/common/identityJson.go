@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestroSpecs/templates"
 	"github.com/mholt/archiver"
@@ -151,7 +152,7 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 
 	if err == nil {
 		err = json.Unmarshal(data, &identityData)
-		DEBUG_OUT("Unmarshaled identity data from file %s ok.\n", path)
+		debugging.DEBUG_OUT("Unmarshaled identity data from file %s ok.\n", path)
 		if err == nil {
 			// add all the fields with a 'dict' tag (takes care of all the top level string values)
 			dict.AddTaggedStructArch(identityData)

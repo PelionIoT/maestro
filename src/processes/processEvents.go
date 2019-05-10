@@ -19,6 +19,7 @@ import (
 	"sync"
 	"bytes"
 	"time"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/gopsutil/mem"
 	"encoding/json"	
 	"fmt"
@@ -107,8 +108,8 @@ type EventList struct {
 //  begin generic
 // m4_define({{*NODE*}},{{*Event*}})  m4_define({{*FIFO*}},{{*processEventFIFO*}})
 // Thread safe queue for LogBuffer
-type FIFO struct {
-	q []*NODE	
+type processEventFIFO struct {
+	q []*Event	
 	mutex *sync.Mutex
 	condWait *sync.Cond
 	condFull *sync.Cond
@@ -120,8 +121,9 @@ type FIFO struct {
 	                // So we use this as a work around to temporarily wakeup
 	                // (but not shutdown) the queue. Bring your own timer.
 }
-func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
-	ret = new(FIFO)
+
+func New_processEventFIFO(maxsize uint32) (ret *processEventFIFO) {
+	ret = new(processEventFIFO)
 	ret.mutex =  new(sync.Mutex)
 	ret.condWait = sync.NewCond(ret.mutex)
 	ret.condFull = sync.NewCond(ret.mutex)
@@ -131,31 +133,31 @@ func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
 	ret.wakeupIter = 0
 	return
 }
-func (fifo *FIFO) Push(n *NODE) (drop bool, dropped *NODE) {
+func (fifo *processEventFIFO) Push(n *Event) (drop bool, dropped *Event) {
 	drop = false
-	DEBUG_OUT2(" >>>>>>>>>>>> In Push\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In Push\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" ------------ In Push (past Lock)\n")
+	debugging.DEBUG_OUT2(" ------------ In Push (past Lock)\n")
     if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
     	// drop off the queue
     	dropped = (fifo.q)[0]
     	fifo.q = (fifo.q)[1:]
     	fifo.drops++
-    	DEBUG_OUT("!!! Dropping NODE in FIFO \n")
+    	debugging.DEBUG_OUT("!!! Dropping Event in processEventFIFO \n")
     	drop = true
     }
     fifo.q = append(fifo.q, n)
-	DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
+	debugging.DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
     fifo.mutex.Unlock()
     fifo.condWait.Signal()
-	DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
     return
 }
-func (fifo *FIFO) PushBatch(n []*NODE) (drop bool, dropped []*NODE) {
+func (fifo *processEventFIFO) PushBatch(n []*Event) (drop bool, dropped []*Event) {
 	drop = false
-	DEBUG_OUT2(" >>>>>>>>>>>> In PushBatch\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PushBatch\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" ------------ In PushBatch (past Lock)\n")
+	debugging.DEBUG_OUT2(" ------------ In PushBatch (past Lock)\n")
 	_len := uint32(len(fifo.q))
 	_inlen := uint32(len(n))
 	if fifo.maxSize > 0 && _inlen > fifo.maxSize {
@@ -176,19 +178,19 @@ func (fifo *FIFO) PushBatch(n []*NODE) (drop bool, dropped []*NODE) {
     	// dropped = (fifo.q)[0]
     	// fifo.q = (fifo.q)[1:]
     	// fifo.drops++
-    	DEBUG_OUT2(" ----------- PushBatch() !!! Dropping %d NODE in FIFO \n", len(dropped))
+    	debugging.DEBUG_OUT2(" ----------- PushBatch() !!! Dropping %d Event in processEventFIFO \n", len(dropped))
     }
-    DEBUG_OUT2(" ----------- In PushBatch (pushed %d)\n",_inlen)
+    debugging.DEBUG_OUT2(" ----------- In PushBatch (pushed %d)\n",_inlen)
     fifo.q = append(fifo.q, n[0:int(_inlen)]...)
-	DEBUG_OUT2(" ------------ In PushBatch (@ Unlock)\n")
+	debugging.DEBUG_OUT2(" ------------ In PushBatch (@ Unlock)\n")
     fifo.mutex.Unlock()
     fifo.condWait.Signal()
-	DEBUG_OUT2(" <<<<<<<<<<< Return PushBatch\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return PushBatch\n")
     return
 }
 
 
-func (fifo *FIFO) Pop() (n *NODE) {
+func (fifo *processEventFIFO) Pop() (n *Event) {
 	fifo.mutex.Lock()
 	if len(fifo.q) > 0 {
 	    n = (fifo.q)[0]
@@ -198,7 +200,7 @@ func (fifo *FIFO) Pop() (n *NODE) {
 	fifo.mutex.Unlock()
     return
 }
-// func (fifo *FIFO) PopBatch(max uint32) (n *NODE) {
+// func (fifo *processEventFIFO) PopBatch(max uint32) (n *Event) {
 // 	fifo.mutex.Lock()
 // 	_len := len(fifo.q)
 // 	if _len > 0 {
@@ -214,20 +216,20 @@ func (fifo *FIFO) Pop() (n *NODE) {
 // 	fifo.mutex.Unlock()
 //     return
 // }
-func (fifo *FIFO) Len() int {
+func (fifo *processEventFIFO) Len() int {
 	fifo.mutex.Lock()
 	ret := len(fifo.q)
 	fifo.mutex.Unlock()
     return ret
 }
-func (fifo *FIFO) PopOrWait() (n *NODE) {
+func (fifo *processEventFIFO) PopOrWait() (n *Event) {
 	n = nil
-	DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
 		return
 	}
 	if len(fifo.q) > 0 {
@@ -235,19 +237,19 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 	    fifo.q = (fifo.q)[1:]		
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
 		return
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
 //		fmt.Printf(" --entering wait %+v\n",*fifo);
-	DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
+	debugging.DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
 //		Wait returns with Lock
 //		fmt.Printf(" --out of wait %+v\n",*fifo);
 		if fifo.shutdown { 
 			fifo.mutex.Unlock()
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
 			return 
 		}
 		if len(fifo.q) > 0 {
@@ -255,21 +257,21 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 		    fifo.q = (fifo.q)[1:]		
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
 			return
 		}
 	}
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
 	fifo.mutex.Unlock()
 	return
 }
-func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
-	DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
+func (fifo *processEventFIFO) PopOrWaitBatch(max uint32) (slice []*Event) {
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWaitBatch (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 1)\n")
 		return
 	}
 	_len := uint32(len(fifo.q))
@@ -283,19 +285,19 @@ func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
 		}
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 2)\n")
 		return
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
 //		fmt.Printf(" --entering wait %+v\n",*fifo);
-	DEBUG_OUT2(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
+	debugging.DEBUG_OUT2(" ----------- In PopOrWaitBatch (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
 //		Wait returns with Lock
 //		fmt.Printf(" --out of wait %+v\n",*fifo);
 		if fifo.shutdown { 
 			fifo.mutex.Unlock()
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 4)\n")
 			return 
 		}
 		_len = uint32(len(fifo.q))
@@ -309,15 +311,15 @@ func (fifo *FIFO) PopOrWaitBatch(max uint32) (slice []*NODE) {
 			}
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 3)\n")
 			return
 		}
 	}
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 5)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWaitBatch (Unlock 5)\n")
 	fifo.mutex.Unlock()
 	return
 }
-func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
+func (fifo *processEventFIFO) PushOrWait(n *Event) (ret bool) {
 	ret = true
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter	
@@ -336,25 +338,25 @@ func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
     fifo.condWait.Signal()
     return
 }
-func (fifo *FIFO) Shutdown() {
+func (fifo *processEventFIFO) Shutdown() {
 	fifo.mutex.Lock()
 	fifo.shutdown = true
 	fifo.mutex.Unlock()
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
 }
-func (fifo *FIFO) WakeupAll() {
-	DEBUG_OUT2(" >>>>>>>>>>> in WakeupAll @Lock\n")
+func (fifo *processEventFIFO) WakeupAll() {
+	debugging.DEBUG_OUT2(" >>>>>>>>>>> in WakeupAll @Lock\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" +++++++++++ in WakeupAll\n")
+	debugging.DEBUG_OUT2(" +++++++++++ in WakeupAll\n")
 	fifo.wakeupIter++
 	fifo.mutex.Unlock()
-	DEBUG_OUT2(" +++++++++++ in WakeupAll @Unlock\n")
+	debugging.DEBUG_OUT2(" +++++++++++ in WakeupAll @Unlock\n")
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
-	DEBUG_OUT2(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
 }
-func (fifo *FIFO) IsShutdown() (ret bool) {
+func (fifo *processEventFIFO) IsShutdown() (ret bool) {
 	fifo.mutex.Lock()
 	ret = fifo.shutdown
 	fifo.mutex.Unlock()

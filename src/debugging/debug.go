@@ -1,4 +1,6 @@
-package maestro
+// +build debug
+
+package debugging
 
 // Copyright (c) 2018, Arm Limited and affiliates.
 // SPDX-License-Identifier: Apache-2.0
@@ -16,23 +18,34 @@ package maestro
 // limitations under the License.
 
 import (
-DEBUG(	"runtime")
-DEBUG( 	"fmt")
+	"runtime"
+ 	"fmt"
 )
 
-func DumpMemStats() {
-    DEBUG(var stats runtime.MemStats)
-    DEBUG(runtime.ReadMemStats(&stats))
-    DEBUG_OUT("------ReadMemStats------\n")
-    //DEBUG_OUT("%v+\n",stats)
-    DEBUG_OUT("  ReadMemStats Alloc      %d\n",stats.Alloc)
-    DEBUG_OUT("  ReadMemStats TotalAlloc %d\n",stats.TotalAlloc)
-    DEBUG_OUT("  ReadMemStats Sys        %d\n",stats.Sys)
-    DEBUG_OUT("  ReadMemStats Mallocs    %d\n",stats.Mallocs)
-    DEBUG_OUT("  ReadMemStats HeapAlloc  %d\n",stats.HeapAlloc)
-    DEBUG_OUT("  ")
-	DEBUG_OUT("------ReadMemStats done------\n")            
+const DebugEnabled = true
+
+func DEBUG_OUT(args ...interface{}) {
+	fmt.Println(args...)
 }
+
+func DEBUG_OUT2(args ...interface{}) {
+	fmt.Println(args...)
+}
+
+func DumpMemStats() {
+    var stats runtime.MemStats
+    runtime.ReadMemStats(&stats)
+    fmt.Println("------ReadMemStats------\n")
+    //DEBUG_OUT("%v+\n",stats)
+    fmt.Println("  ReadMemStats Alloc      %d\n",stats.Alloc)
+    fmt.Println("  ReadMemStats TotalAlloc %d\n",stats.TotalAlloc)
+    fmt.Println("  ReadMemStats Sys        %d\n",stats.Sys)
+    fmt.Println("  ReadMemStats Mallocs    %d\n",stats.Mallocs)
+    fmt.Println("  ReadMemStats HeapAlloc  %d\n",stats.HeapAlloc)
+    fmt.Println("  ")
+	  fmt.Println("------ReadMemStats done------\n")            
+}
+
 
 /**
  * There appears to be a golang runtime bug in ReadMemStats() - make sure you dont call this 

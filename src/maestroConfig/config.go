@@ -29,6 +29,7 @@ import (
 	//	"github.com/armPelionEdge/mustache"
 	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/configs"
+	"github.com/armPelionEdge/maestro/debugging"
 	. "github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/mdns"
@@ -234,7 +235,7 @@ func (ysc *YAMLMaestroConfig) mixInSubstConfigVars() {
 }
 
 func _inspectAndInterpolate(s interface{}) {
-	DEBUG_OUT2("ONE  struct/ptr struct {\n")
+	debugging.DEBUG_OUT2("ONE  struct/ptr struct {\n")
 
 	kind := reflect.ValueOf(s).Kind()
 
@@ -243,14 +244,14 @@ func _inspectAndInterpolate(s interface{}) {
 
 	if kind == reflect.Ptr {
 		reflectType = reflect.TypeOf(s).Elem()
-		DEBUG_OUT2("ONE.1 (ptr)\n")
+		debugging.DEBUG_OUT2("ONE.1 (ptr)\n")
 		reflectValue = reflect.ValueOf(s).Elem()
-		DEBUG_OUT2("TWO (ptr)\n")
+		debugging.DEBUG_OUT2("TWO (ptr)\n")
 	} else {
 		reflectType = reflect.TypeOf(s)
-		DEBUG_OUT2("ONE.1\n")
+		debugging.DEBUG_OUT2("ONE.1\n")
 		reflectValue = reflect.ValueOf(s)
-		DEBUG_OUT2("TWO\n")
+		debugging.DEBUG_OUT2("TWO\n")
 	}
 
 	// if reflectType.Kind() == reflect.Ptr{
@@ -267,42 +268,42 @@ func _inspectAndInterpolate(s interface{}) {
 			case reflect.String:
 				if reflectValue.Field(i).CanSet() {
 					s := valueValue.String()
-					DEBUG_OUT2("**************> IN>> %s OUt>> %s\n", s, GetInterpolatedConfigString(s))
+					debugging.DEBUG_OUT2("**************> IN>> %s OUt>> %s\n", s, GetInterpolatedConfigString(s))
 					reflectValue.Field(i).SetString(GetInterpolatedConfigString(s))
 				} else {
 					fmt.Printf("**************> %s(%s) - CanSet FALSE - can't interpolate\n", typeName, valueType)
 				}
-				DEBUG_OUT2("**************> %s : %s(%s)\n", typeName, reflectValue.Field(i).Interface(), valueType)
+				debugging.DEBUG_OUT2("**************> %s : %s(%s)\n", typeName, reflectValue.Field(i).Interface(), valueType)
 			// case reflect.Int32:
 			//     fmt.Printf("%s : %i(%s)\n", typeName, valueValue, valueType)
 			case reflect.Struct:
-				DEBUG_OUT2("**************> %s : it is %s\n", typeName, valueType)
-				DEBUG_OUT2("**************> %+v  { \n", valueValue)
+				debugging.DEBUG_OUT2("**************> %s : it is %s\n", typeName, valueType)
+				debugging.DEBUG_OUT2("**************> %+v  { \n", valueValue)
 				// if valueValue != nil {
 				_inspectAndInterpolate(valueValue)
 				// }
 			case reflect.Slice:
 				alen := valueValue.Len()
-				DEBUG_OUT2("**************> SLICE len(%d) : it is %s\n", alen, reflectType.Field(i).Name)
+				debugging.DEBUG_OUT2("**************> SLICE len(%d) : it is %s\n", alen, reflectType.Field(i).Name)
 				if alen > 0 {
 					if valueValue.Index(0).Kind() == reflect.String {
-						DEBUG_OUT2("**************>  SLICE has strings...\n")
+						debugging.DEBUG_OUT2("**************>  SLICE has strings...\n")
 						// newstrings := reflect.MakeSlice(reflect.TypeOf([]string{}), alen, alen)
 						for e := 0; e < alen; e++ {
 							valueValue.Index(e).Set(reflect.ValueOf(GetInterpolatedConfigString(valueValue.Index(e).String())))
-							DEBUG_OUT2("**************>   slice[%d]=\"%s\"\n", e, valueValue.Index(e).String())
+							debugging.DEBUG_OUT2("**************>   slice[%d]=\"%s\"\n", e, valueValue.Index(e).String())
 						}
 						// valueValue.Set(newstrings)
 					} else if valueValue.Index(0).Kind() == reflect.Struct {
-						DEBUG_OUT2("**************>  SLICE has structs...\n")
+						debugging.DEBUG_OUT2("**************>  SLICE has structs...\n")
 						for e := 0; e < alen; e++ {
-							DEBUG_OUT2("**************>  SLICE [%d]...\n", e)
+							debugging.DEBUG_OUT2("**************>  SLICE [%d]...\n", e)
 							_inspectAndInterpolate(valueValue.Index(e).Addr().Interface())
 						}
 					} else if valueValue.Index(0).Kind() == reflect.Ptr {
 						for e := 0; e < alen; e++ {
 							if !valueValue.Index(e).IsNil() {
-								DEBUG_OUT2("**************>  SLICE (ptr) [%d]...\n", e)
+								debugging.DEBUG_OUT2("**************>  SLICE (ptr) [%d]...\n", e)
 								_inspectAndInterpolate(valueValue.Index(e).Elem().Addr().Interface())
 							}
 						}
@@ -310,24 +311,24 @@ func _inspectAndInterpolate(s interface{}) {
 				}
 			case reflect.Ptr:
 				if typeName != "typ" {
-					DEBUG_OUT2("**************> PTR %s : it is %s\n", typeName, reflectType.Field(i).Name)
+					debugging.DEBUG_OUT2("**************> PTR %s : it is %s\n", typeName, reflectType.Field(i).Name)
 					if !valueValue.IsNil() {
 						k := valueValue.Elem().Type().Kind()
 						if k == reflect.Struct {
 							_inspectAndInterpolate(valueValue.Elem().Addr().Interface())
 							//				            _inspectAndInterpolate(valueValue.Elem().Interface())
 						} else {
-							DEBUG_OUT2("**************> PTR was not to struct{} skipping\n")
+							debugging.DEBUG_OUT2("**************> PTR was not to struct{} skipping\n")
 						}
 					} else {
-						DEBUG_OUT2("**************> PTR was nil\n")
+						debugging.DEBUG_OUT2("**************> PTR was nil\n")
 					}
 				}
 
 			}
 		}
 	}
-	DEBUG_OUT2("**************> } end struct\n")
+	debugging.DEBUG_OUT2("**************> } end struct\n")
 }
 
 func (ysc *YAMLMaestroConfig) InterpolateAllStrings() {

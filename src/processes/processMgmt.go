@@ -19,7 +19,7 @@ package processes
 #cgo amd64 LDFLAGS: -L/usr/lib/x86_64-linux-gnu 
 #cgo LDFLAGS: -L${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/lib
 #cgo LDFLAGS: -lgrease -luv -lTW  -lstdc++ -lm -ltcmalloc_minimal -lm
-#cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/include DEBUG(-DDEBUG_BINDINGS) -I${SRCDIR}/processes
+#cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/include -DDEBUG_BINDINGS -I${SRCDIR}/processes
 #define GREASE_IS_LOCAL 1
 #include <stdio.h>
 #include "process_utils.h"
@@ -37,11 +37,11 @@ import (
 	"sync/atomic"
 	"encoding/json"
 	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
-//	"github.com/armPelionEdge/gopsutil/mem"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/configMgr"
 	"github.com/armPelionEdge/maestro/configs"	
+	"github.com/armPelionEdge/maestro/debugging"	
 	"github.com/kardianos/osext"  // not needed in go1.8 - see their README
 	"os"
 	"golang.org/x/sys/unix"
@@ -49,8 +49,6 @@ import (
 	"time"
 	"strconv"
 	"fmt"
-
-//	"unsafe"
 )
 
 type ProcessStatsConfig interface {
@@ -362,7 +360,7 @@ func (this *processStatus) setAllChildJobStatus(status int) {
 			child_proc.status = status
 //			child_proc.setAllChildJobStatus(status)
 		} else {
-			DEBUG_OUT("WARNING - could not find child referenced in .childNames in the jobsByName map!")
+			debugging.DEBUG_OUT("WARNING - could not find child referenced in .childNames in the jobsByName map!")
 		}
 	}
 	this.mutex.Unlock()
@@ -380,7 +378,7 @@ func (status *processStatus) sendEventAndSetStatusForCompProcess(statuscode int,
 			internalEv := newProcessEvent(jname, evcode)
 			controlChan <- internalEv
 		} else {
-			DEBUG_OUT("WARNING - could not find child referenced in .childNames in the jobsByName map!")
+			debugging.DEBUG_OUT("WARNING - could not find child referenced in .childNames in the jobsByName map!")
 		}
 	}
 	status.status = statuscode
@@ -537,7 +535,7 @@ func newEpollListener() (ret *epollListener, e error) {
 		ret.epfd = epfd	
 		ret.fdToJob = hashmap.New(10)
 	} else {
-		DEBUG_OUT("!!!!!!!!!!! Error creating epoll FD: %s\n",e.Error())
+		debugging.DEBUG_OUT("!!!!!!!!!!! Error creating epoll FD: %s\n",e.Error())
 	}
 	return
 }
@@ -558,7 +556,7 @@ func (this *epollListener) listener() {
 	if err != nil {
 		// bad news!
 		// 
-		DEBUG_OUT("CRITICAL - could not create a FD for wakingup processMessageListener() thread. FAILING\n")
+		debugging.DEBUG_OUT("CRITICAL - could not create a FD for wakingup processMessageListener() thread. FAILING\n")
 		return
 
 	}
@@ -566,17 +564,17 @@ func (this *epollListener) listener() {
 	// add in our wakeup FD
 	event.Events = syscall.EPOLLIN
 	event.Fd = int32(wakeup_fd.fd_read)	
-	DEBUG_OUT("add FD from event_fd %d to epoll FD %d\n", wakeup_fd.fd_read,this.epfd)
+	debugging.DEBUG_OUT("add FD from event_fd %d to epoll FD %d\n", wakeup_fd.fd_read,this.epfd)
 	if e := syscall.EpollCtl(this.epfd, syscall.EPOLL_CTL_ADD, this.wakeup_fd_messageListener.fd_read, &event); e != nil {
-		DEBUG_OUT("CRITICAL - could not add FD for waking up epoll - epoll_ctl: ", e)
+		debugging.DEBUG_OUT("CRITICAL - could not add FD for waking up epoll - epoll_ctl: ", e)
 		return
 	}	
 	// loop forever waiting for stuff
-	DEBUG_OUT("epollListener FD %d - listener() loop starting\n",this.epfd)
+	debugging.DEBUG_OUT("epollListener FD %d - listener() loop starting\n",this.epfd)
 	for {
 		nevents, e := syscall.EpollWait(this.epfd, this.events[:], -1)
 		if e != nil {
-			DEBUG_OUT("ERROR - epoll_wait: ", e)
+			debugging.DEBUG_OUT("ERROR - epoll_wait: ", e)
 		}
 		if this.shutdown_messageListener > 0 {
 			break;
@@ -587,13 +585,13 @@ func (this *epollListener) listener() {
 				val, err2 := this.wakeup_fd_messageListener.ReadWakeup() // clear the wakeup
 				if err2 == nil {
 					if val == listener_shutdown_magic_num {
-						DEBUG_OUT("epollListener listener() got shutdown magic num\n")
+						debugging.DEBUG_OUT("epollListener listener() got shutdown magic num\n")
 						this.shutdown_messageListener = 1
 					} else {
-						DEBUG_OUT("epollListener listener() got wakeup\n")
+						debugging.DEBUG_OUT("epollListener listener() got wakeup\n")
 					}
 				} else {
-					DEBUG_OUT("ERROR on WakeupFd ReadWakeup() %s\n",err2.Error())
+					debugging.DEBUG_OUT("ERROR on WakeupFd ReadWakeup() %s\n",err2.Error())
 				}
 			} else {
 				// it must be a process we are waiting for it's OK string
@@ -658,7 +656,7 @@ func (this *epollListener) listener() {
 								greasego.AddOriginLabel(job.originLabelId,job.job.GetJobName())
 								job.status = RUNNING
 								// submit an event that process is RUNNING
-								DEBUG_OUT("Got process_ready (OK string) for %s\n",job.job.GetJobName())
+								debugging.DEBUG_OUT("Got process_ready (OK string) for %s\n",job.job.GetJobName())
 								controlChan <- newProcessEvent(job.job.GetJobName(), internalEvent_job_running)
 //								
 							}
@@ -683,7 +681,7 @@ func (this *epollListener) removeProcessFDListen(fd int) (e error) {
 	event.Fd = int32(fd)	
 	this.fdToJob.DelHashedKey(uintptr(fd))
 	if e = syscall.EpollCtl(this.epfd, syscall.EPOLL_CTL_DEL, fd, &event); e != nil {
-		DEBUG_OUT("ERROR: epoll_ctl DEL: ", e)
+		debugging.DEBUG_OUT("ERROR: epoll_ctl DEL: ", e)
 	}
 	// wakeup listener
 	this.wakeup_fd_messageListener.Wakeup(1)
@@ -697,7 +695,7 @@ func (this *epollListener) addProcessFDListen(fd int, job *processStatus) (e err
 	job.startMessageBuf = make([]rune,0,len(process_OK_message))
 	this.fdToJob.SetHashedKey(uintptr(fd),unsafe.Pointer(job))
 	if e = syscall.EpollCtl(this.epfd, syscall.EPOLL_CTL_ADD, fd, &event); e != nil {
-		DEBUG_OUT("ERROR: epoll_ctl: ", e)
+		debugging.DEBUG_OUT("ERROR: epoll_ctl: ", e)
 	}	
 	// wakeup listener
 	this.wakeup_fd_messageListener.Wakeup(1)
@@ -756,13 +754,13 @@ func init() {
 // to see if any other jobs were waiting on it as a dependency
 // If there are jobs - then it sends events to start those.
 func startStartableJobs(jobstarted string) {
-	DEBUG_OUT2("startStartableJobs()--->\n")
+	debugging.DEBUG_OUT2("startStartableJobs()--->\n")
 	for job := range jobsByName.Iter() {
 		val := job.Value
-		DEBUG_OUT("ITER %+v\n",val)
+		debugging.DEBUG_OUT("ITER %+v\n",val)
 		if val != nil {
 			j := (*processStatus)(val)
-			DEBUG_OUT2("ITER processStatus %+v\n",j)
+			debugging.DEBUG_OUT2("ITER processStatus %+v\n",j)
 			if(j.status == WAITING_FOR_DEPS) {
 				StartJob(j.job.GetJobName())
 			}
@@ -784,7 +782,7 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 	originatingJob = proc_status.job
 	procName := procIdentifier
 	if originatingJob == nil {
-		DEBUG_OUT("NOTE: don't have originating job\n")
+		debugging.DEBUG_OUT("NOTE: don't have originating job\n")
 		if orig_event != nil {
 			originatingJob = orig_event.request
 		} else {
@@ -799,14 +797,14 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 	} else {
 		opts = NewExecFileOpts(procName,"")
 	}
-	DEBUG_OUT2("_internalStartProcess 1.1\n")
+	debugging.DEBUG_OUT2("_internalStartProcess 1.1\n")
 	if originatingJob == nil {
 		opts.SetNewSid()
 	} else {
 		if originatingJob.IsDaemonize() {
 			opts.SetNewSid()
 		} else {
-			DEBUG_OUT2("_internalStartProcess 2\n")
+			debugging.DEBUG_OUT2("_internalStartProcess 2\n")
 			if originatingJob.GetPgid() < 1 {
 				opts.SetNewPgid()
 			} else {
@@ -825,7 +823,7 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 	if originatingJob != nil && originatingJob.IsInheritEnv() {
 		env = append(env,os.Environ()...)
 	}
-	DEBUG_OUT("_internalStartProcess 3\n")				
+	debugging.DEBUG_OUT("_internalStartProcess 3\n")				
 	var errno int
 	var pid int
 	args := proc_status.execArgs
@@ -877,11 +875,11 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 			// if there was a message to send, then we are waiting on an "!!OK!!"
 			// from the process
 			
-			DEBUG_OUT("   Job: %s is STARTING\n",procName)
+			debugging.DEBUG_OUT("   Job: %s is STARTING\n",procName)
 			// TODO add listener to mainEpollListener
 			stdoutfd := opts.GetStdoutFd()
 			if stdoutfd == 0 {
-				DEBUG_OUT("CRITICAL - stdout FD for new process is zero!\n")
+				debugging.DEBUG_OUT("CRITICAL - stdout FD for new process is zero!\n")
 			} else {
 				mainEpollListener.addProcessFDListen(stdoutfd, proc_status)
 			}
@@ -899,7 +897,7 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 			SubmitEvent(ev)
 		} else {
 			if (proc_status.deferRunningStatus > 0) {
-				DEBUG_OUT("Deferring RUNNING status change for %s\n",procName)
+				debugging.DEBUG_OUT("Deferring RUNNING status change for %s\n",procName)
 				procLogDebugf("Deferring RUNNING status change for %s for %d ms\n",procName,proc_status.deferRunningStatus)
 				go func(jobname string,pid int,proc_status *processStatus){
 					time.Sleep(time.Millisecond * time.Duration(proc_status.deferRunningStatus))
@@ -917,7 +915,7 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 
 func _setJobToRunning(jobname string,pid int,proc_status *processStatus) {
 	proc_status.lockingSetStatus(RUNNING)
-	DEBUG_OUT("   Job: %s is RUNNING\n",jobname)
+	debugging.DEBUG_OUT("   Job: %s is RUNNING\n",jobname)
 	proc_status.setAllChildJobStatus(RUNNING)
 	ev := new(ProcessEvent)
 	ev.Name = "job_running"
@@ -1056,26 +1054,26 @@ func processEventsWorker() {
 	var err error
 	mainEpollListener, err = newEpollListener()
 	if err != nil {
-		DEBUG_OUT("CRITICAL: could not create epoll for epollListener: %s\n",err.Error())
-		DEBUG_OUT("processEventsWorker() WILL FAIL\n")
+		debugging.DEBUG_OUT("CRITICAL: could not create epoll for epollListener: %s\n",err.Error())
+		debugging.DEBUG_OUT("processEventsWorker() WILL FAIL\n")
 		return
 	}
 	go mainEpollListener.listener()
 
 	eventLoop:
 	for true {
-		DEBUG_OUT("************************************* maestro processEventsWorker() ********************************\n")
+		debugging.DEBUG_OUT("************************************* maestro processEventsWorker() ********************************\n")
 		select {
 		// MOVED TO sysstats package
 		// case <-internalTicker.C:
 		// 	counter++
-		// 	DEBUG_OUT("COUNTER ---------------------------> : %d\n",counter)
+		// 	debugging.DEBUG_OUT("COUNTER ---------------------------> : %d\n",counter)
 		// 	// check intervals
 		// 	// 
 		// 	if statsConfig != nil {
 		// 		pace, ok := statsConfig.GetConfig_CheckMem()
 		// 		if ok && (counter % pace == 0) {
-		// 			DEBUG_OUT("   **** Check mem stats")
+		// 			debugging.DEBUG_OUT("   **** Check mem stats")
 					
 		// 			stats, err := mem.VirtualMemory()
 		// 			var ev *MemStatEvent
@@ -1089,19 +1087,19 @@ func processEventsWorker() {
 
 		// 	}
 		case ev := <-controlChan:
-			DEBUG_OUT("************************>>>>>>>>>> Got internal event: %+v\n", ev)
+			debugging.DEBUG_OUT("************************>>>>>>>>>> Got internal event: %+v\n", ev)
 			if ev.code == internalEvent_shutdown {
 //				continue
 				break eventLoop
 			}
 			if ev.code == internalEvent_start_job {
-				DEBUG_OUT("************************>>>>>>>>>> Got internal event: internalEvent_start_job\n")
+				debugging.DEBUG_OUT("************************>>>>>>>>>> Got internal event: internalEvent_start_job\n")
 				var proc_status *processStatus
 				val, ok := jobsByName.GetStringKey(ev.jobname)
 				if ok {
 					proc_status = (*processStatus)(val)
-				DEBUG_OUT2("internal event 0\n")
-				DEBUG_OUT("        *** for job: %s\n",proc_status.job.GetJobName())
+				debugging.DEBUG_OUT2("internal event 0\n")
+				debugging.DEBUG_OUT("        *** for job: %s\n",proc_status.job.GetJobName())
 
 				// TODO - need a version / uuid for a particular Job start. if it changes
 				// afterwards, then it shold be modified
@@ -1110,7 +1108,7 @@ func processEventsWorker() {
 					proc_status.lock()
 					if proc_status.status == RUNNING || proc_status.status == STARTING || proc_status.status == STOPPING {
 						proc_status.unlock()
-						DEBUG_OUT("    Oop. Job %s is starting/running/stopping\n",proc_status.job.GetJobName())
+						debugging.DEBUG_OUT("    Oop. Job %s is starting/running/stopping\n",proc_status.job.GetJobName())
 						procLogWarnf("Maestro is ignoring a start job request [%s], b/c the job is current starting/stopping/running",proc_status.job.GetJobName())
 						startStartableJobs(proc_status.job.GetJobName())
 						continue eventLoop
@@ -1122,7 +1120,7 @@ func processEventsWorker() {
 					jobsByName.Set(ev.jobname,unsafe.Pointer(proc_status))
 				}
 
-				DEBUG_OUT2("internal event 1\n")
+				debugging.DEBUG_OUT2("internal event 1\n")
 
 				// update status with the latest job request
 				// if the new start process event has a request
@@ -1135,7 +1133,7 @@ func processEventsWorker() {
 				// in case we do any deferred work
 				proc_status.lockingSetStatus(STARTING)
 				if len(proc_status.compositeId) > 0 {
-					DEBUG_OUT("proc_status here---> %+v %+v\n", proc_status, proc_status.job)
+					debugging.DEBUG_OUT("proc_status here---> %+v %+v\n", proc_status, proc_status.job)
 					// this is a composite process. So multiple jobs per process.
 					_startCompositeProcessJobs(proc_status, ev)
 
@@ -1161,7 +1159,7 @@ func processEventsWorker() {
 
 			if ev.code == internalEvent_job_died {
 				name := ev.jobname
-				DEBUG_OUT("************************>>>>>>>>>> Got internal event - job_died: %s\n", name)
+				debugging.DEBUG_OUT("************************>>>>>>>>>> Got internal event - job_died: %s\n", name)
 				procLogErrorf("Job %s died unexpectedly.",name)
 				// check Job settings to see if a restart should be done 
 				// and how many restarts remain
@@ -1169,7 +1167,7 @@ func processEventsWorker() {
 				if ok {
 					proc_status := (*processStatus)(val)
 					if(proc_status.job.IsRestart()) {
-						DEBUG_OUT("job was restart-able: %s\n",name)
+						debugging.DEBUG_OUT("job was restart-able: %s\n",name)
 						if proc_status.job.GetRestartLimit() == 0 {
 							proc_status.restarts++
 							// no limit on amount of restarts
@@ -1178,7 +1176,7 @@ func processEventsWorker() {
 									procLogDebugf("Waiting %dms until asking for restart of Job %s",proc_status.job.GetRestartPause(),name)
 									time.Sleep(time.Millisecond * time.Duration(proc_status.job.GetRestartPause()))
 									procLogSuccessf("Asking for restart on Job %s (restarts: %d - no limit)",name,proc_status.restarts)									
-									DEBUG_OUT("sending _start_job event for Job: %s\n",jobname)
+									debugging.DEBUG_OUT("sending _start_job event for Job: %s\n",jobname)
 									controlChan <- newProcessEvent(jobname, internalEvent_start_job)
 								}(name,proc_status)
 							} else {
@@ -1195,7 +1193,7 @@ func processEventsWorker() {
 										procLogDebugf("Waiting %dms until asking for restart of Job %s",proc_status.job.GetRestartPause(),name)
 										time.Sleep(time.Millisecond * time.Duration(proc_status.job.GetRestartPause()))
 										procLogSuccessf("Asking for restart on Job %s (restarts: %d - limit:%d)",name,proc_status.restarts,proc_status.job.GetRestartLimit())
-										DEBUG_OUT("sending _start_job event for Job: %s\n",jobname)
+										debugging.DEBUG_OUT("sending _start_job event for Job: %s\n",jobname)
 										controlChan <- newProcessEvent(jobname, internalEvent_start_job)
 									}(name,proc_status)
 								} else {
@@ -1227,14 +1225,14 @@ func processEventsWorker() {
 					SubmitEvent(ev2)
 				}				
 				startStartableJobs(ev.jobname)	
-				DEBUG_OUT2("---------post startStartableJobs()")
+				debugging.DEBUG_OUT2("---------post startStartableJobs()")
 				continue
 			}
 
 		}
 	}
 
-	DEBUG_OUT("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LEFT processEventsWorker")
+	debugging.DEBUG_OUT("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LEFT processEventsWorker")
 	atomic.StoreInt32(&monitorWorkerRunning,worker_stopped)
 }
 
@@ -1247,7 +1245,7 @@ func periodicReaper() {
 	for !shutdown {
 		select {
 			case <-time.After(time.Millisecond * time.Duration(globalConfig.GetReaperInterval())):
-				DEBUG_OUT("processMgmt: periodicReaper() looped\n")
+				debugging.DEBUG_OUT("processMgmt: periodicReaper() looped\n")
 				pid, status :=  ReapChildren()
 				if pid > 0 {
 					procLogSuccessf("periodicReaper() -- Saw closed process: %d %d\n", pid, status)		
@@ -1341,8 +1339,8 @@ func replaceMacroVars(s string) (ret string) {
 // 
 func replaceMacroVarsSlice(s []string, out *[]string) {
 	for _, v := range s {
-//		DEBUG_OUT("replace: %s\n",v)
-//		DEBUG_OUT("replace: %s\n",replaceMacroVars(v))
+//		debugging.DEBUG_OUT("replace: %s\n",v)
+//		debugging.DEBUG_OUT("replace: %s\n",replaceMacroVars(v))
 		*out = append(*out,replaceMacroVars(v))
 	}
 }
@@ -1351,7 +1349,7 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 	var err C.execErr
 	err._errno = 0
 
-	DEBUG_OUT("ExecFile: %+v %+v %+v\n",replaceMacroVars(path),args,env)
+	debugging.DEBUG_OUT("ExecFile: %+v %+v %+v\n",replaceMacroVars(path),args,env)
 
 
 	updateMacroVars()
@@ -1368,7 +1366,7 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 	c_args := convertToCStrings(ready_args)
 	c_env := convertToCStrings(ready_env)
 
-	DEBUG_OUT("READY ExecFile: %+v %+v %+v\n",replaceMacroVars(path),ready_args,ready_env)
+	debugging.DEBUG_OUT("READY ExecFile: %+v %+v %+v\n",replaceMacroVars(path),ready_args,ready_env)
 
 	// NOTE: createChild will automically free the strings handed to it.
 	if opts != nil {
@@ -1385,7 +1383,7 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 		// See: https://golang.org/src/syscall/syscall_unix.go?s=2532:2550#L91
 		_errno := syscall.Errno(errno) // which is a uintptr
 		procLogErrorf("Process failed to start: %d %s - Job: %s",errno, _errno.Error(), opts.jobName)
-		DEBUG_OUT("ERROR ExecFile: %d %s - Job: %s",errno, _errno.Error(), opts.jobName)
+		debugging.DEBUG_OUT("ERROR ExecFile: %d %s - Job: %s",errno, _errno.Error(), opts.jobName)
 		// ok - if the error is something which will continue to happen, then we should 
 		// not attempt to restart the process, even if the restart param is true
 
@@ -1412,13 +1410,10 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 
 //export sawClosedRedirectedFD
 func sawClosedRedirectedFD() {
-	IFDEBUG({{*pid, status := *}},) ReapChildren()
-
-	IFDEBUG(if(pid > 0) {,)
-		DEBUG_OUT("Saw closed process: %d %d\n", pid, status)		
-	IFDEBUG(},)
-
-
+	pid, status := ReapChildren()
+	if(pid > 0) {
+		debugging.DEBUG_OUT("Saw closed process: %d %d\n", pid, status)
+	}
 }
 
 // attempts to reap a child, but does not block
@@ -1432,7 +1427,7 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 	mainReapLoop:
 	for stop > 0  {
 		pid, err := unix.Wait4(-1, &status,const_WNOHANG|const_WUNTRACED|const_WCONTINUED,nil) //usage)
-		DEBUG_OUT("ReapChildren() = %d %d\n", pid,err)
+		debugging.DEBUG_OUT("ReapChildren() = %d %d\n", pid,err)
 		if err == nil || err == syscall.Errno(0) {
 			ret = pid
 			if pid > 0 {
@@ -1452,7 +1447,7 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 			//			ProcessEvents.Push(ev)
 						SubmitEvent(ev)
 					}
-					DEBUG_OUT("ReapChildren(): saw signal: %d\n",status.Signal())				
+					debugging.DEBUG_OUT("ReapChildren(): saw signal: %d\n",status.Signal())				
 					// For exit status defs, see: https://golang.org/src/syscall/syscall_linux.go?s=5302:5335#L203
 					exited := status.Exited()
 
@@ -1465,12 +1460,12 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 						switch status.Signal() {
 						case syscall.SIGTERM:
 							procLogWarnf("Process %d saw signal SIGTERM",pid)
-							DEBUG_OUT("Process %d saw signal SIGTERM\n",pid)
+							debugging.DEBUG_OUT("Process %d saw signal SIGTERM\n",pid)
 							stop = 0
 							exited = true
 						case syscall.SIGKILL:
 							procLogErrorf("Process %d saw signal SIGKILL",pid)
-							DEBUG_OUT("Process %d saw signal SIGKILL\n",pid)
+							debugging.DEBUG_OUT("Process %d saw signal SIGKILL\n",pid)
 							stop = 0
 							exited = true
 						default:
@@ -1478,7 +1473,7 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 							// May be SIGCHLD, or may be other values
 							// NOTE: on Arm kernels, the expected value seems to change
 							procLogWarnf("Process %d saw signal 0x%x",pid,status.Signal())
-							DEBUG_OUT("Process %d saw signal %x\n",pid,status.Signal()&0xFF)
+							debugging.DEBUG_OUT("Process %d saw signal %x\n",pid,status.Signal()&0xFF)
 //							continue mainReapLoop
 						}
 					}					
@@ -1509,13 +1504,13 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 							// ok - maybe its a composite process instead:
 							status_p, ok2 := compositeProcessesById.GetStringKey(record.CompId)							
 							if ok2 {
-								DEBUG_OUT("Process PID %d was a composite process. Notifying all internal jobs.\n",pid)
+								debugging.DEBUG_OUT("Process PID %d was a composite process. Notifying all internal jobs.\n",pid)
 								procLogWarnf("Process PID %d was a composite process. Notifying all internal jobs.\n",pid)
 								//  Lookup in Composite table instead
 								status := (*processStatus)(status_p)
-								DEBUG_OUT("AT LOCK - comp process\n")
+								debugging.DEBUG_OUT("AT LOCK - comp process\n")
 								status.lock()
-								DEBUG_OUT("PAST LOCK - comp process\n")
+								debugging.DEBUG_OUT("PAST LOCK - comp process\n")
 								//								var internalEv *processEvent
 								if status.status == STOPPING {
 									// expected death
@@ -1528,14 +1523,14 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 //									internalEv = newProcessEvent(record.Job, internalEvent_job_died)
 								}
 								status.unlock()
-								DEBUG_OUT("PAST UNLOCK - comp process\n")
+								debugging.DEBUG_OUT("PAST UNLOCK - comp process\n")
 								// delete ProcessRecord. Process is gone.
 								RemoveTrackedProcessByPid(pid)
 //								controlChan <- internalEv
 							} else {
 								stop = 0
 								procLogWarnf("Process was reaped PID %d -> A record was found but no Job / Compid entry was found in the processManager for %s",pid,record.Job)
-								DEBUG_OUT("ReapChildren(): Process was reaped PID %d -> A record was found but no Job / Compid entry was found in the processManager for %s\n",pid,record.Job)
+								debugging.DEBUG_OUT("ReapChildren(): Process was reaped PID %d -> A record was found but no Job / Compid entry was found in the processManager for %s\n",pid,record.Job)
 							}
 						}
 					} else {
@@ -1543,12 +1538,12 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 						continue mainReapLoop
 					}
 					// } else {
-					// 	DEBUG_OUT("ReapChildren(): Process was reaped PID %d -> Status was something else")
+					// 	debugging.DEBUG_OUT("ReapChildren(): Process was reaped PID %d -> Status was something else")
 					// 	stop--
 					// }
 				} else {
 					procLogWarnf("Process was reaped. A un-tracked process shutdown. PID %d w/ exit val %d",pid,status.ExitStatus())
-					DEBUG_OUT("ReapChildren(): Process was reaped. A un-tracked process shutdown. PID %d w/ exit val %d\n",pid,status.ExitStatus())
+					debugging.DEBUG_OUT("ReapChildren(): Process was reaped. A un-tracked process shutdown. PID %d w/ exit val %d\n",pid,status.ExitStatus())
 					stop--
 				}
 			} else {
@@ -1556,7 +1551,7 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 			}			
 		} else {
 			stop--
-			DEBUG_OUT("ReapChildren(): Skipped main ReapChildren handler %s\n",err.Error())
+			debugging.DEBUG_OUT("ReapChildren(): Skipped main ReapChildren handler %s\n",err.Error())
 			ret = 0
 		}
 	}
@@ -1567,7 +1562,7 @@ func ReapChildren() (ret int, status unix.WaitStatus) {
 // 'master process' which is identified by a composite ID vs. 
 // a Job name
 func getMasterProcessDepends( compositeid string ) (ok2 bool, ret []string) {
-	DEBUG_OUT("StartJob getMasterProcessDepends %s\n",compositeid)
+	debugging.DEBUG_OUT("StartJob getMasterProcessDepends %s\n",compositeid)
 	if len(compositeid) > 0 {
 		existing, ok := compositeProcessesById.GetStringKey(compositeid)
 		if ok {
@@ -1576,9 +1571,9 @@ func getMasterProcessDepends( compositeid string ) (ok2 bool, ret []string) {
 				ret = append(ret,dep)
 			}
 			ok2 = true
-			DEBUG_OUT("StartJob getMasterProcessDepends ret = %+v\n",ret)
+			debugging.DEBUG_OUT("StartJob getMasterProcessDepends ret = %+v\n",ret)
 		} else {
-			DEBUG_OUT("StartJob getMasterProcessDepends not in table!  %s\n",compositeid)
+			debugging.DEBUG_OUT("StartJob getMasterProcessDepends not in table!  %s\n",compositeid)
 		}
 	}
 	return
@@ -1696,7 +1691,7 @@ func _findMasterProcessAddChild( child maestroSpecs.JobDefinition ) (masterP *pr
 				compositeProcessesById.Set(compId,unsafe.Pointer(masterP))
 				
 				// have not seen this composite ID before...
-				DEBUG_OUT("New composited ID for process seen: %s\n",child.GetCompositeId())
+				debugging.DEBUG_OUT("New composited ID for process seen: %s\n",child.GetCompositeId())
 			}
 		}	
 		return
@@ -1715,11 +1710,11 @@ func RegisterMutableJob( job maestroSpecs.JobDefinition ) (err error) {
 		DB := storage.GetStorage()
 		err = DB.UpsertJob( job )
 		if err != nil {
-			DEBUG_OUT("ERROR Error on saving job in DB: %s\n", err.Error())
+			debugging.DEBUG_OUT("ERROR Error on saving job in DB: %s\n", err.Error())
 			procLogErrorf("Error on saving job in DB: %s\n", err.Error())
 		}			
 	} else {
-		DEBUG_OUT("Immutable: Not storing config file Job: %s\n",job.GetJobName())			
+		debugging.DEBUG_OUT("Immutable: Not storing config file Job: %s\n",job.GetJobName())			
 	}
 	err = RegisterJobOverwrite( job )
 	return
@@ -1754,7 +1749,7 @@ func RegisterJobOverwrite( job maestroSpecs.JobDefinition ) (err error) {
 	entry.status = NEVER_RAN
 	name := job.GetJobName()
 
-	DEBUG_OUT("RegisterJobOverwrite(%s)\n",name)
+	debugging.DEBUG_OUT("RegisterJobOverwrite(%s)\n",name)
 	jobsByName.Set(name,unsafe.Pointer(entry))
 
 	node := newDependencyNode(name,_getJobDeps(job)...)
@@ -1777,7 +1772,7 @@ func RegisterJob( job maestroSpecs.JobDefinition ) (err error) {
 		joberr.JobName = name
 		err = joberr
 	} else {
-		DEBUG_OUT("RegisterJob(%s)\n",name)
+		debugging.DEBUG_OUT("RegisterJob(%s)\n",name)
 		jobsByName.Set(name,unsafe.Pointer(entry))
 //		jobsByName[name] = entry		
 	}
@@ -1828,7 +1823,7 @@ func (data *_jobStatusData) MarshalJSON() (outjson []byte, err error)  {
 	for job := range data.jobsByName.Iter() {
 		val := job.Value
 		key := job.Key
-		DEBUG_OUT("ITER %+v\n",val)
+		debugging.DEBUG_OUT("ITER %+v\n",val)
 		if n>0 {
 			buffer.WriteString(",")
 		}
@@ -2020,70 +2015,70 @@ func RestartJob( name string ) (errout error) {
 
 func StartJob( name string ) (errout error) {
 //	job, ok := jobsByName[name]
-DEBUG_OUT2("StartJob("+name+")\n")
+debugging.DEBUG_OUT2("StartJob("+name+")\n")
 	jobval, ok := jobsByName.GetStringKey(name)
 	if ok {
-DEBUG_OUT2("StartJob("+name+") 1\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 1\n")
 		job := (*processStatus)(jobval)
 		if job.status == RUNNING || job.status == STARTING {
-			DEBUG_OUT2("StartJob("+name+") already running %d\n",job.status)
+			debugging.DEBUG_OUT2("StartJob("+name+") already running %d\n",job.status)
 			return
 		}
 
-DEBUG_OUT2("StartJob("+name+") 1.1\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 1.1\n")
 		deps := job.job.GetDependsOn()
 		// if we have a Job in a composite process, check the dependencies of the
 		// entire composite process, not just this Job within it
 		hasmaster, masterdeps := getMasterProcessDepends(job.job.GetCompositeId())
 		if hasmaster {
-DEBUG_OUT2("StartJob("+name+") 1.1a - using master process deps\n")			
+debugging.DEBUG_OUT2("StartJob("+name+") 1.1a - using master process deps\n")			
 			deps = masterdeps
 		}
-DEBUG_OUT2("StartJob("+name+") 1.2\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 1.2\n")
 		needdeps := false
-DEBUG_OUT2("StartJob("+name+") 1.3\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 1.3\n")
 		for _, dep := range deps {	
 			dep_status_val, ok := jobsByName.GetStringKey(dep)
-DEBUG_OUT2("StartJob("+name+") 1.3.1\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 1.3.1\n")
 			if !ok {
 				err := new(JobError)
 				err.Code = JOBERROR_MISSING_DEPENDENCY
-				DEBUG_OUT("StartJob("+name+") JOBERROR_MISSING_DEPENDENCY\n")
+				debugging.DEBUG_OUT("StartJob("+name+") JOBERROR_MISSING_DEPENDENCY\n")
 				err.JobName = name
 				errout = err
 				procLogErrorf("Job %s is missing dependency: %s",job.job.GetJobName(),dep)
 				return			
 			} else {
-DEBUG_OUT2("StartJob("+name+") 1.3.2\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 1.3.2\n")
 				dep_status := (*processStatus)(dep_status_val)
 				// if this dependency is not running, then we need to 
 				// request a start first
 				if dep_status.status != RUNNING {
 					job.status = WAITING_FOR_DEPS
-DEBUG_OUT2("StartJob("+name+") 1.3.2.1 %+v\n",dep_status)
+debugging.DEBUG_OUT2("StartJob("+name+") 1.3.2.1 %+v\n",dep_status)
 					err2 := StartJob(dep)
 					if err2 != nil {
 						err := new(JobError)
-						DEBUG_OUT("StartJob("+name+") JOBERROR_DEPENDENCY_FAILURE\n")
+						debugging.DEBUG_OUT("StartJob("+name+") JOBERROR_DEPENDENCY_FAILURE\n")
 						err.Code = JOBERROR_DEPENDENCY_FAILURE
 						err.JobName = name
 						errout = err
 						return									
 					} else {
-						DEBUG_OUT("StartJob("+name+") needs dep %s\n",dep)
+						debugging.DEBUG_OUT("StartJob("+name+") needs dep %s\n",dep)
 						needdeps = true
 					}
 				}
-DEBUG_OUT2("StartJob("+name+") 1.3.3\n")				
+debugging.DEBUG_OUT2("StartJob("+name+") 1.3.3\n")				
 			}
 		}
-DEBUG_OUT2("StartJob("+name+") 1.4\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 1.4\n")
 		if needdeps {
 			procLogDebugf("Job %s is waiting for dependencies",job.job.GetJobName())
-			DEBUG_OUT(" Job: "+name+" marked WAITING_FOR_DEPS\n")
+			debugging.DEBUG_OUT(" Job: "+name+" marked WAITING_FOR_DEPS\n")
 			job.status = WAITING_FOR_DEPS
 		} else {
-DEBUG_OUT2("StartJob("+name+") 2  -> submit start\n")
+debugging.DEBUG_OUT2("StartJob("+name+") 2  -> submit start\n")
 			procLogDebugf("Job %s has all dependencies. Asking for start.",job.job.GetJobName())
 			ev := new(processEvent)
 			ev.code = internalEvent_start_job
@@ -2094,7 +2089,7 @@ DEBUG_OUT2("StartJob("+name+") 2  -> submit start\n")
 	} else {
 		err := new(JobError)
 		procLogErrorf("processManager - StartJob() did not find Job [%s]",name)
-		DEBUG_OUT("StartJob("+name+") JOBERROR_NOT_FOUND\n")
+		debugging.DEBUG_OUT("StartJob("+name+") JOBERROR_NOT_FOUND\n")
 		err.Code = JOBERROR_NOT_FOUND
 		err.JobName = name
 		errout = err
@@ -2105,10 +2100,10 @@ DEBUG_OUT2("StartJob("+name+") 2  -> submit start\n")
 func StartAllAutoStartJobs() {
 	for job := range jobsByName.Iter() {
 		val := job.Value
-		DEBUG_OUT("ITER %+v\n",val)
+		debugging.DEBUG_OUT("ITER %+v\n",val)
 		if val != nil {
 			j := (*processStatus)(val)
-			DEBUG_OUT("ITER processStatus %+v\n",j)
+			debugging.DEBUG_OUT("ITER processStatus %+v\n",j)
 			if(j.status == NEVER_RAN) {
 				StartJob(j.job.GetJobName())
 			}
