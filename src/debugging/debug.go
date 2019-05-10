@@ -1,4 +1,6 @@
-package maestro
+// +build debug
+
+package debugging
 
 // Copyright (c) 2018, Arm Limited and affiliates.
 // SPDX-License-Identifier: Apache-2.0
@@ -16,12 +18,12 @@ package maestro
 // limitations under the License.
 
 import (
-	"fmt"
-	"runtime"
+    "runtime"
     "net/http"
     _ "net/http/pprof"
     "time"
     "encoding/json"
+    "fmt"
 )
 
 type LocalMemStats struct {
@@ -35,6 +37,17 @@ type LocalMemStats struct {
     HeapReleased,
     StackInuse,
     StackSys uint64
+    }
+
+const DebugEnabled = true
+
+func DEBUG_OUT(args ...interface{}) {
+	fmt.Println(args...)
+}
+
+func DEBUG_OUT2(args ...interface{}) {
+	fmt.Println(args...)
+>>>>>>> Replace M4 with native go conditional compilation:src/debugging/debug.go
 }
 
 func DumpMemStats() {
@@ -84,6 +97,7 @@ func RuntimeMemStats(duration int) {
         fmt.Println(string(b))
     }
 }
+
 
 /**
  * There appears to be a golang runtime bug in ReadMemStats() - make sure you dont call this

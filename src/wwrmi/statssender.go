@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/utils"
@@ -84,7 +85,7 @@ func (sndr *statSender) Read(p []byte) (copied int, err error) {
 	sndr.readOngoing = true
 	stat := sndr.willSendStatsFifo.Peek()
 	for stat != nil {
-		DEBUG_OUT("RMI Read() (stats) to of loop\n")
+		debugging.DEBUG_OUT("RMI Read() (stats) to of loop\n")
 		// get the JSON encoding of the stat in a []byte - or use
 		// a cached version if we already did this
 		var jsonbuf []byte
@@ -126,9 +127,9 @@ func (sndr *statSender) Read(p []byte) (copied int, err error) {
 	}
 	// we ran out of buffers, so say EOF
 
-	DEBUG_OUT("RMI Read() (stats) EOF\n")
+	debugging.DEBUG_OUT("RMI Read() (stats) EOF\n")
 	copy(p[copied:], []byte("]")) // replace last ',' with ']'
-	DEBUG_OUT("RMI stat sending: %s\n", string(p))
+	debugging.DEBUG_OUT("RMI stat sending: %s\n", string(p))
 	copied++
 	sndr.sentBytes += uint32(copied)
 	sndr.readOngoing = false
@@ -139,12 +140,12 @@ func (sndr *statSender) Read(p []byte) (copied int, err error) {
 func (sndr *statSender) submitStat(s *statWrapper) (dropped bool) {
 	dropped, _ = sndr.willSendStatsFifo.Push(s)
 	//  check to see if we are at the threshold to send stats to the cloud
-	DEBUG_OUT("RMI (statsender) wilLSendStatsFifo.Len() = %d\n", sndr.willSendStatsFifo.Len())
+	debugging.DEBUG_OUT("RMI (statsender) wilLSendStatsFifo.Len() = %d\n", sndr.willSendStatsFifo.Len())
 	if sndr.willSendStatsFifo.Len() > int(sndr.countThreshold) {
 		// time to send stats - tell our owning Client to do it
-		DEBUG_OUT("RMI (statsender) hit count threshold - cmdChan <- sndrSendNow\n")
+		debugging.DEBUG_OUT("RMI (statsender) hit count threshold - cmdChan <- sndrSendNow\n")
 		sndr.cmdChan <- sndrSendNow
-		DEBUG_OUT("RMI (statsender) past cmdChan <- sndrSendNow\n")
+		debugging.DEBUG_OUT("RMI (statsender) past cmdChan <- sndrSendNow\n")
 	}
 
 	return
@@ -184,7 +185,7 @@ func (sndr *statSender) sender() {
 	timedout := false
 
 	var handleErr = func(clienterr error) {
-		DEBUG_OUT("RMI statsender.handleErr(%+v)\n", clienterr)
+		debugging.DEBUG_OUT("RMI statsender.handleErr(%+v)\n", clienterr)
 		timedout = false
 		if clienterr != nil {
 			// transfer failed, so...
@@ -195,9 +196,9 @@ func (sndr *statSender) sender() {
 				buf = sndr.sendingStatsFifo.Pop()
 			}
 			// do a backoff
-			DEBUG_OUT("RMI (statsender) @lock 1\n")
+			debugging.DEBUG_OUT("RMI (statsender) @lock 1\n")
 			sndr.locker.Lock()
-			DEBUG_OUT("RMI (statsender) @pastlock 1\n")
+			debugging.DEBUG_OUT("RMI (statsender) @pastlock 1\n")
 			// startBackoff = time.Now()
 			// if already backing off...
 			if sndr.backingOff && sndr.backoff > 0 {
@@ -226,10 +227,10 @@ func (sndr *statSender) sender() {
 sndrLoop:
 	for {
 		start = time.Now()
-		DEBUG_OUT("RMI top of loop (statsender) %d\n", timeout)
+		debugging.DEBUG_OUT("RMI top of loop (statsender) %d\n", timeout)
 		select {
 		case <-time.After(timeout):
-			DEBUG_OUT("RMI (statsender)- sysstats loop got timeout. try to send?\n")
+			debugging.DEBUG_OUT("RMI (statsender)- sysstats loop got timeout. try to send?\n")
 			timedout = true
 			if sndr.willSendStatsFifo.Len() > 0 {
 				err := sndr.postStats()
@@ -244,30 +245,30 @@ sndrLoop:
 				}
 			}
 		case code := <-sndr.cmdChan:
-			DEBUG_OUT("RMI (statsender) - code = %d\n", code)
+			debugging.DEBUG_OUT("RMI (statsender) - code = %d\n", code)
 			switch code {
 			case sndrSendNow:
-				DEBUG_OUT("RMI (statsender) @lock 2\n")
+				debugging.DEBUG_OUT("RMI (statsender) @lock 2\n")
 				sndr.locker.Lock()
-				DEBUG_OUT("RMI (statsender) @pastlock 2\n")
+				debugging.DEBUG_OUT("RMI (statsender) @pastlock 2\n")
 				if sndr.backingOff {
 					sndr.locker.Unlock()
 					elapsed = time.Since(start)
 					timeout = timeout - elapsed
 					if timeout > 10000 {
-						DEBUG_OUT("RMI (statsender) ignoring cmd sndrSendNow (%d)\n", timeout)
+						debugging.DEBUG_OUT("RMI (statsender) ignoring cmd sndrSendNow (%d)\n", timeout)
 						continue sndrLoop
 					}
 					// here to see how well this is working
-					DEBUG_OUT("RMI (statsender) triggered - (ALMOST IGNORED) cmdSendLogs\n")
+					debugging.DEBUG_OUT("RMI (statsender) triggered - (ALMOST IGNORED) cmdSendLogs\n")
 				} else {
 					sndr.locker.Unlock()
 				}
-				DEBUG_OUT("RMI triggered - statSender: sndrSendNow\n")
+				debugging.DEBUG_OUT("RMI triggered - statSender: sndrSendNow\n")
 				err := sndr.postStats()
 				handleErr(err)
 			case sndrShutdown:
-				DEBUG_OUT("RMI - statsender saw shutdown\n")
+				debugging.DEBUG_OUT("RMI - statsender saw shutdown\n")
 				break sndrLoop
 			}
 		}
@@ -304,12 +305,12 @@ sndrLoop:
 		// 	// 		timeout = 10000
 		// 	// 	}
 		// 	// }
-		// 	DEBUG_OUT("RMI (statsender) send stats is backing off %d ns\n", timeout)
+		// 	debugging.DEBUG_OUT("RMI (statsender) send stats is backing off %d ns\n", timeout)
 		// } else {
 		if timedout {
 			if sndr.backingOff {
 				timeout = sndr.backoff
-				DEBUG_OUT("RMI (statsender) send stats is backing off %d ns\n", timeout)
+				debugging.DEBUG_OUT("RMI (statsender) send stats is backing off %d ns\n", timeout)
 			} else {
 				timeout = time.Duration(sndr.sendTimeThreshold) * time.Millisecond
 			}
@@ -324,14 +325,14 @@ sndrLoop:
 		sndr.locker.Unlock()
 		timedout = false
 	}
-	DEBUG_OUT("RMI - statsender sender() routing ending\n")
+	debugging.DEBUG_OUT("RMI - statsender sender() routing ending\n")
 }
 
 // postStats send sysstats events to the API
 func (sndr *statSender) postStats() (err error) {
 	var req *http.Request
 	var resp *http.Response
-	DEBUG_OUT("RMI POST %s >>>\n", sndr.client.postStatsUrl)
+	debugging.DEBUG_OUT("RMI POST %s >>>\n", sndr.client.postStatsUrl)
 	// Client implements io.Reader's Read(), so we do this
 	//client.sentBytes = 0
 	req, err = http.NewRequest("POST", sndr.client.postStatsUrl, sndr)
@@ -344,16 +345,16 @@ func (sndr *statSender) postStats() (err error) {
 				defer resp.Body.Close()
 			}
 		}
-		DEBUG_OUT("RMI --> response +%v", resp)
+		debugging.DEBUG_OUT("RMI --> response +%v", resp)
 		if err == nil && resp != nil && resp.StatusCode != 200 {
 			bodystring, _ := utils.StringifyReaderWithLimit(resp.Body, 300)
 			log.MaestroErrorf("RMI: Error on POST request for stats: Response was %d (Body <%s>)", resp.StatusCode, bodystring)
-			DEBUG_OUT("RMI bad response - creating error object\n")
+			debugging.DEBUG_OUT("RMI bad response - creating error object\n")
 			err = newClientError(resp)
 		}
 	} else {
 		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
-		DEBUG_OUT("RMI ERROR: %s\n", err.Error())
+		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
 	}
 	return
 }

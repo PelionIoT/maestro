@@ -19,12 +19,9 @@ import (
 	"errors"
 	"fmt"
 	"plugin"
-	"reflect"
 	"sync"
-	"unsafe"
 
 	"github.com/armPelionEdge/maestroSpecs"
-
 	"github.com/armPelionEdge/maestro/log"
 )
 
@@ -34,15 +31,6 @@ type Plug struct {
 	Symbols map[string]interface{}
 }
 
-func InspectPlugin(p *plugin.Plugin) {
-	pl := (*Plug)(unsafe.Pointer(p))
-
-	fmt.Printf("Plugin %s exported symbols (%d): \n", pl.Path, len(pl.Symbols))
-
-	for name, pointers := range pl.Symbols {
-		fmt.Printf("symbol: %s, pointer: %v, type: %v\n", name, pointers, reflect.TypeOf(pointers))
-	}
-}
 
 // NewPluginLogger returns a new logger object handed to a plugin
 func NewPluginLogger(pluginName string) (logger *log.PrefixedLogger) {
@@ -126,7 +114,7 @@ func loadAndInitPlugin(opts *maestroSpecs.PluginOpts, logger maestroSpecs.Logger
 			return
 		}
 
-		DEBUG(InspectPlugin(ret))
+		InspectPlugin(ret)
 
 		var initSym plugin.Symbol
 

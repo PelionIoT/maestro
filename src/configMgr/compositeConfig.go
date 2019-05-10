@@ -17,7 +17,7 @@ package configMgr
 
 import (
 	"github.com/armPelionEdge/maestroSpecs"
-	IFDEBUG("fmt")
+	"github.com/armPelionEdge/maestro/debugging"
 )
 
 type CompositeProcessConfigPayload struct {
@@ -36,7 +36,7 @@ type CompositeProcessConfigPayload struct {
 func NewCompositeProcessConfigPayload() (ret *CompositeProcessConfigPayload) {
 	ret = new(CompositeProcessConfigPayload)
 	ret.Moduleconfigs = make(map[string]maestroSpecs.JobDefinition)
-	DEBUG_OUT("UNIX %s %s\n",JobConfigMgr().globalConfig.GetHttpUnixSocket(), JobConfigMgr().globalConfig.HttpUnixSocket)
+	debugging.DEBUG_OUT("UNIX %s %s\n",JobConfigMgr().globalConfig.GetHttpUnixSocket(), JobConfigMgr().globalConfig.HttpUnixSocket)
 	ret.MaestroUserSocketPath = JobConfigMgr().globalConfig.GetHttpUnixSocket()
 	return
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/armPelionEdge/maestro/dcsAPI"
 	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 	"encoding/json"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/tasks"
 	"github.com/armPelionEdge/maestro/processes"	
@@ -31,7 +32,6 @@ import (
 	"time"
 	"unsafe"
 	"strconv"
-	IFDEBUG("fmt")
 )
 
 const RELAYMQ_DEFAULT_QUEUE_NAME = "upgrades"
@@ -171,13 +171,13 @@ func transposeDCSToMaestroJob(dcs *dcsAPI.GatewayConfigMessage, job *maestroSpec
 }
 
 func (this *relayMQ_OpAckHandler) SendFinishedAck(task *tasks.MaestroTask) (err error) {
-	DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>>>> GOT SendFinishedAck() call -> %s\n",this.op)
+	debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>>>> GOT SendFinishedAck() call -> %s\n",this.op)
 	log.MaestroInfof("RelayMQDriver - submitted Task finished: %s",task.Id)
 
 	job := new(maestroSpecs.JobDefinitionPayload)
 	transposeDCSToMaestroJob(this.mqMsg.decodedIn,job)
 
-	DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>>>>  transposed Job to register %+v\n",job)
+	debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>>>>  transposed Job to register %+v\n",job)
 
 	// Register the Job and start it
 
@@ -199,7 +199,7 @@ func (this *relayMQ_OpAckHandler) SendFinishedAck(task *tasks.MaestroTask) (err 
 }
 
 func (this *relayMQ_OpAckHandler) SendFailedAck(task *tasks.MaestroTask) (err error) {
-	DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>>>> [FAIL] GOT SendFailedAck() call -> %s\n",this.op)
+	debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>>>> [FAIL] GOT SendFailedAck() call -> %s\n",this.op)
 	log.MaestroErrorf("RelayMQDriver - submitted Task failed: %s",task.Id)
 	return
 }
@@ -217,31 +217,31 @@ func (this *relayMQDriver) listener() {
 		select {
 		case control := <-this.controlChan:
 			if control == stop_driver {
-				DEBUG_OUT("RelayMQDriver.listener() got shutdown\n")
+				debugging.DEBUG_OUT("RelayMQDriver.listener() got shutdown\n")
 				break mainLoop
 			}
 
 		case message := <-messageChan:
-			DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Got relayMQ message %+v\n",message)
+			debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Got relayMQ message %+v\n",message)
 			dcsUpdate := new(dcsAPI.GatewayConfigMessage)
 			err := json.Unmarshal([]byte(message.Body),dcsUpdate)
 			if err != nil {
 				log.MaestroErrorf("Can't decode inbound RelayMQ message: %s\n",err.Error())
 			} else {
-				DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> [unique seen: %d] decoded %+v\n",messageCount,dcsUpdate)
+				debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> [unique seen: %d] decoded %+v\n",messageCount,dcsUpdate)
 				_, ok := messagesProcessed.GetStringKey(message.ID)
 				if ok {
-					DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Message seen and processed already.\n")
+					debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Message seen and processed already.\n")
 				} else {
 					messageCount++
-					DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Handle message\n")
+					debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Handle message\n")
 
 					if len(dcsUpdate.Images) > 0 && len(dcsUpdate.Configs) > 0 {
 						sig := dcsUpdate.Images[0].ComputeSignature()
 						_, ok := messagesProcessedBySignature.GetStringKey(sig)
 
 						if ok {
-							DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Duplicate message by signature\n")
+							debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> Duplicate message by signature\n")
 							log.MaestroWarnf("RelayMQDriver: Saw duplicate message based on signature")
 						} else {
 
@@ -265,7 +265,7 @@ func (this *relayMQDriver) listener() {
 							op.Image = &holder.decodedIn.Images[0]
 							op.AppName = holder.decodedIn.Configs[0].Name
 
-							DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> formed payload - sending to TaskManager %+v\n",op)
+							debugging.DEBUG_OUT("RELAYMQ>>>>>>>>>>>>>>>>> formed payload - sending to TaskManager %+v\n",op)
 							log.MaestroDebugf("RelayMQDriver: Have new recognized inbound payload - sending to TaskManager")
 							task, err := tasks.CreateNewTask(op, TASK_SRC_RELAYMQ)
 							if err == nil {

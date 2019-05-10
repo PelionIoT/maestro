@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/deckarep/golang-set"	
+	"github.com/armPelionEdge/maestro/debugging"
 )
 
 type dependencyCheck func(name string) bool
@@ -64,7 +65,7 @@ func resolveDependencyGraph(graph dependencyGraph, check dependencyCheck) (depen
 
         dependencySet := mapset.NewSet()
         for _, dep := range node.deps {
-        	DEBUG_OUT("dep: %s\n",dep)
+        	debugging.DEBUG_OUT("dep: %s\n",dep)
         	if check != nil {
         		if !check(dep) {
         			return nil, errors.New("Unknown dependency:"+dep)

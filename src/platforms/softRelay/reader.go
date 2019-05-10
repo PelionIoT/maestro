@@ -218,7 +218,7 @@ func read_eepromfile(path string, dict *templates.TemplateVarDictionary) (eeprom
 
 	if err == nil {
 		err = json.Unmarshal(data, &eeprom)
-		DEBUG_OUT("Unmarshaled eeprom data from file %s ok.\n", path)
+		fmt.Println("Unmarshaled eeprom data from file %s ok.\n", path)
 		if err == nil {
 			dict.AddArch("relaySecret", eeprom.RelaySecret)
 			dict.AddArch("pairingCode", eeprom.PairingCode)

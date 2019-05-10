@@ -63,51 +63,42 @@ if [ ! -z "$PRETEND" ]; then
 fi
 
 
-
-for f in $(find  src -name '*.go'); do
-	echo "--> "$f
+for f in $(find  src -name '*\.go'); do
 #	echo `basename $f`
 	FILENAME=`basename $f`
 	DIR1=`dirname $f`
 	DIR1=${DIR1#*/}
 #	echo "------"
 	if [ "$DIR1" != "src" ]; then
-		echo "mkdir -p $DIR1"
 		mkdir -p $DIR1
 #		echo "--->"$DIR1"<--"
 #		echo "****"
 #		echo "output: $DIR1/$FILENAME"
-		echo $PREPROCESS "src/$DIR1/$FILENAME" "> $DIR1/$FILENAME"
-		if [ -z "$PRETEND" ]; then $PREPROCESS src/$DIR1/$FILENAME > $DIR1/$FILENAME; fi
+		cp src/$DIR1/$FILENAME $DIR1/$FILENAME
 	else
 #		echo "output: $FILENAME"
-		echo $PREPROCESS "src/$FILENAME" "> $FILENAME"
-		if [ -z "$PRETEND" ]; then $PREPROCESS src/$FILENAME > $FILENAME; fi
+		cp src/$FILENAME $FILENAME
 	fi
 done
 
 for f in $(find  src -name '*\.[ch]'); do
-	echo "--> "$f
 #	echo `basename $f`
 	FILENAME=`basename $f`
 	DIR1=`dirname $f`
 	DIR1=${DIR1#*/}
 #	echo "------"
 	if [ "$DIR1" != "src" ]; then
-		echo "mkdir -p $DIR1"
 		mkdir -p $DIR1
 #		echo "--->"$DIR1"<--"
 #		echo "****"
 #		echo "output: $DIR1/$FILENAME"
 		# echo $PREPROCESS "src/$DIR1/$FILENAME" "> $DIR1/$FILENAME"
 		# if [ -z "$PRETEND" ]; then $PREPROCESS src/$DIR1/$FILENAME > $DIR1/$FILENAME; fi
-		echo "src/$DIR1/$FIELNAME --> $DIR1/$FILENAME"
 		cp src/$DIR1/$FILENAME $DIR1/$FILENAME
 	else
 #		echo "output: $FILENAME"
 		# echo $PREPROCESS "src/$FILENAME" "> $FILENAME"
 		# if [ -z "$PRETEND" ]; then $PREPROCESS src/$FILENAME > $FILENAME; fi
-		echo "src/$FIELNAME --> $FILENAME"
 		cp src/$FILENAME $FILENAME
 	fi
 done
@@ -130,15 +121,16 @@ sed -i -e "s/COMMIT_NUMBER/${COMMIT}/g" maestroutils/status.go
 sed -i -e "s/BUILD_DATE/${DATE}/g" maestroutils/status.go 
 
 # highlight errors: https://serverfault.com/questions/59262/bash-print-stderr-in-red-color
-color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
+# color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
 
 if [ "$1" != "preprocess_only" ]; then
 	pushd $GOPATH/bin
 	if [ ! -z "$TIGHT" ]; then
-	    color go build -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
+	    go build -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
 	else
-	    color go build "$@" github.com/armPelionEdge/maestro/maestro 
+	    go build "$@" github.com/armPelionEdge/maestro/maestro 
 	fi
+  echo $?
 
 # 
 #go install -x github.com/armPelionEdge/maestro/maestro

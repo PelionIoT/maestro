@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/log"
 )
@@ -92,7 +93,7 @@ func SubscribeToEvents() (ret events.EventSubscription, err error) {
 
 func (stat *statConfig) Validate() (ok bool, err error) {
 	ok = true
-	DEBUG_OUT("ParseDuration:<%s>", stat.Every)
+	debugging.DEBUG_OUT("ParseDuration:<%s>", stat.Every)
 	if len(stat.Every) < 1 {
 		ok = false
 		stat.Disable = true
@@ -180,7 +181,7 @@ func continueCheckContext(ctx context.Context) (keepgoing bool, err error) {
 // Proper format is: "{<Name>": { <JSON STAT DATA> }}
 func (pl *StatPayload) MarshalJSON() (ret []byte, err error) {
 	var buffer bytes.Buffer
-	DEBUG_OUT("RMI calling pl.MarshalJSON()\n")
+	debugging.DEBUG_OUT("RMI calling pl.MarshalJSON()\n")
 	// write the "timestamp" as ms since epoch
 	buffer.WriteString(fmt.Sprintf(`{%s:`, strconv.QuoteToASCII(pl.Name)))
 	if pl.StatData != nil {
@@ -198,7 +199,7 @@ func (pl *StatPayload) MarshalJSON() (ret []byte, err error) {
 		buffer.Write(byts) // add in the data, but not the enclosing '{'
 		buffer.Write([]byte("}"))
 		ret = buffer.Bytes()
-		DEBUG_OUT("StatPayload RMI encode %s\n", string(ret))
+		debugging.DEBUG_OUT("StatPayload RMI encode %s\n", string(ret))
 	} else {
 		ret = nil
 		err = errors.New("StatData field of sysstat was nil")
@@ -237,7 +238,7 @@ func (mgr *SysStats) periodicRunner() {
 	configChanged := true
 
 	var _callStat = func(key, stat interface{}) bool {
-		DEBUG_OUT("sysstats - in _callStat()\n")
+		debugging.DEBUG_OUT("sysstats - in _callStat()\n")
 		name, ok2 := key.(string)
 		rstat, ok := stat.(RunnableStat)
 		if ok && ok2 {
@@ -248,7 +249,7 @@ func (mgr *SysStats) periodicRunner() {
 			if err == nil {
 				if data != nil {
 					// TODO - flatten event data
-					DEBUG_OUT("sysstats - stat data: %+v\n", data)
+					debugging.DEBUG_OUT("sysstats - stat data: %+v\n", data)
 					ev := &events.MaestroEvent{Data: data}
 					events.SubmitEvent([]string{statEventsChannel}, ev)
 				} else {
@@ -273,7 +274,7 @@ func (mgr *SysStats) periodicRunner() {
 
 mainloop:
 	for {
-		DEBUG_OUT("sysstats - top of main loop\n")
+		debugging.DEBUG_OUT("sysstats - top of main loop\n")
 		select {
 		case code := <-mgr.ctlChan:
 			switch code {
@@ -348,9 +349,9 @@ func (mgr *SysStats) ReadConfig(config *StatsConfig) (ok bool, err error) {
 	// find the smallest interval
 	var statok bool
 	if config.DiskStats != nil {
-		DEBUG_OUT("sysstats - DiskStats: %+v\n", config.DiskStats)
+		debugging.DEBUG_OUT("sysstats - DiskStats: %+v\n", config.DiskStats)
 		statok, err = config.DiskStats.Validate()
-		DEBUG_OUT("sysstats - DiskStats out: %+v\n", config.DiskStats)
+		debugging.DEBUG_OUT("sysstats - DiskStats out: %+v\n", config.DiskStats)
 		if err != nil {
 			ok = false
 			log.MaestroErrorf(logPx+"disk stats are misconfigured: %s", err.Error())
@@ -362,9 +363,9 @@ func (mgr *SysStats) ReadConfig(config *StatsConfig) (ok bool, err error) {
 		}
 	}
 	if config.VMStats != nil {
-		DEBUG_OUT("sysstats - VMStats: %+v\n", config.VMStats)
+		debugging.DEBUG_OUT("sysstats - VMStats: %+v\n", config.VMStats)
 		statok, err = config.VMStats.Validate()
-		DEBUG_OUT("sysstats - VMStats out: %+v\n", config.VMStats)
+		debugging.DEBUG_OUT("sysstats - VMStats out: %+v\n", config.VMStats)
 		if err != nil {
 			ok = false
 			log.MaestroErrorf(logPx+"VM stats are misconfigured: %s", err.Error())
@@ -382,12 +383,12 @@ func (mgr *SysStats) ReadConfig(config *StatsConfig) (ok bool, err error) {
 	// ok, now compute the pace for each stat
 	if config.DiskStats != nil {
 		computePace(&config.DiskStats.statConfig)
-		DEBUG_OUT("sysstats - DiskStats out: %+v\n", config.DiskStats)
+		debugging.DEBUG_OUT("sysstats - DiskStats out: %+v\n", config.DiskStats)
 		mgr.statCallers.Store(config.DiskStats.statConfig.Name, RunnableStat(config.DiskStats))
 	}
 	if config.VMStats != nil {
 		computePace(&config.VMStats.statConfig)
-		DEBUG_OUT("sysstats - VMStats out2: %+v\n", config.VMStats)
+		debugging.DEBUG_OUT("sysstats - VMStats out2: %+v\n", config.VMStats)
 		mgr.statCallers.Store(config.VMStats.statConfig.Name, RunnableStat(config.VMStats))
 	}
 	ok = statok

@@ -28,6 +28,7 @@ import (
 	"sync"
 	"fmt"
 	"github.com/armPelionEdge/greasego"
+	"github.com/armPelionEdge/maestro/debugging"
 	"bytes"
 	"io/ioutil"
 //	DEBUG("runtime")
@@ -42,8 +43,8 @@ type logBuffer struct {
 //  begin generic
 // m4_define({{*NODE*}},{{*logBuffer*}})  m4_define({{*FIFO*}},{{*logBufferFifo*}})
 // Thread safe queue for LogBuffer
-type FIFO struct {
-	q []*NODE	
+type logBufferFifo struct {
+	q []*logBuffer	
 	mutex *sync.Mutex
 	condWait *sync.Cond
 	condFull *sync.Cond
@@ -55,8 +56,8 @@ type FIFO struct {
 	                // So we use this as a work around to temporarily wakeup
 	                // (but not shutdown) the queue. Bring your own timer.
 }
-func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
-	ret = new(FIFO)
+func New_logBufferFifo(maxsize uint32) (ret *logBufferFifo) {
+	ret = new(logBufferFifo)
 	ret.mutex =  new(sync.Mutex)
 	ret.condWait = sync.NewCond(ret.mutex)
 	ret.condFull = sync.NewCond(ret.mutex)
@@ -66,27 +67,27 @@ func GENERIC_New(FIFO)(maxsize uint32) (ret *FIFO) {
 	ret.wakeupIter = 0
 	return
 }
-func (fifo *FIFO) Push(n *NODE) (drop bool, dropped *NODE) {
+func (fifo *logBufferFifo) Push(n *logBuffer) (drop bool, dropped *logBuffer) {
 	drop = false
-	DEBUG_OUT2(" >>>>>>>>>>>> In Push\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In Push\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" ------------ In Push (past Lock)\n")
+	debugging.DEBUG_OUT2(" ------------ In Push (past Lock)\n")
     if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
     	// drop off the queue
     	dropped = (fifo.q)[0]
     	fifo.q = (fifo.q)[1:]
     	fifo.drops++
-    	DEBUG_OUT2("!!! Dropping NODE in FIFO \n")
+    	debugging.DEBUG_OUT2("!!! Dropping logBuffer in logBufferFifo \n")
     	drop = true
     }
     fifo.q = append(fifo.q, n)
-	DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
+	debugging.DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
     fifo.mutex.Unlock()
     fifo.condWait.Signal()
-	DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
     return
 }
-func (fifo *FIFO) Pop() (n *NODE) {
+func (fifo *logBufferFifo) Pop() (n *logBuffer) {
 	fifo.mutex.Lock()
 	if len(fifo.q) > 0 {
 	    n = (fifo.q)[0]
@@ -96,20 +97,20 @@ func (fifo *FIFO) Pop() (n *NODE) {
 	fifo.mutex.Unlock()
     return
 }
-func (fifo *FIFO) Len() int {
+func (fifo *logBufferFifo) Len() int {
 	fifo.mutex.Lock()
 	ret := len(fifo.q)
 	fifo.mutex.Unlock()
     return ret
 }
-func (fifo *FIFO) PopOrWait() (n *NODE) {
+func (fifo *logBufferFifo) PopOrWait() (n *logBuffer) {
 	n = nil
-	DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
+	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
 	if(fifo.shutdown) {
 		fifo.mutex.Unlock()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
 		return
 	}
 	if len(fifo.q) > 0 {
@@ -117,19 +118,19 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 	    fifo.q = (fifo.q)[1:]		
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
 		return
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
 //		fmt.Printf(" --entering wait %+v\n",*fifo);
-	DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
+	debugging.DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
 //		Wait returns with Lock
 //		fmt.Printf(" --out of wait %+v\n",*fifo);
 		if fifo.shutdown { 
 			fifo.mutex.Unlock()
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
 			return 
 		}
 		if len(fifo.q) > 0 {
@@ -137,15 +138,15 @@ func (fifo *FIFO) PopOrWait() (n *NODE) {
 		    fifo.q = (fifo.q)[1:]		
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
+		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
 			return
 		}
 	}
-	DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 5)\n")
 	fifo.mutex.Unlock()
 	return
 }
-func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
+func (fifo *logBufferFifo) PushOrWait(n *logBuffer) (ret bool) {
 	ret = true
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter	
@@ -164,25 +165,25 @@ func (fifo *FIFO) PushOrWait(n *NODE) (ret bool) {
     fifo.condWait.Signal()
     return
 }
-func (fifo *FIFO) Shutdown() {
+func (fifo *logBufferFifo) Shutdown() {
 	fifo.mutex.Lock()
 	fifo.shutdown = true
 	fifo.mutex.Unlock()
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
 }
-func (fifo *FIFO) WakeupAll() {
-	DEBUG_OUT2(" >>>>>>>>>>> in WakeupAll @Lock\n")
+func (fifo *logBufferFifo) WakeupAll() {
+	debugging.DEBUG_OUT2(" >>>>>>>>>>> in WakeupAll @Lock\n")
 	fifo.mutex.Lock()
-	DEBUG_OUT2(" +++++++++++ in WakeupAll\n")
+	debugging.DEBUG_OUT2(" +++++++++++ in WakeupAll\n")
 	fifo.wakeupIter++
 	fifo.mutex.Unlock()
-	DEBUG_OUT2(" +++++++++++ in WakeupAll @Unlock\n")
+	debugging.DEBUG_OUT2(" +++++++++++ in WakeupAll @Unlock\n")
 	fifo.condWait.Broadcast()
 	fifo.condFull.Broadcast()
-	DEBUG_OUT2(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
+	debugging.DEBUG_OUT2(" <<<<<<<<<<< in WakeupAll past @Broadcast\n")
 }
-func (fifo *FIFO) IsShutdown() (ret bool) {
+func (fifo *logBufferFifo) IsShutdown() (ret bool) {
 	fifo.mutex.Lock()
 	ret = fifo.shutdown
 	fifo.mutex.Unlock()
@@ -196,7 +197,7 @@ type Client struct {
 	url string
 	clientId string
 	httpClient *http.Client
-	fifo *FIFO  // see fifo.go
+	fifo *logBufferFifo  // see fifo.go
 	ticker *time.Ticker
 	interval time.Duration
 }
@@ -225,7 +226,7 @@ func NewSymphonyClient(url string, clientid string, maxBuffers uint32, heartbeat
 func (client *Client) Start() {
 	go client.clientWorker()
 	client.startTicker()
-	DEBUG(fmt.Printf("client started: %s\n",client.url))
+	debugging.DEBUG_OUT("client started: %s\n",client.url)
 }
 
 func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byte) {
@@ -234,20 +235,22 @@ func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byt
 	buf.godata = godata
 	dropped, _ := client.fifo.Push(buf)
 	if dropped {
-		DEBUG_OUT("Dropped some log entries!!!!!!\n\n")
+		debugging.DEBUG_OUT("Dropped some log entries!!!!!!\n\n")
 	}
 }
 
 func (client *Client) startTicker() {
 	client.ticker = time.NewTicker(client.interval)
 	go func() {
-	// only dump ticker info when in debug build:
-        DEBUG(for t := range client.ticker.C { )
-            DEBUG_OUT("Tick at %d", t.Unix())
-        DEBUG(    DumpMemStats() )
-	        DEBUG(	client.fifo.WakeupAll() )
-        DEBUG(} )
-    }()
+		// only dump ticker info when in debug build:
+		if debugging.DebugEnabled {
+			for t := range client.ticker.C { 
+				debugging.DEBUG_OUT("Tick at %d", t.Unix())
+				debugging.DumpMemStats()
+				client.fifo.WakeupAll()
+			}
+		}
+	}()
 }
 
 
@@ -257,7 +260,7 @@ func (client *Client) clientWorker() {
 	closeit := func(r *http.Response, buf *logBuffer) {
 		r.Body.Close()
 		greasego.RetireCallbackData(buf.data)
-		DEBUG_OUT("  OKOKOKOKOKOKOKOKOK -----> retired callback data\n\n")
+		debugging.DEBUG_OUT("  OKOKOKOKOKOKOKOKOK -----> retired callback data\n\n")
 	}
 
 	var next *logBuffer
@@ -265,7 +268,7 @@ func (client *Client) clientWorker() {
 		next = client.fifo.PopOrWait()
 		if next == nil {
 			if client.fifo.IsShutdown() {
-				DEBUG_OUT("clientWorker @shutdown - via FIFO")
+				debugging.DEBUG_OUT("clientWorker @shutdown - via FIFO")
 				break;
 			} else {
 				// SEND HEARTBEAT or whatever
@@ -282,7 +285,7 @@ func (client *Client) clientWorker() {
 	    // client := &http.Client{}
 	    resp, err := client.httpClient.Do(req)
 	    if err != nil {
-	    	DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n",err)
+	    	debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n",err)
 			greasego.RetireCallbackData(next.data)
 	    } else {
 		    fmt.Println("response Status:", resp.Status)
@@ -290,7 +293,7 @@ func (client *Client) clientWorker() {
 		    body, _ := ioutil.ReadAll(resp.Body)
 		    fmt.Println("response Body:", string(body))
 
-	    	DEBUG_OUT("CALLING closeit()\n")
+	    	debugging.DEBUG_OUT("CALLING closeit()\n")
 		    closeit(resp,next)
 	    }
 

@@ -25,6 +25,7 @@ import (
 
 	"github.com/armPelionEdge/httprouter"
 	"github.com/armPelionEdge/maestro/configMgr"
+	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/log"
@@ -240,7 +241,7 @@ func handleBatchOps(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 	if err == nil {
 		ops, err := msgp.GetOps() // decodes each task from JSON
 		if err == nil {
-			DEBUG_OUT(" ----- Batch Task ---- Out:%+v\n", ops[0])
+			debugging.DEBUG_OUT(" ----- Batch Task ---- Out:%+v\n", ops[0])
 
 			taskz, err := tasks.CreateNewBatchTasks(ops, msgp.GetTaskId(), TASK_SRC_LOCAL)
 			if err != nil {
@@ -256,7 +257,7 @@ func handleBatchOps(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 				}
 				// ok, tasks are acceptable...
 
-				DEBUG_OUT("    Tasks look OK. total: %d\n", len(taskz))
+				debugging.DEBUG_OUT("    Tasks look OK. total: %d\n", len(taskz))
 				if len(taskz) < 2 { // sanity check
 					sendAPIErrorOrAlt(w, nil, "Internal error at handleBatchOps()", http.StatusBadRequest)
 					return
@@ -268,7 +269,7 @@ func handleBatchOps(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("{\"error\":\"Badly formed batch request\"}"))
-			DEBUG_OUT("Error: %s\n", err.Error())
+			debugging.DEBUG_OUT("Error: %s\n", err.Error())
 		}
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
@@ -299,8 +300,8 @@ func handleImageOp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 
 	if err == nil {
 
-		DEBUG_OUT("GOT: %+v\n", msg)
-		DEBUG_OUT("     Is messge type:%s\n", msgp.GetType())
+		debugging.DEBUG_OUT("GOT: %+v\n", msg)
+		debugging.DEBUG_OUT("     Is messge type:%s\n", msgp.GetType())
 		if msgp.GetType() == maestroSpecs.OP_TYPE_IMAGE {
 			task, err := tasks.CreateNewTask(msgp, TASK_SRC_LOCAL)
 			// task.Op = msgp
@@ -338,7 +339,7 @@ func handleJobOp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Write([]byte("{\"error\":\"internal error\", \"details\":\"storage driver failed\"}"))
 	} else {
 		if err != nil {
-			DEBUG_OUT("malformed!\n")
+			debugging.DEBUG_OUT("malformed!\n")
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("{\"error\":\"Badly formed\", \"details\":\"" + err.Error() + "\"}"))
 
@@ -614,7 +615,7 @@ func handlePostJobConfig(w http.ResponseWriter, r *http.Request, ps httprouter.P
 				resp.ReplacedConfigs = append(resp.ReplacedConfigs, oldconf)
 			}
 
-			DEBUG_OUT("GOT: %+v\n", config)
+			debugging.DEBUG_OUT("GOT: %+v\n", config)
 
 			if len(config.Name) < 1 {
 				config.Name = ps.ByName("confname")
@@ -700,13 +701,13 @@ func handleStartProcess(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	decoder := json.NewDecoder(r.Body)
 	var msg Msg_StartProcess
 	err := decoder.Decode(&msg)
-	DEBUG_OUT("got POST /process: %+v\n", msg)
+	debugging.DEBUG_OUT("got POST /process: %+v\n", msg)
 	if err != nil {
-		DEBUG_OUT("malformed!\n")
+		debugging.DEBUG_OUT("malformed!\n")
 		// send an error
 	} else {
 		if len(msg.Path) > 0 {
-			DEBUG_OUT("ExecFile: %s\n", msg.Path)
+			debugging.DEBUG_OUT("ExecFile: %s\n", msg.Path)
 			opts := processes.NewExecFileOpts("[none]", "")
 			if msg.Daemonize {
 				opts.SetNewSid()
