@@ -16,28 +16,79 @@ package maestro
 // limitations under the License.
 
 import (
-DEBUG(	"runtime")
-DEBUG( 	"fmt")
+	"fmt"
+	"runtime"
+    "net/http"
+    _ "net/http/pprof"
+    "time"
+    "encoding/json"
 )
 
+type LocalMemStats struct {
+    Alloc ,
+    TotalAlloc,
+    Sys,
+    Mallocs,
+    Frees,
+    HeapAlloc,
+    HeapInuse,
+    HeapReleased,
+    StackInuse,
+    StackSys uint64
+}
+
 func DumpMemStats() {
-    DEBUG(var stats runtime.MemStats)
-    DEBUG(runtime.ReadMemStats(&stats))
-    DEBUG_OUT("------ReadMemStats------\n")
-    //DEBUG_OUT("%v+\n",stats)
-    DEBUG_OUT("  ReadMemStats Alloc      %d\n",stats.Alloc)
-    DEBUG_OUT("  ReadMemStats TotalAlloc %d\n",stats.TotalAlloc)
-    DEBUG_OUT("  ReadMemStats Sys        %d\n",stats.Sys)
-    DEBUG_OUT("  ReadMemStats Mallocs    %d\n",stats.Mallocs)
-    DEBUG_OUT("  ReadMemStats HeapAlloc  %d\n",stats.HeapAlloc)
-    DEBUG_OUT("  ")
-	DEBUG_OUT("------ReadMemStats done------\n")            
+    var stats runtime.MemStats
+    var local LocalMemStats
+    runtime.ReadMemStats(&stats)
+
+    local.Alloc = stats.Alloc
+    local.TotalAlloc = stats.TotalAlloc
+    local.Sys = stats.Sys
+    local.Mallocs = stats.Mallocs
+    local.Frees = stats.Frees
+    local.HeapAlloc = stats.HeapAlloc
+    local.HeapInuse = stats.HeapInuse
+    local.HeapReleased = stats.HeapReleased
+    local.StackInuse = stats.StackInuse
+    local.StackSys = stats.StackSys
+
+    b, _ := json.Marshal(local)
+    fmt.Println(string(b))
+
+}
+
+// Goroutine to fetch the memory stats at every `duration` seconds
+func RuntimeMemStats(duration int) {
+    var stats runtime.MemStats
+    var local LocalMemStats
+    var interval = time.Duration(duration) * time.Second
+    for {
+        <-time.After(interval)
+
+        // Read full mem stats
+        runtime.ReadMemStats(&stats)
+
+        local.Alloc = stats.Alloc
+        local.TotalAlloc = stats.TotalAlloc
+        local.Sys = stats.Sys
+        local.Mallocs = stats.Mallocs
+        local.Frees = stats.Frees
+        local.HeapAlloc = stats.HeapAlloc
+        local.HeapInuse = stats.HeapInuse
+        local.HeapReleased = stats.HeapReleased
+        local.StackInuse = stats.StackInuse
+        local.StackSys = stats.StackSys
+
+        b, _ := json.Marshal(local)        
+        fmt.Println(string(b))
+    }
 }
 
 /**
- * There appears to be a golang runtime bug in ReadMemStats() - make sure you dont call this 
+ * There appears to be a golang runtime bug in ReadMemStats() - make sure you dont call this
  * in production:
- *  
+ *
  *runtime stack:
 panic(0x702f40, 0xc420010140)
     /opt/go/src/runtime/panic.go:389 +0x6d2
@@ -57,7 +108,13 @@ runtime.goexit()
     /opt/go/src/runtime/asm_amd64.s:2086 +0x1 fp=0xc4201b7fa0 sp=0xc4201b7f98
 created by github.com/armPelionEdge/maestro.(*Client).startTicker
     /home/ed/work/gostuff/src/github.com/armPelionEdge/maestro/httpSymphonyClient.go:238 +0x68
+ **/
 
-
- * 
- */
+func DebugPprof(debugServerFlag bool) {
+    if (debugServerFlag) {
+        go func() {
+            fmt.Println("Start a debug loopback on http://127.0.0.1:6060\n")
+            fmt.Println(http.ListenAndServe("localhost:6060", nil))
+        }()
+    }
+}
