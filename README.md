@@ -42,7 +42,6 @@ If you are locally on a gateway / edge system using maestro, you should explore 
 Build pre-requisites:
 
 * golang
-* m4
 * python
 * gcc
 
@@ -52,7 +51,7 @@ You will need gcc for compiling maestro's dependencies.
 
 *On Ubuntu*
 
-`sudo apt-get install build-essential m4 python`  should take care of all this.
+`sudo apt-get install build-essential python`  should take care of all this.
 
 If you go not have a Go build environment up, you will need to install [golang](https://golang.org/dl/). Just expand the tar ball and put in in /opt, with `sudo mv go /opt`
 
@@ -83,33 +82,15 @@ Run your build commands from this sub-shell.
 Enter github credentials as needed. Now, where `$GOPATH` is your go workspace folder, as in the sub-shell above...
 
 ```
-cd $GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greaseg o/deps/src/greaseLib/deps
+cd $GOPATH/src/github.com/armPelionEdge/maestro
 ```
 
-If in the `libuv-v1.10.1` folder of `deps` a `build` folder does not exist, then do this - otherwise skip it:
+Run a script to build dependencies in the `/vendor` folder:
 ```
-cd libuv-v1.10.1
-git clone https://chromium.googlesource.com/external/gyp.git build/gyp
-cd ..
-```
-
-(This just "installs" gyp which is a Python script libuv likes for doing its builds.)
-
-Now, back in the `greaseLib/deps` dir we first `cd` into, run:
-```
-./install-deps.sh
-```
-
-This will take a bit. You're building a bunch of libs used by grease / greaseGo
-
-Next, build greaseGo direct deps and then greaseGo:
-```
-cd $GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego
 ./build-deps.sh
-DEBUG=1 DEBUG2=1 ./build.sh
 ```
 
-Omit the `DEBUG` vars if you don't want copious amount of debug.
+This will take a bit. You're building a bunch of libs used by maestro, including some native code.
 
 Next build maestro:
 
@@ -117,6 +98,8 @@ Next build maestro:
 cd $GOPATH/src/github.com/armPelionEdge/maestro
 DEBUG=1 DEBUG2=1 ./build.sh
 ```
+
+Eliminate `DEBUG` and `DEBUG2` env var to generate less debug output.
 
 #### Running tests
 
