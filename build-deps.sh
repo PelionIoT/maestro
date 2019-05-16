@@ -22,6 +22,9 @@ cd $THIS_DIR/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps
 ./install-deps.sh
 
 cd $THIS_DIR/vendor/github.com/armPelionEdge/greasego
+./build-deps.sh
+
+cd $THIS_DIR/vendor/github.com/armPelionEdge/greasego
 
 # build greasego
 DEBUG=1 ./build.sh
