@@ -66,15 +66,23 @@ export GIT_TERMINAL_PROMPT=1
 export GOROOT=/opt/go
 export GOPATH="$HOME/work/gostuff"
 export GOBIN="$HOME/work/gostuff/bin"
-export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-
-(env PS1="[golang:work/gostuff] ${debian_chroot:+($debian_chroot)}\u@\h:\w\$ " bash --norc)
-
+export PATH="$PATH:$GOROOT/bin:$GOBIN"
 ```
 
 then just run: `bash ./setup-go.sh` 
 
 Run your build commands from this sub-shell.
+
+##### On Arch
+
+ * install go:
+  `sudo pacman -S golang`
+
+ * Add generated executables into your path (so that you can do stuff like `maestro` on the command line)
+   ```
+   export PATH="$PATH:$HOME/go/bin"
+   ```
+
 
 #### build instructions
 
@@ -122,14 +130,44 @@ DEBUG=1 DEBUG2=1 ./build.sh
 
 Different subsystems have different test suites. Running these may require root privleges, for instance networking. You also need to run the pre-processor if making changes.
 
-Example:
+Example, from `$GOPATH/src/github.com/armPelionEdge/maestro`:
 
 ```
-cd $GOPATH/src/github.com/armPelionEdge/maestro
-DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ GOROOT=/opt/go GOPATH=$HOME/work/gostuff go test -v -run DhcpRequest
+DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo \
+  LD_LIBRARY_PATH=../vendor/github.com/armPelionEdge/greasego/deps/lib go test -v -run DhcpRequest
 ```
+
+Notes:
+
+* The dependencies of greasego (a native library extension to go) are in
+  `$GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego/deps/lib`,
+  which requires us to add that directory to the `LD_LIBRARY_PATH` environment variable so that
+  go can find these libraries. A relative path is used in the example to reduce overall command length.
+* The build command is not strictly required to run tests, when you have already built. It's good practice
+  to include this in the command so that you don't test a stale build.
+
+#### Running `maestro`
+
+Maestro requires a config in it's working directory called `maestro.config`, so create it:
+
+`touch maestro.config`
+
+Build and run `maestro`:
+```
+DEBUG=1 DEBUG2=1 ./build.sh && LD_LIBRARY_PATH=vendor/github.com/armPelionEdge/greasego/deps/lib maestro
+```
+
+If you get a `maestro: command not found` error, check that your `$GOBIN` is part of your `$PATH`
 
 #### Other examples
 
 The Docker build file, for `djs-soft-relay` shows build instruction also, using this exact above method.
 https://github.com/armPelionEdge/cloud-installer/blob/master/djs-soft-relay/build-wwcontainer.sh#L155
+
+#### TroubleShooting
+
+1. `[ERROR] Failed to create scratch path directory: mkdir /tmp/maestro/images: permission denied`
+   `[ERROR] Failed to create scratch path directory: mkdir /var/maestro/images: permission denied`
+
+Maestro execution on local host creates directories at `/tmp/maestro/images` and `/var/maestro/images` path. Verify that the user running `maestro` has the proper permissions to access the respective directories.
+
