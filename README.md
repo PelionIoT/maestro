@@ -91,7 +91,7 @@ Run your build commands from this sub-shell.
 Enter github credentials as needed. Now, where `$GOPATH` is your go workspace folder, as in the sub-shell above...
 
 ```
-cd $GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greaseg o/deps/src/greaseLib/deps
+cd $GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps
 ```
 
 If in the `libuv-v1.10.1` folder of `deps` a `build` folder does not exist, then do this - otherwise skip it:
