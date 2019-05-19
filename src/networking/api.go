@@ -768,7 +768,6 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 
 	if leaseinfo == nil || !leaseinfo.IsValid() {
 		// totally new lease
-
 		success, acknowledgementpacket, err2 = dhcpclient.Request(opts)
 
 		DEBUG_OUT("DHCP Success:%v\n", success)
@@ -867,7 +866,7 @@ func GetLinkStatusByName(name string) (ret *netlink.LinkAttrs, err error) {
 		if ret == nil {
 			iferr := &NetworkAPIError{
 				Code:      ERROR_NO_IF,
-				Errstring: fmt.Sprintf("Can't find interface of Index %d", name),
+				Errstring: fmt.Sprintf("Can't find interface of Index %s", name),
 				IfName:    name,
 			}
 			err = iferr

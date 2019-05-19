@@ -470,7 +470,7 @@ func resetIfDataFromStoredConfig(netdata *NetworkInterfaceData) error {
 	if netdata.StoredIfconfig != nil {
 		ifconf = netdata.StoredIfconfig
 	} else {
-		log.MaestroWarnf("Interface [%s] does not have a StoredConfig. Why?")
+		log.MaestroWarnf("Interface [%s] does not have a StoredConfig. Why?", netdata.IfName)
 		if netdata.RunningIfconfig != nil {
 			ifconf = netdata.RunningIfconfig
 		} else {
