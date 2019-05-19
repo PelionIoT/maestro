@@ -163,3 +163,11 @@ If you get a `maestro: command not found` error, check that your `$GOBIN` is par
 
 The Docker build file, for `djs-soft-relay` shows build instruction also, using this exact above method.
 https://github.com/armPelionEdge/cloud-installer/blob/master/djs-soft-relay/build-wwcontainer.sh#L155
+
+#### TroubleShooting
+
+1. `[ERROR] Failed to create scratch path directory: mkdir /tmp/maestro/images: permission denied`
+   `[ERROR] Failed to create scratch path directory: mkdir /var/maestro/images: permission denied`
+
+Maestro execution on local host creates directories at `/tmp/maestro/images` and `/var/maestro/images` path. Verify that the user running `maestro` has the proper permissions to access the respective directories.
+
