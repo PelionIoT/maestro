@@ -15,13 +15,13 @@ package maestroutils
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// so COMMIT_NUMBER is filled in by the build script
+// so 6f97294 is filled in by the build script
 // TODO include third party licenses
 const (
 	versionString = `
 maestro 0.1.0
-commit COMMIT_NUMBER
-build date: BUILD_DATE
+commit 6f97294
+build date: Sun May 19 15:18:59 CDT 2019
 (c) 2018. WigWag Inc. 
 `
 )

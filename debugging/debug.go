@@ -47,7 +47,6 @@ func DEBUG_OUT(args ...interface{}) {
 
 func DEBUG_OUT2(args ...interface{}) {
 	fmt.Println(args...)
->>>>>>> Replace M4 with native go conditional compilation:src/debugging/debug.go
 }
 
 func DumpMemStats() {
