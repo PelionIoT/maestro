@@ -257,7 +257,17 @@ func (this *DhcpLeaseInfo) IsValid() bool {
 }
 
 func (this *DhcpLeaseInfo) IsExpired() bool {
-	// TODO
+	var remainrenewal int64
+	now := time.Now().Unix()
+
+	remainrenewal = this.renewalTime - now
+	if remainrenewal < 30 {
+		remainrenewal = this.rebindTime - now
+	}
+	if remainrenewal >= 30 {
+		return true;
+	}
+
 	return false
 }
 
@@ -767,7 +777,8 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 	}
 	debugging.DEBUG_OUT("leaseinfo %+v\n", leaseinfo)
 
-	if leaseinfo == nil || !leaseinfo.IsValid() {
+	//If the lease is not valid or expired, get a new lease
+	if leaseinfo == nil || !leaseinfo.IsValid() || !leaseinfo.IsExpired() {
 		// totally new lease
 		success, acknowledgementpacket, err2 = dhcpclient.Request(opts)
 
