@@ -80,8 +80,8 @@ type connection interface {
 
 func New(options ...func(*Client) error) (*Client, error) {
 	c := Client{
-		timeout:      time.Second * 10,
-		writeTimeout: time.Second * 10,
+		timeout:      time.Second * 5, //keep default timeout at 5 secs as we will retry anyway due to 15sec StepTimeout 
+		writeTimeout: time.Second * 5,
 		broadcast:    true,
 		generateXID:  CryptoGenerateXID,
 		vendorClassId: []byte(DHCPVendorClassId),
@@ -121,10 +121,6 @@ func AuxOpts(opts *DhcpRequestOptions) func(*Client) error {
 	return func(c *Client) error {
 		if opts != nil {
 			c.opts = opts
-			if opts.StepTimeout > 0 {
-				c.writeTimeout = opts.StepTimeout
-				c.timeout = opts.StepTimeout
-			}
 		}
 		return nil
 	}
@@ -237,9 +233,10 @@ func (c *Client) GetOffer(discoverPacket *dhcp4.Packet) (dhcp4.Packet, error) {
 		if err != nil {
 			if err, ok := err.(net.Error); ok && err.Timeout() {
 				if c.opts != nil && c.opts.ProgressCB != nil {
-					c.opts.ProgressCB(AtGetOfferError, fmt.Sprintf("error (timeout): %s", err.Error()))
+					c.opts.ProgressCB(AtGetOfferError, fmt.Sprintf("error ( Socket read timed out:timeoutval=%d ): %s", c.timeout, err.Error()))
 				}
-				return nil, errors.New("timeout")
+				//Socket read timed out, but we may have to retry if the StepTimeout hasn't reached yet, so continue(do not return)
+				continue
 			}
 			if c.opts != nil && c.opts.ProgressCB != nil {
 				c.opts.ProgressCB(AtGetOfferError, fmt.Sprintf("error: %s", err.Error()))
@@ -312,10 +309,10 @@ func (c *Client) GetAcknowledgement(requestPacket *dhcp4.Packet) (pack dhcp4.Pac
 		if err2 != nil {
 			if err2, ok := err2.(net.Error); ok && err2.Timeout() {
 				if c.opts != nil && c.opts.ProgressCB != nil {
-					c.opts.ProgressCB(AtGetAckError, fmt.Sprintf("error (timeout): %s", err2.Error()))
+					c.opts.ProgressCB(AtGetAckError, fmt.Sprintf("error ( Socket read timed out, timeout:%d ): %s",c.timeout, err2.Error()))
 				}
-				err = errors.New("timeout")
-				return
+				//Socket read timed out, but we may have to retry if the StepTimeout hasn't reached yet, so continue(do not return)
+				continue
 			}
 			if c.opts != nil && c.opts.ProgressCB != nil {
 				c.opts.ProgressCB(AtGetAckError, fmt.Sprintf("error: %s", err.Error()))
