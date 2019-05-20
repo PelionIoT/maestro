@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 	"time"
-
+	"encoding/binary"
 	"github.com/armPelionEdge/dhcp4"
 )
 
@@ -33,6 +33,8 @@ const (
 	Rejected = int(dhcp4.NAK)
 )
 
+const DHCPVendorClassId string = "ARM Pelion Edge 1.0"
+
 type RequestProgressCB func(state int, addinfo string) (keepgoing bool)
 
 type DhcpRequestOptions struct {
@@ -55,7 +57,9 @@ type Client struct {
 	broadcast     bool                //Set the Bcast flag in BOOTP Flags
 	connection    connection          //The Connection Method to use
 	generateXID   func([]byte)        //Function Used to Generate a XID
-	opts          *DhcpRequestOptions // optional options
+	opts          *DhcpRequestOptions //optional options
+	maxDHCPLenBytes []byte		  //Max DHCP Size option bytes to be used for DHCP Requests
+	vendorClassId []byte		  //Vendor class Id bytes to be used for DHCP Requests
 }
 
 //Abstracts the type of underlying socket used
@@ -80,6 +84,7 @@ func New(options ...func(*Client) error) (*Client, error) {
 		writeTimeout: time.Second * 10,
 		broadcast:    true,
 		generateXID:  CryptoGenerateXID,
+		vendorClassId: []byte(DHCPVendorClassId),
 	}
 
 	err := c.SetOption(options...)
@@ -95,6 +100,10 @@ func New(options ...func(*Client) error) (*Client, error) {
 		}
 		c.connection = conn
 	}
+
+	//Create maxDHCPSizeOption
+	c.maxDHCPLenBytes = make([]byte, 2)
+	binary.BigEndian.PutUint16(c.maxDHCPLenBytes, MaxDHCPLen)
 
 	return &c, nil
 }
@@ -422,6 +431,8 @@ func (c *Client) RequestPacket(offerPacket *dhcp4.Packet) dhcp4.Packet {
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Request)})
 	packet.AddOption(dhcp4.OptionRequestedIPAddress, (offerPacket.YIAddr()).To4())
 	packet.AddOption(dhcp4.OptionServerIdentifier, offerOptions[dhcp4.OptionServerIdentifier])
+	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 
 	if c.opts != nil {
 		if len(c.opts.RequestedParams) > 0 {
@@ -452,6 +463,8 @@ func (c *Client) RenewalRequestPacket(acknowledgement *dhcp4.Packet, opts *DhcpR
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Request)})
 	packet.AddOption(dhcp4.OptionRequestedIPAddress, (acknowledgement.YIAddr()).To4())
 	packet.AddOption(dhcp4.OptionServerIdentifier, acknowledgementOptions[dhcp4.OptionServerIdentifier])
+	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 
 	if opts != nil {
 		if len(opts.RequestedParams) > 0 {
@@ -481,6 +494,8 @@ func (c *Client) RenewalRequestPacketInitReboot(currentIP net.IP, opts *DhcpRequ
 	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, c.hardwareAddr))
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Request)})
 	packet.AddOption(dhcp4.OptionRequestedIPAddress, currentIP.To4())
+	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 
 	if opts != nil {
 		if len(opts.RequestedParams) > 0 {
