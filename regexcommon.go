@@ -17,9 +17,8 @@ package maestro
 
 import (
 	"net/url"
-//	"regexp"
+	//	"regexp"
 )
-
 
 func IsValidDownloadURL(s string) bool {
 	_, err := url.Parse(s)

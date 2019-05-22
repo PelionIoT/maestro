@@ -16,73 +16,73 @@ package maestro
 // limitations under the License.
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"runtime"
-    "net/http"
-    _ "net/http/pprof"
-    "time"
-    "encoding/json"
+	"time"
 )
 
 type LocalMemStats struct {
-    Alloc ,
-    TotalAlloc,
-    Sys,
-    Mallocs,
-    Frees,
-    HeapAlloc,
-    HeapInuse,
-    HeapReleased,
-    StackInuse,
-    StackSys uint64
+	Alloc,
+	TotalAlloc,
+	Sys,
+	Mallocs,
+	Frees,
+	HeapAlloc,
+	HeapInuse,
+	HeapReleased,
+	StackInuse,
+	StackSys uint64
 }
 
 func DumpMemStats() {
-    var stats runtime.MemStats
-    var local LocalMemStats
-    runtime.ReadMemStats(&stats)
+	var stats runtime.MemStats
+	var local LocalMemStats
+	runtime.ReadMemStats(&stats)
 
-    local.Alloc = stats.Alloc
-    local.TotalAlloc = stats.TotalAlloc
-    local.Sys = stats.Sys
-    local.Mallocs = stats.Mallocs
-    local.Frees = stats.Frees
-    local.HeapAlloc = stats.HeapAlloc
-    local.HeapInuse = stats.HeapInuse
-    local.HeapReleased = stats.HeapReleased
-    local.StackInuse = stats.StackInuse
-    local.StackSys = stats.StackSys
+	local.Alloc = stats.Alloc
+	local.TotalAlloc = stats.TotalAlloc
+	local.Sys = stats.Sys
+	local.Mallocs = stats.Mallocs
+	local.Frees = stats.Frees
+	local.HeapAlloc = stats.HeapAlloc
+	local.HeapInuse = stats.HeapInuse
+	local.HeapReleased = stats.HeapReleased
+	local.StackInuse = stats.StackInuse
+	local.StackSys = stats.StackSys
 
-    b, _ := json.Marshal(local)
-    fmt.Println(string(b))
+	b, _ := json.Marshal(local)
+	fmt.Println(string(b))
 
 }
 
 // Goroutine to fetch the memory stats at every `duration` seconds
 func RuntimeMemStats(duration int) {
-    var stats runtime.MemStats
-    var local LocalMemStats
-    var interval = time.Duration(duration) * time.Second
-    for {
-        <-time.After(interval)
+	var stats runtime.MemStats
+	var local LocalMemStats
+	var interval = time.Duration(duration) * time.Second
+	for {
+		<-time.After(interval)
 
-        // Read full mem stats
-        runtime.ReadMemStats(&stats)
+		// Read full mem stats
+		runtime.ReadMemStats(&stats)
 
-        local.Alloc = stats.Alloc
-        local.TotalAlloc = stats.TotalAlloc
-        local.Sys = stats.Sys
-        local.Mallocs = stats.Mallocs
-        local.Frees = stats.Frees
-        local.HeapAlloc = stats.HeapAlloc
-        local.HeapInuse = stats.HeapInuse
-        local.HeapReleased = stats.HeapReleased
-        local.StackInuse = stats.StackInuse
-        local.StackSys = stats.StackSys
+		local.Alloc = stats.Alloc
+		local.TotalAlloc = stats.TotalAlloc
+		local.Sys = stats.Sys
+		local.Mallocs = stats.Mallocs
+		local.Frees = stats.Frees
+		local.HeapAlloc = stats.HeapAlloc
+		local.HeapInuse = stats.HeapInuse
+		local.HeapReleased = stats.HeapReleased
+		local.StackInuse = stats.StackInuse
+		local.StackSys = stats.StackSys
 
-        b, _ := json.Marshal(local)        
-        fmt.Println(string(b))
-    }
+		b, _ := json.Marshal(local)
+		fmt.Println(string(b))
+	}
 }
 
 /**
@@ -111,10 +111,10 @@ created by github.com/armPelionEdge/maestro.(*Client).startTicker
  **/
 
 func DebugPprof(debugServerFlag bool) {
-    if (debugServerFlag) {
-        go func() {
-            fmt.Println("Start a debug loopback on http://127.0.0.1:6060")
-            fmt.Println(http.ListenAndServe("localhost:6060", nil))
-        }()
-    }
+	if debugServerFlag {
+		go func() {
+			fmt.Println("Start a debug loopback on http://127.0.0.1:6060")
+			fmt.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
 }

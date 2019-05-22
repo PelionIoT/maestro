@@ -16,18 +16,17 @@ package maestro
 // limitations under the License.
 
 import (
+	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
 	"time"
-	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 )
 
 type ImageManagerInstance struct {
-	ticker *time.Ticker
+	ticker      *time.Ticker
 	controlChan chan uint32
-//	aggregateChan chan *imageop
-	imageops *hashmap.HashMap  // taskId : imageop
+	//	aggregateChan chan *imageop
+	imageops *hashmap.HashMap // taskId : imageop
 }
 
 func setupHashmapsInstance() {
-	imgInstance.imageops = hashmap.New(10)	
+	imgInstance.imageops = hashmap.New(10)
 }
-
