@@ -87,21 +87,29 @@ pid_t reapChildren() {
 	}
 }
 
+// Here memory is allocated for array of strings
+// Memory for string elements in arrat is not allocated here
+// Look for `C.CString(s)` in func convertToCStrings for allocation
 char **makeCStringArray(int n) {
-	char **ret = (char **) malloc(sizeof(char *) * n);
-	memset(ret,0,sizeof(char *) * n);
+	int size = sizeof(char *) * n;
+	char **ret = (char **) malloc(size);
+	if(ret) {
+		memset(ret, 0, size);
+	}
 	return ret;
 }
 
+// Free all the memory allocated in array elements before freeing the array itself
 void freeCStringArray(char **a) {
 	int z = 0;
 	if(a) {
 		char *s = a[z];
 		while(s) {
 			free(s);
-			z++; s = a[z];
+			z++;
+            s = a[z];
 		}
-		free(a);		
+		free(a);
 	}
 }
 
@@ -306,7 +314,6 @@ int createChild(char* szCommand,
 //    close(aErrorPipe[PIPE_WRITE]); 
 
 
-
     DBG_MAESTRO("createChild exit() child");
     exit(nResult);
   } else if (nChild > 0) {
@@ -314,13 +321,6 @@ int createChild(char* szCommand,
     uv_mutex_unlock(&forkLock);
 
     DBG_MAESTRO("createChild parent past fork() and lock.\n");
-    // free up the string values. No longer needed
-    if(szCommand) free(szCommand);
-    // FIXME - need to test and fix these free() calls
-    //if(szMessage) free(szMessage);
-    // freeCStringArray(aArguments);
-    // freeCStringArray(aEnvironment);
-
 
     // close unused file descriptors, these are for child only
     close(aStdinPipe[PIPE_READ]);
@@ -351,9 +351,8 @@ int createChild(char* szCommand,
         int ret = write(aStdinPipe[PIPE_WRITE], szMessage, strlen(szMessage));
         // Include error check here
     } 
-    if(szMessage) free(szMessage); // no longer needed
-    close(aStdinPipe[PIPE_WRITE]);
 
+    close(aStdinPipe[PIPE_WRITE]);
 
 
     // Just a char by char read here, you can change it accordingly
