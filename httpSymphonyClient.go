@@ -1,9 +1,8 @@
-
 //
 // Overview:
 // Setups a go 'channel' - and uses this channel to transfer log data to symphonyd
 // This same on-going connection can be used for the server to 'ride back' for commands
-// 
+//
 
 package maestro
 
@@ -23,20 +22,19 @@ package maestro
 // limitations under the License.
 
 import (
-	"net/http"
-	"time"
-	"sync"
+	"bytes"
 	"fmt"
 	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/debugging"
-	"bytes"
 	"io/ioutil"
-//	DEBUG("runtime")
+	"net/http"
+	"sync"
+	"time"
+	//	DEBUG("runtime")
 )
 
-
 type logBuffer struct {
-	data *greasego.TargetCallbackData
+	data   *greasego.TargetCallbackData
 	godata []byte
 }
 
@@ -44,21 +42,22 @@ type logBuffer struct {
 // m4_define({{*NODE*}},{{*logBuffer*}})  m4_define({{*FIFO*}},{{*logBufferFifo*}})
 // Thread safe queue for LogBuffer
 type logBufferFifo struct {
-	q []*logBuffer	
-	mutex *sync.Mutex
-	condWait *sync.Cond
-	condFull *sync.Cond
-	maxSize uint32
-	drops int
-	shutdown bool
-	wakeupIter int  // this is to deal with the fact that go developers
-	                // decided not to implement pthread_cond_timedwait()
-	                // So we use this as a work around to temporarily wakeup
-	                // (but not shutdown) the queue. Bring your own timer.
+	q          []*logBuffer
+	mutex      *sync.Mutex
+	condWait   *sync.Cond
+	condFull   *sync.Cond
+	maxSize    uint32
+	drops      int
+	shutdown   bool
+	wakeupIter int // this is to deal with the fact that go developers
+	// decided not to implement pthread_cond_timedwait()
+	// So we use this as a work around to temporarily wakeup
+	// (but not shutdown) the queue. Bring your own timer.
 }
+
 func New_logBufferFifo(maxsize uint32) (ret *logBufferFifo) {
 	ret = new(logBufferFifo)
-	ret.mutex =  new(sync.Mutex)
+	ret.mutex = new(sync.Mutex)
 	ret.condWait = sync.NewCond(ret.mutex)
 	ret.condFull = sync.NewCond(ret.mutex)
 	ret.maxSize = maxsize
@@ -72,50 +71,50 @@ func (fifo *logBufferFifo) Push(n *logBuffer) (drop bool, dropped *logBuffer) {
 	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In Push\n")
 	fifo.mutex.Lock()
 	debugging.DEBUG_OUT2(" ------------ In Push (past Lock)\n")
-    if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
-    	// drop off the queue
-    	dropped = (fifo.q)[0]
-    	fifo.q = (fifo.q)[1:]
-    	fifo.drops++
-    	debugging.DEBUG_OUT2("!!! Dropping logBuffer in logBufferFifo \n")
-    	drop = true
-    }
-    fifo.q = append(fifo.q, n)
+	if int(fifo.maxSize) > 0 && len(fifo.q)+1 > int(fifo.maxSize) {
+		// drop off the queue
+		dropped = (fifo.q)[0]
+		fifo.q = (fifo.q)[1:]
+		fifo.drops++
+		debugging.DEBUG_OUT2("!!! Dropping logBuffer in logBufferFifo \n")
+		drop = true
+	}
+	fifo.q = append(fifo.q, n)
 	debugging.DEBUG_OUT2(" ------------ In Push (@ Unlock)\n")
-    fifo.mutex.Unlock()
-    fifo.condWait.Signal()
+	fifo.mutex.Unlock()
+	fifo.condWait.Signal()
 	debugging.DEBUG_OUT2(" <<<<<<<<<<< Return Push\n")
-    return
+	return
 }
 func (fifo *logBufferFifo) Pop() (n *logBuffer) {
 	fifo.mutex.Lock()
 	if len(fifo.q) > 0 {
-	    n = (fifo.q)[0]
-	    fifo.q = (fifo.q)[1:]		
+		n = (fifo.q)[0]
+		fifo.q = (fifo.q)[1:]
 		fifo.condFull.Signal()
-	} 
+	}
 	fifo.mutex.Unlock()
-    return
+	return
 }
 func (fifo *logBufferFifo) Len() int {
 	fifo.mutex.Lock()
 	ret := len(fifo.q)
 	fifo.mutex.Unlock()
-    return ret
+	return ret
 }
 func (fifo *logBufferFifo) PopOrWait() (n *logBuffer) {
 	n = nil
 	debugging.DEBUG_OUT2(" >>>>>>>>>>>> In PopOrWait (Lock)\n")
 	fifo.mutex.Lock()
 	_wakeupIter := fifo.wakeupIter
-	if(fifo.shutdown) {
+	if fifo.shutdown {
 		fifo.mutex.Unlock()
 		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 1)\n")
 		return
 	}
 	if len(fifo.q) > 0 {
-	    n = (fifo.q)[0]
-	    fifo.q = (fifo.q)[1:]		
+		n = (fifo.q)[0]
+		fifo.q = (fifo.q)[1:]
 		fifo.mutex.Unlock()
 		fifo.condFull.Signal()
 		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 2)\n")
@@ -123,22 +122,22 @@ func (fifo *logBufferFifo) PopOrWait() (n *logBuffer) {
 	}
 	// nothing there, let's wait
 	for !fifo.shutdown && fifo.wakeupIter == _wakeupIter {
-//		fmt.Printf(" --entering wait %+v\n",*fifo);
-	debugging.DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
+		//		fmt.Printf(" --entering wait %+v\n",*fifo);
+		debugging.DEBUG_OUT2(" ----------- In PopOrWait (Wait / Unlock 1)\n")
 		fifo.condWait.Wait() // will unlock it's "Locker" - which is fifo.mutex
-//		Wait returns with Lock
-//		fmt.Printf(" --out of wait %+v\n",*fifo);
-		if fifo.shutdown { 
+		//		Wait returns with Lock
+		//		fmt.Printf(" --out of wait %+v\n",*fifo);
+		if fifo.shutdown {
 			fifo.mutex.Unlock()
-	debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
-			return 
+			debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 4)\n")
+			return
 		}
 		if len(fifo.q) > 0 {
-		    n = (fifo.q)[0]
-		    fifo.q = (fifo.q)[1:]		
+			n = (fifo.q)[0]
+			fifo.q = (fifo.q)[1:]
 			fifo.mutex.Unlock()
 			fifo.condFull.Signal()
-		debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
+			debugging.DEBUG_OUT2(" <<<<<<<<<<<<< In PopOrWait (Unlock 3)\n")
 			return
 		}
 	}
@@ -149,21 +148,21 @@ func (fifo *logBufferFifo) PopOrWait() (n *logBuffer) {
 func (fifo *logBufferFifo) PushOrWait(n *logBuffer) (ret bool) {
 	ret = true
 	fifo.mutex.Lock()
-	_wakeupIter := fifo.wakeupIter	
-    for int(fifo.maxSize) > 0 && (len(fifo.q)+1 > int(fifo.maxSize)) && !fifo.shutdown && (fifo.wakeupIter == _wakeupIter) {
-//		fmt.Printf(" --entering push wait %+v\n",*fifo);
-    	fifo.condFull.Wait()
-		if fifo.shutdown { 
+	_wakeupIter := fifo.wakeupIter
+	for int(fifo.maxSize) > 0 && (len(fifo.q)+1 > int(fifo.maxSize)) && !fifo.shutdown && (fifo.wakeupIter == _wakeupIter) {
+		//		fmt.Printf(" --entering push wait %+v\n",*fifo);
+		fifo.condFull.Wait()
+		if fifo.shutdown {
 			fifo.mutex.Unlock()
 			ret = false
 			return
-		}    	
-//		fmt.Printf(" --exiting push wait %+v\n",*fifo);
-    }
-    fifo.q = append(fifo.q, n)
-    fifo.mutex.Unlock()
-    fifo.condWait.Signal()
-    return
+		}
+		//		fmt.Printf(" --exiting push wait %+v\n",*fifo);
+	}
+	fifo.q = append(fifo.q, n)
+	fifo.mutex.Unlock()
+	fifo.condWait.Signal()
+	return
 }
 func (fifo *logBufferFifo) Shutdown() {
 	fifo.mutex.Lock()
@@ -189,23 +188,21 @@ func (fifo *logBufferFifo) IsShutdown() (ret bool) {
 	fifo.mutex.Unlock()
 	return
 }
+
 // end generic
 
 const TIMEOUT = time.Second * 10
 
 type Client struct {
-	url string
-	clientId string
+	url        string
+	clientId   string
 	httpClient *http.Client
-	fifo *logBufferFifo  // see fifo.go
-	ticker *time.Ticker
-	interval time.Duration
+	fifo       *logBufferFifo // see fifo.go
+	ticker     *time.Ticker
+	interval   time.Duration
 }
 
-
-
-
-// maxBuffers: this number represents the amount of stored log buffers we will hold 
+// maxBuffers: this number represents the amount of stored log buffers we will hold
 // before dropping them. This can be from 1 to [max amount of bytes from greasego callback]
 // In effect, this should be close to the same number as NumBanks is set in the target options
 // for the greasego target
@@ -222,11 +219,10 @@ func NewSymphonyClient(url string, clientid string, maxBuffers uint32, heartbeat
 	return client
 }
 
-
 func (client *Client) Start() {
 	go client.clientWorker()
 	client.startTicker()
-	debugging.DEBUG_OUT("client started: %s\n",client.url)
+	debugging.DEBUG_OUT("client started: %s\n", client.url)
 }
 
 func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byte) {
@@ -244,7 +240,7 @@ func (client *Client) startTicker() {
 	go func() {
 		// only dump ticker info when in debug build:
 		if debugging.DebugEnabled {
-			for t := range client.ticker.C { 
+			for t := range client.ticker.C {
 				debugging.DEBUG_OUT("Tick at %d", t.Unix())
 				debugging.DumpMemStats()
 				client.fifo.WakeupAll()
@@ -252,7 +248,6 @@ func (client *Client) startTicker() {
 		}
 	}()
 }
-
 
 // the client worker goroutine
 // does the sending of data to the server
@@ -269,33 +264,33 @@ func (client *Client) clientWorker() {
 		if next == nil {
 			if client.fifo.IsShutdown() {
 				debugging.DEBUG_OUT("clientWorker @shutdown - via FIFO")
-				break;
+				break
 			} else {
 				// SEND HEARTBEAT or whatever
-				continue;				
+				continue
 			}
 		}
 		// send data to server0
-//		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.data.GetBufferAsSlice()))
+		//		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.data.GetBufferAsSlice()))
 		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.godata))
-//	    req.Header.Set("X-Custom-Header", "myvalue")
-	    req.Header.Set("Content-Type", "application/json")
-	    // req.Header.Add("X-Symphony-ClientId", client.clientId)
+		//	    req.Header.Set("X-Custom-Header", "myvalue")
+		req.Header.Set("Content-Type", "application/json")
+		// req.Header.Add("X-Symphony-ClientId", client.clientId)
 
-	    // client := &http.Client{}
-	    resp, err := client.httpClient.Do(req)
-	    if err != nil {
-	    	debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n",err)
+		// client := &http.Client{}
+		resp, err := client.httpClient.Do(req)
+		if err != nil {
+			debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
 			greasego.RetireCallbackData(next.data)
-	    } else {
-		    fmt.Println("response Status:", resp.Status)
-		    fmt.Println("response Headers:", resp.Header)
-		    body, _ := ioutil.ReadAll(resp.Body)
-		    fmt.Println("response Body:", string(body))
+		} else {
+			fmt.Println("response Status:", resp.Status)
+			fmt.Println("response Headers:", resp.Header)
+			body, _ := ioutil.ReadAll(resp.Body)
+			fmt.Println("response Body:", string(body))
 
-	    	debugging.DEBUG_OUT("CALLING closeit()\n")
-		    closeit(resp,next)
-	    }
+			debugging.DEBUG_OUT("CALLING closeit()\n")
+			closeit(resp, next)
+		}
 
 	}
 }
@@ -305,14 +300,6 @@ func (client *Client) Shutdown() {
 	client.fifo.Shutdown()
 	// all go routines should end
 }
-
-
-
-
-
-
-
-
 
 // Test for our FIFO above
 
@@ -327,7 +314,7 @@ func (client *Client) Shutdown() {
 // 	// 		} else {
 // 	// 			fmt.Printf("[%s] added a buffer: %d\n",name,n)
 // 	// 		}
-// 	// 	}		
+// 	// 	}
 // 	// }
 
 // 	addsome := func(z int, name string){
@@ -339,7 +326,7 @@ func (client *Client) Shutdown() {
 // 				fmt.Printf("[%s] (add buffer) must be shutdown: %d\n",name,n)
 // 				break
 // 			}
-// 		}		
+// 		}
 // 	}
 
 // 	removesome := func(z int, name string){
@@ -377,11 +364,9 @@ func (client *Client) Shutdown() {
 // 	if exits != 3 {
 // 		fmt.Printf("exits: %d\n",exits)
 // 		panic("Not all exited")
-// 	} 
+// 	}
 // }
-
 
 // var netClient = &http.Client{
 //   Timeout: time.Second * 10,
 // }
-

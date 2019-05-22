@@ -53,10 +53,10 @@ extern int __xpg_strerror_r (int __errnum, char *__buf, size_t __buflen);
 #define ERR_STRERROR_R(ernum,b,len) __xpg_strerror_r(ernum, b, len)
 
 char *get_error_str(int _errno) {
-    char *ret = (char *) malloc(MAESTRO_ERRNO_STRING_MAX_BUF);
-    int r = ERR_STRERROR_R(_errno,ret,MAESTRO_ERRNO_STRING_MAX_BUF);
-    if ( r != 0 ) ERR_MAESTRO("strerror_r bad return: %d\n",r);
-    return ret;
+	char *ret = (char *) malloc(MAESTRO_ERRNO_STRING_MAX_BUF);
+	int r = ERR_STRERROR_R(_errno,ret,MAESTRO_ERRNO_STRING_MAX_BUF);
+	if ( r != 0 ) ERR_MAESTRO("strerror_r bad return: %d\n",r);
+	return ret;
 }
 
 
@@ -107,7 +107,7 @@ void freeCStringArray(char **a) {
 		while(s) {
 			free(s);
 			z++;
-            s = a[z];
+			s = a[z];
 		}
 		free(a);
 	}
@@ -133,249 +133,249 @@ void childClosedFDCallback (GreaseLibError *err, int stream_type, int fd) {
 }
 
 
-int createChild(char* szCommand, 
-	char* aArguments[], 
-	char* aEnvironment[], 
-	char* szMessage,
-	childOpts *opts,
-	execErr *err) {
-	
-
-  int aStdinPipe[2];
-  int aStdoutPipe[2];
-  int aStderrPipe[2];
-  int aErrorPipe[2];
-  int nChild;
-  char nChar;
-  int nResult;
-
-  DBG_MAESTRO("createChild entry %s %p %p %p %p %p", szCommand, aArguments, aEnvironment, szMessage, opts, err);
-  if(szMessage) {
-    DBG_MAESTRO("send message:%s\n",szMessage);
-  }
-
-  if (pipe(aErrorPipe) < 0) {
-    err->_errno = errno;
-    perror("allocating pipe for execve error capture.");
-    return -1;
-  }
-
-  if (pipe(aStdinPipe) < 0) {
-    err->_errno = errno;
-    perror("allocating pipe for child input redirect");
-    return -1;
-  }
-  if (pipe(aStdoutPipe) < 0) {
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdinPipe[PIPE_WRITE]);
-    err->_errno = errno;
-    perror("allocating pipe for child output redirect");
-    return -1;
-  }
-
-  if (pipe(aStderrPipe) < 0) {
-    close(aStdoutPipe[PIPE_READ]);
-    close(aStdoutPipe[PIPE_WRITE]);
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdinPipe[PIPE_WRITE]);
-    err->_errno = errno;
-    perror("allocating pipe for child stderr redirect");
-    return -1;
-  }
-
-  DBG_MAESTRO("createChild 1");
-
-  uint32_t childStartingOriginID = 1000;
-  GreaseLib_getUnusedOriginId(&childStartingOriginID);
-  if(opts) {
-    opts->originLabel = childStartingOriginID;
-  }
-  if(opts && opts->jobname) {
-    GreaseLib_addOriginLabel( childStartingOriginID, opts->jobname, strlen(opts->jobname) );
-    DBG_MAESTRO("Logging: set label to %s %d",opts->jobname,childStartingOriginID);    
-  } else {
-    GreaseLib_addOriginLabel( childStartingOriginID, szCommand, strlen(szCommand) );    
-  }
-  DBG_MAESTRO("createChild 1.1");
-  // we defer grabbing stdout, until we know we send a message to process
-  // GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
-  GreaseLib_addFDForStderr( aStderrPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
-  DBG_MAESTRO("createChild 1.2");
-  if(!opts->ok_string) {
-    GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
-  } else {
-    DBG_MAESTRO("Not redirecting STDOUT - have ok_string opt");
-  	opts->stdout_fd = aStdoutPipe[PIPE_READ];
-  }
-
-  char *tempEnv[1]; // used if a environmental array was not passed in
-  if (opts->env_GREASE_ORIGIN_ID) {
-    DBG_MAESTRO("createChild 1.2a");
-    char *out = (char *) malloc(30);
-    sprintf(out,"GREASE_ORIGIN_ID=%d",childStartingOriginID);
-    DBG_MAESTRO("Logging: %s",out);
-    int z = 0;
-    // See processMgmt.go: convertToCStrings() - we make some extra room there in case this is needed.
-    if(aEnvironment) {
-      while(aEnvironment[z] != NULL) {
-        z++;
-      }
-      aEnvironment[z] = out;
-    } else {
-      aEnvironment = tempEnv;
-      tempEnv[0] = out;
-    }
-  }
-
-  DBG_MAESTRO("createChild - about to fork()");
-  uv_mutex_lock(&forkLock);
-  
-  pid_t ppid_before_fork = getpid();
-  
-  nChild = fork();
-  DBG_MAESTRO("createChild - fork() == %d",nChild);
-  if (0 == nChild) {
-    // child continues here
-
-    // check for die_on_parent_sig
-    if (opts->die_on_parent_sig) {
-      DBG_MAESTRO("createChild - see die_on_parent_sig");
-    // https://stackoverflow.com/questions/284325/how-to-make-child-process-die-after-parent-exits      
-// WARNING:
-// Unfortunately, if a child forks from a thread, and then the thread exit, the child process wil get the SIGTERM.
-      int r = prctl(PR_SET_PDEATHSIG, SIGTERM);
-      if (getppid() != ppid_before_fork)
-        exit(1);     
-    }
-
-    // redirect stdin
-    if (dup2(aStdinPipe[PIPE_READ], STDIN_FILENO) == -1) {
-      perror("redirecting stdin");
-      return -1;
-    }
-
-    // redirect stdout
-    if (dup2(aStdoutPipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
-      perror("redirecting stdout");
-      return -1;
-    }
-
-    // redirect stderr
-    if (dup2(aStderrPipe[PIPE_WRITE], STDERR_FILENO) == -1) {
-      perror("redirecting stderr");
-      return -1;
-    }
-
-    // tell the kernel to close this FD if execve kicks off correctly
-    fcntl(aErrorPipe[PIPE_WRITE], F_SETFD, FD_CLOEXEC);
-    close(aErrorPipe[PIPE_READ]);
-
-    // all these are for use by parent only
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdinPipe[PIPE_WRITE]);
-    close(aStdoutPipe[PIPE_READ]);
-    close(aStdoutPipe[PIPE_WRITE]);
+int createChild(char* szCommand,
+		char* aArguments[],
+		char* aEnvironment[],
+		char* szMessage,
+		childOpts *opts,
+		execErr *err) {
 
 
-    if(!opts) {
-    	// Default:
-    	// make this process in a new process group
-    	setpgid(getpid(),0); 
-    } else {
-     	if(opts->flags & PROCESS_NEW_SID) {
-       		setsid(); // create a new session
-       	} else {
-	       	if(!(opts->flags & PROCESS_USE_PGID)) {
-		    	setpgid(getpid(),0); 
-	    	} else {
-		    	setpgid(getpid(),opts->pgid);    		
-	    	}
-  		}
-    }
+	int aStdinPipe[2];
+	int aStdoutPipe[2];
+	int aStderrPipe[2];
+	int aErrorPipe[2];
+	int nChild;
+	char nChar;
+	int nResult;
+
+	DBG_MAESTRO("createChild entry %s %p %p %p %p %p", szCommand, aArguments, aEnvironment, szMessage, opts, err);
+	if(szMessage) {
+		DBG_MAESTRO("send message:%s\n",szMessage);
+	}
+
+	if (pipe(aErrorPipe) < 0) {
+		err->_errno = errno;
+		perror("allocating pipe for execve error capture.");
+		return -1;
+	}
+
+	if (pipe(aStdinPipe) < 0) {
+		err->_errno = errno;
+		perror("allocating pipe for child input redirect");
+		return -1;
+	}
+	if (pipe(aStdoutPipe) < 0) {
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdinPipe[PIPE_WRITE]);
+		err->_errno = errno;
+		perror("allocating pipe for child output redirect");
+		return -1;
+	}
+
+	if (pipe(aStderrPipe) < 0) {
+		close(aStdoutPipe[PIPE_READ]);
+		close(aStdoutPipe[PIPE_WRITE]);
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdinPipe[PIPE_WRITE]);
+		err->_errno = errno;
+		perror("allocating pipe for child stderr redirect");
+		return -1;
+	}
+
+	DBG_MAESTRO("createChild 1");
+
+	uint32_t childStartingOriginID = 1000;
+	GreaseLib_getUnusedOriginId(&childStartingOriginID);
+	if(opts) {
+		opts->originLabel = childStartingOriginID;
+	}
+	if(opts && opts->jobname) {
+		GreaseLib_addOriginLabel( childStartingOriginID, opts->jobname, strlen(opts->jobname) );
+		DBG_MAESTRO("Logging: set label to %s %d",opts->jobname,childStartingOriginID);
+	} else {
+		GreaseLib_addOriginLabel( childStartingOriginID, szCommand, strlen(szCommand) );
+	}
+	DBG_MAESTRO("createChild 1.1");
+	// we defer grabbing stdout, until we know we send a message to process
+	// GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
+	GreaseLib_addFDForStderr( aStderrPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
+	DBG_MAESTRO("createChild 1.2");
+	if(!opts->ok_string) {
+		GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
+	} else {
+		DBG_MAESTRO("Not redirecting STDOUT - have ok_string opt");
+		opts->stdout_fd = aStdoutPipe[PIPE_READ];
+	}
+
+	char *tempEnv[1]; // used if a environmental array was not passed in
+	if (opts->env_GREASE_ORIGIN_ID) {
+		DBG_MAESTRO("createChild 1.2a");
+		char *out = (char *) malloc(30);
+		sprintf(out,"GREASE_ORIGIN_ID=%d",childStartingOriginID);
+		DBG_MAESTRO("Logging: %s",out);
+		int z = 0;
+		// See processMgmt.go: convertToCStrings() - we make some extra room there in case this is needed.
+		if(aEnvironment) {
+			while(aEnvironment[z] != NULL) {
+				z++;
+			}
+			aEnvironment[z] = out;
+		} else {
+			aEnvironment = tempEnv;
+			tempEnv[0] = out;
+		}
+	}
+
+	DBG_MAESTRO("createChild - about to fork()");
+	uv_mutex_lock(&forkLock);
+
+	pid_t ppid_before_fork = getpid();
+
+	nChild = fork();
+	DBG_MAESTRO("createChild - fork() == %d",nChild);
+	if (0 == nChild) {
+		// child continues here
+
+		// check for die_on_parent_sig
+		if (opts->die_on_parent_sig) {
+			DBG_MAESTRO("createChild - see die_on_parent_sig");
+			// https://stackoverflow.com/questions/284325/how-to-make-child-process-die-after-parent-exits
+			// WARNING:
+			// Unfortunately, if a child forks from a thread, and then the thread exit, the child process wil get the SIGTERM.
+			int r = prctl(PR_SET_PDEATHSIG, SIGTERM);
+			if (getppid() != ppid_before_fork)
+				exit(1);
+		}
+
+		// redirect stdin
+		if (dup2(aStdinPipe[PIPE_READ], STDIN_FILENO) == -1) {
+			perror("redirecting stdin");
+			return -1;
+		}
+
+		// redirect stdout
+		if (dup2(aStdoutPipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
+			perror("redirecting stdout");
+			return -1;
+		}
+
+		// redirect stderr
+		if (dup2(aStderrPipe[PIPE_WRITE], STDERR_FILENO) == -1) {
+			perror("redirecting stderr");
+			return -1;
+		}
+
+		// tell the kernel to close this FD if execve kicks off correctly
+		fcntl(aErrorPipe[PIPE_WRITE], F_SETFD, FD_CLOEXEC);
+		close(aErrorPipe[PIPE_READ]);
+
+		// all these are for use by parent only
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdinPipe[PIPE_WRITE]);
+		close(aStdoutPipe[PIPE_READ]);
+		close(aStdoutPipe[PIPE_WRITE]);
 
 
-    DBG_MAESTRO("createChild about to execvpe()\n");
-    // run child process image
-    // replace this with any exec* function find easier to use ("man exec")
-    nResult = execvpe(szCommand, aArguments, aEnvironment);
-
-    char *errs = get_error_str(errno);
-    DBG_MAESTRO("createChild's child process past execvpe(%s) ERROR: %d %d %s\n",szCommand,nResult,errno,errs);
-    fprintf(stderr,"createChild's child process past execvpe(%s) ERROR: %d %d %s\n",szCommand,nResult,errno,errs);
-
-    // FAILURE...
-
-    // this causing a SIGSEGV ?? --->
-    if(write(aErrorPipe[PIPE_WRITE],&errno, sizeof(int)) < sizeof(int)) {
-    	perror("Pipe aErrorPipe communication failed when createChild() failed\n");
-    }
-    // <----
-
-//    close(aErrorPipe[PIPE_WRITE]); 
+		if(!opts) {
+			// Default:
+			// make this process in a new process group
+			setpgid(getpid(),0);
+		} else {
+			if(opts->flags & PROCESS_NEW_SID) {
+				setsid(); // create a new session
+			} else {
+				if(!(opts->flags & PROCESS_USE_PGID)) {
+					setpgid(getpid(),0);
+				} else {
+					setpgid(getpid(),opts->pgid);
+				}
+			}
+		}
 
 
-    DBG_MAESTRO("createChild exit() child");
-    exit(nResult);
-  } else if (nChild > 0) {
-    // parent continues here
-    uv_mutex_unlock(&forkLock);
+		DBG_MAESTRO("createChild about to execvpe()\n");
+		// run child process image
+		// replace this with any exec* function find easier to use ("man exec")
+		nResult = execvpe(szCommand, aArguments, aEnvironment);
 
-    DBG_MAESTRO("createChild parent past fork() and lock.\n");
+		char *errs = get_error_str(errno);
+		DBG_MAESTRO("createChild's child process past execvpe(%s) ERROR: %d %d %s\n",szCommand,nResult,errno,errs);
+		fprintf(stderr,"createChild's child process past execvpe(%s) ERROR: %d %d %s\n",szCommand,nResult,errno,errs);
 
-    // close unused file descriptors, these are for child only
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdoutPipe[PIPE_WRITE]);
-    close(aStderrPipe[PIPE_WRITE]);
-    close(aErrorPipe[PIPE_WRITE]);
+		// FAILURE...
 
+		// this causing a SIGSEGV ?? --->
+		if(write(aErrorPipe[PIPE_WRITE],&errno, sizeof(int)) < sizeof(int)) {
+			perror("Pipe aErrorPipe communication failed when createChild() failed\n");
+		}
+		// <----
 
-    int _errno = 0;
-
-    DBG_MAESTRO("createChild reading error pipe\n");
-    int n = read(aErrorPipe[PIPE_READ],&_errno,sizeof(int));
-    if(n > 0) {
-    	// if non zero, then the error pipe was not closed, and 
-    	// execve failed
-    	// if(errno) {
-    		ERR_MAESTRO("******** createChild ********* errno: %d\n",_errno);
-    	// }
-    	err->_errno = _errno;
-
-    } else {
-    	err->pid = nChild;
-    }
-    close(aErrorPipe[PIPE_READ]);
-
-    if (!_errno && szMessage != NULL) {
-        DBG_MAESTRO("createChild writing szMessage\n");
-        int ret = write(aStdinPipe[PIPE_WRITE], szMessage, strlen(szMessage));
-        // Include error check here
-    } 
-
-    close(aStdinPipe[PIPE_WRITE]);
+		//    close(aErrorPipe[PIPE_WRITE]);
 
 
-    // Just a char by char read here, you can change it accordingly
-//    while (read(aStdoutPipe[PIPE_READ], &nChar, 1) == 1) {
-//      write(STDOUT_FILENO, &nChar, 1);
-//    }
-//
-//    // done with these in this example program, you would normally keep these
-//    // open of course as long as you want to talk to the child
-//    close(aStdinPipe[PIPE_WRITE]);
-//    close(aStdoutPipe[PIPE_READ]);
-  } else {
-    uv_mutex_unlock(&forkLock);
-    // failed to create child
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdinPipe[PIPE_WRITE]);
-    close(aStdoutPipe[PIPE_READ]);
-    close(aStdoutPipe[PIPE_WRITE]);
-    close(aStderrPipe[PIPE_READ]);
-    close(aStderrPipe[PIPE_WRITE]);
+		DBG_MAESTRO("createChild exit() child");
+		exit(nResult);
+	} else if (nChild > 0) {
+		// parent continues here
+		uv_mutex_unlock(&forkLock);
+
+		DBG_MAESTRO("createChild parent past fork() and lock.\n");
+
+		// close unused file descriptors, these are for child only
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdoutPipe[PIPE_WRITE]);
+		close(aStderrPipe[PIPE_WRITE]);
+		close(aErrorPipe[PIPE_WRITE]);
 
 
-  }
-  return nChild;
+		int _errno = 0;
+
+		DBG_MAESTRO("createChild reading error pipe\n");
+		int n = read(aErrorPipe[PIPE_READ],&_errno,sizeof(int));
+		if(n > 0) {
+			// if non zero, then the error pipe was not closed, and
+			// execve failed
+			// if(errno) {
+			ERR_MAESTRO("******** createChild ********* errno: %d\n",_errno);
+			// }
+			err->_errno = _errno;
+
+		} else {
+			err->pid = nChild;
+		}
+		close(aErrorPipe[PIPE_READ]);
+
+		if (!_errno && szMessage != NULL) {
+			DBG_MAESTRO("createChild writing szMessage\n");
+			int ret = write(aStdinPipe[PIPE_WRITE], szMessage, strlen(szMessage));
+			// Include error check here
+		}
+
+		close(aStdinPipe[PIPE_WRITE]);
+
+
+		// Just a char by char read here, you can change it accordingly
+		//    while (read(aStdoutPipe[PIPE_READ], &nChar, 1) == 1) {
+		//      write(STDOUT_FILENO, &nChar, 1);
+		//    }
+		//
+		//    // done with these in this example program, you would normally keep these
+		//    // open of course as long as you want to talk to the child
+		//    close(aStdinPipe[PIPE_WRITE]);
+		//    close(aStdoutPipe[PIPE_READ]);
+	} else {
+		uv_mutex_unlock(&forkLock);
+		// failed to create child
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdinPipe[PIPE_WRITE]);
+		close(aStdoutPipe[PIPE_READ]);
+		close(aStdoutPipe[PIPE_WRITE]);
+		close(aStderrPipe[PIPE_READ]);
+		close(aStderrPipe[PIPE_WRITE]);
+
+
+	}
+	return nChild;
 
 }
