@@ -24,6 +24,7 @@ import (
 	"github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
 	"encoding/json"
 	"github.com/armPelionEdge/maestro/debugging"
+	. "github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/tasks"
 	"github.com/armPelionEdge/maestro/processes"	

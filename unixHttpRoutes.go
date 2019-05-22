@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	. "github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/httprouter"
 	"github.com/armPelionEdge/maestro/configMgr"
 	"github.com/armPelionEdge/maestro/debugging"
