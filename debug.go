@@ -113,7 +113,7 @@ created by github.com/armPelionEdge/maestro.(*Client).startTicker
 func DebugPprof(debugServerFlag bool) {
     if (debugServerFlag) {
         go func() {
-            fmt.Println("Start a debug loopback on http://127.0.0.1:6060\n")
+            fmt.Println("Start a debug loopback on http://127.0.0.1:6060")
             fmt.Println(http.ListenAndServe("localhost:6060", nil))
         }()
     }
