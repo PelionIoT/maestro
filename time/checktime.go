@@ -272,10 +272,8 @@ func (client *TimeClient) getTime() (err error, errcode int, ret *timeResponse) 
 
 	if err == nil {
 		resp, err = client.client.Do(req)
-		if err != nil {
-			if resp != nil {
-				defer resp.Body.Close()
-			}
+		if resp != nil {
+			defer resp.Body.Close()
 		}
 		debugging.DEBUG_OUT("TIME --> response +%v\n", resp)
 		if err == nil {
