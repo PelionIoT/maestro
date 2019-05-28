@@ -831,8 +831,8 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 	}
 
 	requestopts := new(dhcp4client.DhcpRequestOptions)
-	requestopts.AddRequestParam(dhcp4.OptionRouter)
 	requestopts.AddRequestParam(dhcp4.OptionSubnetMask)
+	requestopts.AddRequestParam(dhcp4.OptionRouter)
 	requestopts.AddRequestParam(dhcp4.OptionDomainNameServer)
 	requestopts.AddRequestParam(dhcp4.OptionHostName)
 	requestopts.AddRequestParam(dhcp4.OptionDomainName)
