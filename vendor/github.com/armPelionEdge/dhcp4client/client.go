@@ -424,18 +424,18 @@ func (c *Client) RequestPacket(offerPacket *dhcp4.Packet) dhcp4.Packet {
 	//packet.SetSIAddr(offerPacket.SIAddr())
 
 	//	packet.SetBroadcast(c.broadcast)
-	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, offerPacket.CHAddr()))
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Request)})
+	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, offerPacket.CHAddr()))
 	packet.AddOption(dhcp4.OptionRequestedIPAddress, (offerPacket.YIAddr()).To4())
 	packet.AddOption(dhcp4.OptionServerIdentifier, offerOptions[dhcp4.OptionServerIdentifier])
 	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
-	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
-
+	
 	if c.opts != nil {
 		if len(c.opts.RequestedParams) > 0 {
 			packet.AddOption(dhcp4.OptionParameterRequestList, c.opts.RequestedParams)
 		}
 	}
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 
 	return packet
 }
@@ -456,18 +456,18 @@ func (c *Client) RenewalRequestPacket(acknowledgement *dhcp4.Packet, opts *DhcpR
 	packet.SetSIAddr(net.IPv4(0, 0, 0, 0))
 
 	//	packet.SetBroadcast(c.broadcast)
-	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, acknowledgement.CHAddr()))
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Request)})
+	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, acknowledgement.CHAddr()))
 	packet.AddOption(dhcp4.OptionRequestedIPAddress, (acknowledgement.YIAddr()).To4())
 	packet.AddOption(dhcp4.OptionServerIdentifier, acknowledgementOptions[dhcp4.OptionServerIdentifier])
 	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
-	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
-
+	
 	if opts != nil {
 		if len(opts.RequestedParams) > 0 {
 			packet.AddOption(dhcp4.OptionParameterRequestList, opts.RequestedParams)
 		}
 	}
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 
 	return packet
 }
@@ -488,17 +488,17 @@ func (c *Client) RenewalRequestPacketInitReboot(currentIP net.IP, opts *DhcpRequ
 	packet.SetSIAddr(net.IPv4(0, 0, 0, 0))
 
 	//	packet.SetBroadcast(c.broadcast)
-	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, c.hardwareAddr))
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Request)})
+	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, c.hardwareAddr))
 	packet.AddOption(dhcp4.OptionRequestedIPAddress, currentIP.To4())
 	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
-	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
-
+	
 	if opts != nil {
 		if len(opts.RequestedParams) > 0 {
 			packet.AddOption(dhcp4.OptionParameterRequestList, opts.RequestedParams)
 		}
 	}
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 
 	return packet
 }
