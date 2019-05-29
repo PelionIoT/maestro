@@ -378,13 +378,17 @@ func (c *Client) DiscoverPacket(opts *DhcpRequestOptions) dhcp4.Packet {
 	packet.SetBroadcast(c.broadcast)
 
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Discover)})
+	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, c.hardwareAddr))
+	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
 
 	if opts != nil {
 		if len(opts.RequestedParams) > 0 {
 			packet.AddOption(dhcp4.OptionParameterRequestList, opts.RequestedParams)
 		}
 	}
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 	//packet.PadToMinSize()
+
 	return packet
 }
 
@@ -401,13 +405,16 @@ func (c *Client) DiscoverPacketUnicast(opts *DhcpRequestOptions) dhcp4.Packet {
 
 	packet.AddOption(dhcp4.OptionDHCPMessageType, []byte{byte(dhcp4.Discover)})
 	packet.AddOption(dhcp4.OptionClientIdentifier, dhcp4.MakeClientIdentifier(dhcp4.ClientIdentifierEthernet, c.hardwareAddr))
+	packet.AddOption(dhcp4.OptionMaximumDHCPMessageSize, c.maxDHCPLenBytes)
 
 	if opts != nil {
 		if len(opts.RequestedParams) > 0 {
 			packet.AddOption(dhcp4.OptionParameterRequestList, opts.RequestedParams)
 		}
 	}
+	packet.AddOption(dhcp4.OptionVendorClassIdentifier, c.vendorClassId)
 	//packet.PadToMinSize()
+	
 	return packet
 }
 
