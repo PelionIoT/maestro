@@ -252,10 +252,11 @@ func (client *Client) startTicker() {
 // the client worker goroutine
 // does the sending of data to the server
 func (client *Client) clientWorker() {
-	closeit := func(r *http.Response, buf *logBuffer) {
+	closeHttp := func(r *http.Response) {
 		r.Body.Close()
+	}
+	closeBuf := func(buf *logBuffer) {
 		greasego.RetireCallbackData(buf.data)
-		debugging.DEBUG_OUT("  OKOKOKOKOKOKOKOKOK -----> retired callback data\n\n")
 	}
 
 	var next *logBuffer
@@ -273,23 +274,28 @@ func (client *Client) clientWorker() {
 		// send data to server0
 		//		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.data.GetBufferAsSlice()))
 		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.godata))
-		//	    req.Header.Set("X-Custom-Header", "myvalue")
-		req.Header.Set("Content-Type", "application/json")
-		// req.Header.Add("X-Symphony-ClientId", client.clientId)
-
-		// client := &http.Client{}
-		resp, err := client.httpClient.Do(req)
 		if err != nil {
-			debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
-			greasego.RetireCallbackData(next.data)
+			debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on new request %+v\n", err)
+			closeBuf(next)
 		} else {
-			fmt.Println("response Status:", resp.Status)
-			fmt.Println("response Headers:", resp.Header)
-			body, _ := ioutil.ReadAll(resp.Body)
-			fmt.Println("response Body:", string(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Add("X-Symphony-ClientId", client.clientId)
 
-			debugging.DEBUG_OUT("CALLING closeit()\n")
-			closeit(resp, next)
+			resp, err := client.httpClient.Do(req)
+			if err != nil {
+				debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
+				closeBuf(next)
+			} else {
+				fmt.Println("response Status:", resp.Status)
+				fmt.Println("response Headers:", resp.Header)
+				body, _ := ioutil.ReadAll(resp.Body)
+				fmt.Println("response Body:", string(body))
+				debugging.DEBUG_OUT("  OKOKOKOKOKOKOKOKOK -----> retired callback data\n\n")
+				closeBuf(next)
+			}
+			if resp != nil {
+				closeHttp(resp)
+			}
 		}
 
 	}
