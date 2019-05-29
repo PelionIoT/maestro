@@ -273,23 +273,26 @@ func (client *Client) clientWorker() {
 		// send data to server0
 		//		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.data.GetBufferAsSlice()))
 		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.godata))
-		//	    req.Header.Set("X-Custom-Header", "myvalue")
-		req.Header.Set("Content-Type", "application/json")
-		// req.Header.Add("X-Symphony-ClientId", client.clientId)
-
-		// client := &http.Client{}
-		resp, err := client.httpClient.Do(req)
 		if err != nil {
-			debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
-			greasego.RetireCallbackData(next.data)
-		} else {
-			fmt.Println("response Status:", resp.Status)
-			fmt.Println("response Headers:", resp.Header)
-			body, _ := ioutil.ReadAll(resp.Body)
-			fmt.Println("response Body:", string(body))
-
-			debugging.DEBUG_OUT("CALLING closeit()\n")
+			debugging.DEBUG_OUT("Error on %s POST\n", client.url);
 			closeit(resp, next)
+		} else {
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Add("X-Symphony-ClientId", client.clientId)
+
+			resp, err := client.httpClient.Do(req)
+			if err != nil {
+				debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
+				closeit(resp, next)
+			} else {
+				fmt.Println("response Status:", resp.Status)
+				fmt.Println("response Headers:", resp.Header)
+				body, _ := ioutil.ReadAll(resp.Body)
+				fmt.Println("response Body:", string(body))
+
+				debugging.DEBUG_OUT("CALLING closeit()\n")
+				closeit(resp, next)
+			}
 		}
 
 	}
