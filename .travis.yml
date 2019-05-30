@@ -12,5 +12,8 @@ install: echo ""
 
 
 script: 
+  # Build dependencies
   - ./build-deps.sh
 
+  # Build maestro
+  - ./build.sh
