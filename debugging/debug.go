@@ -18,26 +18,26 @@ package debugging
 // limitations under the License.
 
 import (
-    "runtime"
-    "net/http"
-    _ "net/http/pprof"
-    "time"
-    "encoding/json"
-    "fmt"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	_ "net/http/pprof"
+	"runtime"
+	"time"
 )
 
 type LocalMemStats struct {
-    Alloc ,
-    TotalAlloc,
-    Sys,
-    Mallocs,
-    Frees,
-    HeapAlloc,
-    HeapInuse,
-    HeapReleased,
-    StackInuse,
-    StackSys uint64
-    }
+	Alloc,
+	TotalAlloc,
+	Sys,
+	Mallocs,
+	Frees,
+	HeapAlloc,
+	HeapInuse,
+	HeapReleased,
+	StackInuse,
+	StackSys uint64
+}
 
 const DebugEnabled = true
 
@@ -50,53 +50,62 @@ func DEBUG_OUT2(args ...interface{}) {
 }
 
 func DumpMemStats() {
-    var stats runtime.MemStats
-    var local LocalMemStats
-    runtime.ReadMemStats(&stats)
+	var stats runtime.MemStats
+	var local LocalMemStats
+	runtime.ReadMemStats(&stats)
 
-    local.Alloc = stats.Alloc
-    local.TotalAlloc = stats.TotalAlloc
-    local.Sys = stats.Sys
-    local.Mallocs = stats.Mallocs
-    local.Frees = stats.Frees
-    local.HeapAlloc = stats.HeapAlloc
-    local.HeapInuse = stats.HeapInuse
-    local.HeapReleased = stats.HeapReleased
-    local.StackInuse = stats.StackInuse
-    local.StackSys = stats.StackSys
+	local.Alloc = stats.Alloc
+	local.TotalAlloc = stats.TotalAlloc
+	local.Sys = stats.Sys
+	local.Mallocs = stats.Mallocs
+	local.Frees = stats.Frees
+	local.HeapAlloc = stats.HeapAlloc
+	local.HeapInuse = stats.HeapInuse
+	local.HeapReleased = stats.HeapReleased
+	local.StackInuse = stats.StackInuse
+	local.StackSys = stats.StackSys
 
-    b, _ := json.Marshal(local)
-    fmt.Println(string(b))
+	b, _ := json.Marshal(local)
+	fmt.Println(string(b))
 
 }
 
-// Goroutine to fetch the memory stats at every `duration` seconds
-func RuntimeMemStats(duration int) {
-    var stats runtime.MemStats
-    var local LocalMemStats
-    var interval = time.Duration(duration) * time.Second
-    for {
-        <-time.After(interval)
-
-        // Read full mem stats
-        runtime.ReadMemStats(&stats)
-
-        local.Alloc = stats.Alloc
-        local.TotalAlloc = stats.TotalAlloc
-        local.Sys = stats.Sys
-        local.Mallocs = stats.Mallocs
-        local.Frees = stats.Frees
-        local.HeapAlloc = stats.HeapAlloc
-        local.HeapInuse = stats.HeapInuse
-        local.HeapReleased = stats.HeapReleased
-        local.StackInuse = stats.StackInuse
-        local.StackSys = stats.StackSys
-
-        b, _ := json.Marshal(local)        
-        fmt.Println(string(b))
-    }
+// Goroutine to fetch the stats at every `duration` seconds and start profiling
+func DebugApp(pprof bool, runtime bool, duration int) {
+	if pprof {
+		debugPprof()
+	}
+	if runtime {
+		runtimeStats(duration)
+	}
 }
 
+func runtimeStats(duration int) {
+	var stats runtime.MemStats
+	var local LocalMemStats
+	var interval = time.Duration(duration) * time.Second
+	for {
+		<-time.After(interval)
+
+		// Read full mem stats
+		runtime.ReadMemStats(&stats)
+
+		local.Alloc = stats.Alloc
+		local.TotalAlloc = stats.TotalAlloc
+		local.Sys = stats.Sys
+		local.Mallocs = stats.Mallocs
+		local.Frees = stats.Frees
+		local.HeapAlloc = stats.HeapAlloc
+		local.HeapInuse = stats.HeapInuse
+		local.HeapReleased = stats.HeapReleased
+		local.StackInuse = stats.StackInuse
+		local.StackSys = stats.StackSys
+
+		b, _ := json.Marshal(local)
+		fmt.Println(string(b))
+		fmt.Printf("Go Routiunes: %d\n", runtime.NumGoroutine())
+	}
+}
 
 /**
  * There appears to be a golang runtime bug in ReadMemStats() - make sure you dont call this
@@ -123,11 +132,7 @@ created by github.com/armPelionEdge/maestro.(*Client).startTicker
     /home/ed/work/gostuff/src/github.com/armPelionEdge/maestro/httpSymphonyClient.go:238 +0x68
  **/
 
-func DebugPprof(debugServerFlag bool) {
-    if (debugServerFlag) {
-        go func() {
-            fmt.Println("Start a debug loopback on http://127.0.0.1:6060\n")
-            fmt.Println(http.ListenAndServe("localhost:6060", nil))
-        }()
-    }
+func debugPprof() {
+	fmt.Println("Start a debug loopback on http://127.0.0.1:6060")
+	fmt.Println(http.ListenAndServe("localhost:6060", nil))
 }
