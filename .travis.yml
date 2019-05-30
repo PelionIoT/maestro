@@ -1,0 +1,10 @@
+language: go
+os: linux
+dist: xenial
+
+name: "go v1.10"
+go: 1.10.x
+
+
+script: 
+- ./build-deps.sh
