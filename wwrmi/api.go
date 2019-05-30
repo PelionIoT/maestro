@@ -31,7 +31,7 @@ import (
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/sysstats"
-	"github.com/armPelionEdge/maestro/utils"
+	"github.com/armPelionEdge/maestro/utils"	
 	"github.com/armPelionEdge/greasego"
 )
 
@@ -73,7 +73,7 @@ const (
 	// SysStatsCountThresholdDefault default is 10
 	SysStatsCountThresholdDefault = 10
 	// SysStatsTimeThresholdDefault default is every minute
-	SysStatsTimeThresholdDefault = 60 * 1000 
+	SysStatsTimeThresholdDefault = 60 * 1000  
 	// SyStatsMaxSysStatsMaxBufferDefault default is 100
 	SysStatsMaxBufferDefault = 100
 )
@@ -248,7 +248,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 		if len(config.ClientKeyString) > 0 {
 			config.ClientKey = []byte(config.ClientKeyString)
 		}
-	}
+	}	
 
 	if config.RootCA != nil {
 		if !rootCAs.AppendCertsFromPEM(config.RootCA) {
@@ -287,7 +287,6 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 
 	if !config.NoTLS {
 		ret.client = &http.Client{
-			Timeout: 35 * time.Second,
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   30 * time.Second,
@@ -308,7 +307,6 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 		}
 	} else {
 		ret.client = &http.Client{
-			Timeout: 35 * time.Second,
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   30 * time.Second,
@@ -838,10 +836,11 @@ func (client *Client) postLogs() (err error) {
 
 	if err == nil {
 		resp, err = client.client.Do(req)
-		// close response body in case of success and errors, not required if no response
-		if resp != nil {
-                        defer resp.Body.Close()
-                }
+		if err != nil {
+			if resp != nil {
+				defer resp.Body.Close()
+			}
+		}
 		debugging.DEBUG_OUT("RMI --> response +%v",resp)
 		if err == nil && resp != nil && resp.StatusCode != 200 {
 			debugging.DEBUG_OUT("RMI bad response - creating error object\n")
@@ -850,7 +849,7 @@ func (client *Client) postLogs() (err error) {
 			err = newClientError(resp)
 		}
 	} else {
-		log.MaestroErrorf("Error on POST request: %s\n",err.Error())
+		log.MaestroErrorf("Error on POST request: %s\n",err.Error())		
 		debugging.DEBUG_OUT("RMI ERROR: %s\n",err.Error())
 	}
 	return
@@ -861,7 +860,7 @@ func (client *Client) postLogs() (err error) {
 // StopWorkers stops any worker routines of the client. The client cane effectively be lost
 // garabage collected afterwards
 func (client *Client) StopWorkers() {
-	client.availableFifo.Shutdown()
+	client.availableFifo.Shutdown()	
 	client.sendingFifo.Shutdown()
 	client.willSendFifo.Shutdown()
 }
