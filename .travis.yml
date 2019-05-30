@@ -1,0 +1,33 @@
+language: go
+os: linux
+dist: xenial
+
+
+# Note: This repo has an unmaintained 'GoDep' index.  Bypassing for now.
+#       https://docs.travis-ci.com/user/languages/go/#godep-support
+install: echo ""
+
+script: 
+  # Build dependencies
+  - ./build-deps.sh
+
+  # Build maestro
+  - ./build.sh
+
+  # Run unit tests
+  - go test "github.com/${TRAVIS_REPO_SLUG}" || true
+
+
+matrix:
+  include:
+
+    - name: "go v1.10"
+      go: 1.10.x
+
+    - name: "go v1.11"
+      go: 1.11.x
+
+    - name: "go v1.12"
+      go: 1.12.x
+
+
