@@ -1,4 +1,4 @@
-package maestro;
+package maestro
 
 // Copyright (c) 2018, Arm Limited and affiliates.
 // SPDX-License-Identifier: Apache-2.0
@@ -16,38 +16,36 @@ package maestro;
 // limitations under the License.
 
 type Msg_StartProcess struct {
-	Path string  `json:"path"`
-	Arguments []string  `json:"arguments"`
+	Path        string   `json:"path"`
+	Arguments   []string `json:"arguments"`
 	Environment []string `json:"environment"`
-    // enherit the standard environment that  
-    // maestro was started in?
-	InheritEnv bool  `json:"inheritEnv"`
+	// enherit the standard environment that
+	// maestro was started in?
+	InheritEnv  bool   `json:"inheritEnv"`
 	ContainerId string `json:"ContainerId"`
-	Pgid int `json:"pgid"`
-	Daemonize bool `json:"daemonize"`
+	Pgid        int    `json:"pgid"`
+	Daemonize   bool   `json:"daemonize"`
 }
 
 type Msg_StopProcess struct {
-
 }
 
-
 type Msg_JobStartRequest struct {
-	Job string `json:"job"` 
-	ContainerTemplate string `json:"container_template"`
-	Message string `json:"message"`
-	NoAutoStart bool `json:"no_autostart"`
-	Restart bool `json:"restart"`
-	RestartOnDependencyFail bool `json:"restart_on_dependency_fail"`
-	RestartLimit uint32 `json:"restart_limit"`
-	RestartPause uint32 `json:"restart_pause"`
-	DependsOn []string `json:"depends_on"`
-	Pgid int `json:"pgid"`
-	ExecCmd string `json:"exec_cmd"`
-	ExecArgs []string `json:"exec_args"`
-	Env []string `json:"env"`
-	InheritEnv bool `json:"inherit_env"`
-	Daemonize bool `json:"daemonize"`  // create a new SID for this process ?
+	Job                     string   `json:"job"`
+	ContainerTemplate       string   `json:"container_template"`
+	Message                 string   `json:"message"`
+	NoAutoStart             bool     `json:"no_autostart"`
+	Restart                 bool     `json:"restart"`
+	RestartOnDependencyFail bool     `json:"restart_on_dependency_fail"`
+	RestartLimit            uint32   `json:"restart_limit"`
+	RestartPause            uint32   `json:"restart_pause"`
+	DependsOn               []string `json:"depends_on"`
+	Pgid                    int      `json:"pgid"`
+	ExecCmd                 string   `json:"exec_cmd"`
+	ExecArgs                []string `json:"exec_args"`
+	Env                     []string `json:"env"`
+	InheritEnv              bool     `json:"inherit_env"`
+	Daemonize               bool     `json:"daemonize"` // create a new SID for this process ?
 }
 
 func (this *Msg_JobStartRequest) GetJobName() string {
@@ -79,7 +77,7 @@ func (this *Msg_JobStartRequest) IsDaemonize() bool {
 }
 func (this *Msg_JobStartRequest) GetDependsOn() []string {
 	return this.DependsOn
-} 
+}
 func (this *Msg_JobStartRequest) IsAutostart() bool {
 	return !this.NoAutoStart
 }
@@ -96,24 +94,17 @@ func (this *Msg_JobStartRequest) GetRestartPause() uint32 {
 	return this.RestartPause
 }
 
-
-
 type Msg_StopJob struct {
-
 }
 
 type Msg_CreateContainer struct {
-
 }
 
 type Msg_TeardownContainer struct {
-
 }
 
 type Msg_SendImage struct {
-
 }
 
 type Msg_EraseImage struct {
-
 }

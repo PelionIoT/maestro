@@ -27,6 +27,7 @@ import (
 	"github.com/armPelionEdge/maestro/configMgr"
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
+	. "github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/networking"
