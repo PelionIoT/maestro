@@ -22,6 +22,7 @@ package processes
 #cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/include -DDEBUG_BINDINGS -I${SRCDIR}/processes
 #define GREASE_IS_LOCAL 1
 #include <stdio.h>
+#include <stdlib.h>
 #include "process_utils.h"
 #include "grease_lib.h"
 
@@ -1303,12 +1304,11 @@ const const_WCONTINUED = 8
 
 
 func convertToCStrings(args []string) (out **C.char) {
-//	out = make([]*C.char, len(args))
 	if len(args) < 1 {
 		return nil
 	}
 	out = C.makeCStringArray(C.int(len(args)+3)) // why 3? we leave two extra in case we need to add one or two 
-	                                             // in the createChild function
+												 // in the createChild function
 	for n, s := range args {
 		if len(s) < 1 {
 			C.setCStringInArray(out,nil,C.int(n))
@@ -1323,10 +1323,6 @@ func convertToCStrings(args []string) (out **C.char) {
 	return
 }
 
-func freeCStringArray(in []*C.char) {
-
-}
-
 // does the work of replacing:
 // {{thisdir}}  - directory of the maestro executable file
 // ... perhaps more added later
@@ -1336,7 +1332,6 @@ func replaceMacroVars(s string) (ret string) {
 	return
 }
 
-// 
 func replaceMacroVarsSlice(s []string, out *[]string) {
 	for _, v := range s {
 //		debugging.DEBUG_OUT("replace: %s\n",v)
@@ -1351,10 +1346,10 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 
 	debugging.DEBUG_OUT("ExecFile: %+v %+v %+v\n",replaceMacroVars(path),args,env)
 
-
 	updateMacroVars()
 	ready_path := replaceMacroVars(path)
 	c_path := C.CString(ready_path)
+	defer C.free(unsafe.Pointer(c_path))
 
 	ready_args := []string{ready_path}
 	var ready_env []string
@@ -1364,13 +1359,16 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 	replaceMacroVarsSlice(env,&ready_env)
 
 	c_args := convertToCStrings(ready_args)
+	defer C.freeCStringArray(c_args)
 	c_env := convertToCStrings(ready_env)
+	defer C.freeCStringArray(c_env)
 
 	debugging.DEBUG_OUT("READY ExecFile: %+v %+v %+v\n",replaceMacroVars(path),ready_args,ready_env)
 
 	// NOTE: createChild will automically free the strings handed to it.
 	if opts != nil {
 		C.createChild(c_path,c_args,c_env,opts.internal.message,&opts.internal,&err)
+		defer C.free(unsafe.Pointer(opts.internal.message))
 	} else {
 		C.createChild(c_path,c_args,c_env,nil,nil,&err)
 	}
