@@ -6,5 +6,11 @@ name: "go v1.10"
 go: 1.10.x
 
 
+# Note: This repo has an unmaintained 'GoDep' index.  Bypassing for now.
+#       https://docs.travis-ci.com/user/languages/go/#godep-support
+install: echo ""
+
+
 script: 
-- ./build-deps.sh
+  - ./build-deps.sh
+
