@@ -16,42 +16,42 @@ package main
 // limitations under the License.
 
 import (
+	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
-	"flag"
-    "strings"
-//	"reflect"
-	"time"
-    "net/http"
-	"github.com/armPelionEdge/maestroSpecs"    
-	"github.com/armPelionEdge/httprouter"	
+	//	"reflect"
 	"github.com/armPelionEdge/greasego"
-    "github.com/op/go-logging"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/processes"
-	"github.com/armPelionEdge/maestroSpecs/templates"
-	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/httprouter"
+	. "github.com/armPelionEdge/maestro"
 	"github.com/armPelionEdge/maestro/configMgr"
-	"github.com/armPelionEdge/maestro/tasks"
-	"github.com/armPelionEdge/maestro/mdns"
-	"github.com/armPelionEdge/maestro/defaults"	
-	"github.com/armPelionEdge/maestro/watchdog"	
-	"github.com/armPelionEdge/maestro/sysstats"		
+	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestro/defaults"
+	Log "github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/maestroutils"
+	"github.com/armPelionEdge/maestro/mdns"
 	"github.com/armPelionEdge/maestro/networking"
-	"github.com/armPelionEdge/maestro/wwrmi"
+	"github.com/armPelionEdge/maestro/processes"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/sysstats"
+	"github.com/armPelionEdge/maestro/tasks"
 	maestroTime "github.com/armPelionEdge/maestro/time"
-	Log "github.com/armPelionEdge/maestro/log"
-	. "github.com/armPelionEdge/maestro"
+	"github.com/armPelionEdge/maestro/watchdog"
+	"github.com/armPelionEdge/maestro/wwrmi"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/op/go-logging"
+	"net/http"
+	"time"
 	// Platforms
 	"github.com/armPelionEdge/maestro/platforms"
 	// platform_rp200 "github.com/armPelionEdge/maestro/platforms/rp200"
 	// platform_rp200_edge "github.com/armPelionEdge/maestro/platforms/rp200_edge"
 	// platform_wwrelayA10 "github.com/armPelionEdge/maestro/platforms/wwrelayA10"
 	// platform_softRelay "github.com/armPelionEdge/maestro/platforms/softRelay"
-	// platform_testplatform "github.com/armPelionEdge/maestro/platforms/testplatform"	
+	// platform_testplatform "github.com/armPelionEdge/maestro/platforms/testplatform"
 	_ "net/http/pprof"
 )
 
@@ -61,54 +61,53 @@ var (
 	NumWorkers = os.Getenv("MAESTRO_LOG_WORKERS")
 )
 
-
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    fmt.Fprint(w, "Welcome!\n")
+	fmt.Fprint(w, "Welcome!\n")
 }
 
 func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
+	fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
 }
 
 func main() {
 
-	if(len(NumWorkers) < 1) {
+	if len(NumWorkers) < 1 {
 		fmt.Printf("MAESTRO_LOG_WORKERS not set.\n")
 	}
 
-	log.Info("maestro starting.");
+	log.Info("maestro starting.")
 
-	configFlag := flag.String("config","./maestro.config","Config path")
-	dumpMetaVars := flag.Bool("dump_meta_vars",false,"Dump config file meta variables only")
-	versionFlag := flag.Bool("version",false,"Dump version information")
-	debugServerFlag := flag.Bool("debug_loopback",false,"Start a debug loopback on http://127.0.0.1:6060")
-	debugMemory := flag.Bool("debug_mem",false,"Debugging memory stats")
-	flag.Parse();
+	configFlag := flag.String("config", "./maestro.config", "Config path")
+	dumpMetaVars := flag.Bool("dump_meta_vars", false, "Dump config file meta variables only")
+	versionFlag := flag.Bool("version", false, "Dump version information")
+	debugServerFlag := flag.Bool("debug_loopback", false, "Start a debug loopback on http://127.0.0.1:6060")
+	debugMemory := flag.Bool("debug_mem", false, "Debugging memory stats")
+	flag.Parse()
 
 	DebugPprof(*debugServerFlag)
 
 	if *debugMemory {
-        DumpMemStats();
+		DumpMemStats()
 		go RuntimeMemStats(300)
 	}
 
 	if *versionFlag {
 		s := maestroutils.Version()
-		fmt.Printf("%s\n",s)
-		fmt.Printf("%s\n",greasego.GetGreaseLibVersion())
+		fmt.Printf("%s\n", s)
+		fmt.Printf("%s\n", greasego.GetGreaseLibVersion())
 		os.Exit(0)
 	}
 
 	if configFlag != nil {
-		debugging.DEBUG_OUT("config file:",*configFlag)
+		debugging.DEBUG_OUT("config file:", *configFlag)
 	}
 
 	// Initialization starts off with reading in the entire config file,
-	// which also creates and populated the config macro variable dictionary, 
+	// which also creates and populated the config macro variable dictionary,
 	// which is used in different parts of the configs
 
 	config := new(maestroConfig.YAMLMaestroConfig)
-	err := config.LoadFromFile(*configFlag);
+	err := config.LoadFromFile(*configFlag)
 
 	if err != nil {
 		log.Errorf("Critical error. Config file parse failed --> %s", err.Error())
@@ -116,9 +115,9 @@ func main() {
 	}
 
 	for _, platform := range config.PlatformReaders {
-		logger := Log.NewPrefixedLogger("platform_reader "+platform.Platform)
+		logger := Log.NewPrefixedLogger("platform_reader " + platform.Platform)
 		if len(platform.Params) > 0 {
-			platforms.SetPlatformReaderOpts(platform.Params,platform.Platform, platform.Opts,logger)
+			platforms.SetPlatformReaderOpts(platform.Params, platform.Platform, platform.Opts, logger)
 		}
 		err := platforms.ReadWithPlatformReader(maestroConfig.GetGlobalConfigDictionary(), platform.Platform, platform.Opts, logger)
 		// // Is the string a path? If so - load as a plugin
@@ -129,34 +128,34 @@ func main() {
 		// 	logger := Log.NewPrefixedLogger("platform_reader "+platform.Platform)
 		// 	// else - see if its a known internal reader
 		// 	switch platform.Platform {
-		// 	case "testplatform": 
-		// 		err = platform_testplatform.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)	
+		// 	case "testplatform":
+		// 		err = platform_testplatform.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)
 		// 	case "rp200":
-		// 		err = platform_rp200.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)	
+		// 		err = platform_rp200.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)
 		// 	case "rp200_edge":
-		// 		err = platform_rp200_edge.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)	
+		// 		err = platform_rp200_edge.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)
 		// 	case "wwrelayA10":
 		// 		err = platform_wwrelayA10.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)
 		// 	case "softRelay":
-		// 		err = platform_softRelay.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)			
+		// 		err = platform_softRelay.GetPlatformVars(maestroConfig.GetGlobalConfigDictionary(), logger)
 		// 	default:
 		// 		log.Errorf("Unknown plaform referred to: %s  Skipping.\n",platform.Platform)
 		// 	}
 		// }
 		if err != nil {
-			log.Errorf("Error reading platform information: %s\n",err.Error())
+			log.Errorf("Error reading platform information: %s\n", err.Error())
 		}
 	}
 
 	config.FinalizeConfig()
 
-	debugging.DEBUG_OUT("RelayMQ: %+v\n",config.RelayMQDriver)
-	  
+	debugging.DEBUG_OUT("RelayMQ: %+v\n", config.RelayMQDriver)
+
 	if *dumpMetaVars {
 		fmt.Printf(" Format: {{VARNAME}} = [[VALUE]]\n\n")
 		dict := maestroConfig.GetGlobalConfigDictionary()
 		for varname, val := range dict.Map {
-			fmt.Printf("{{%s}} = [[%s]]\n",varname,val)
+			fmt.Printf("{{%s}} = [[%s]]\n", varname, val)
 		}
 		os.Exit(0)
 	}
@@ -178,38 +177,38 @@ func main() {
 				if config.DebugOpts.PidFileDates {
 					t := time.Now()
 					st := t.Format("2006-01-02T15:04:05.999999-07:00")
-					pidstr = fmt.Sprintf("%d : %s\n",os.Getpid(),st)
+					pidstr = fmt.Sprintf("%d : %s\n", os.Getpid(), st)
 				} else {
-					pidstr = fmt.Sprintf("%d\n",os.Getpid())
+					pidstr = fmt.Sprintf("%d\n", os.Getpid())
 				}
 				if _, err = f.Write([]byte(pidstr)); err != nil {
-					fmt.Fprintln(os.Stderr,"Error writing to pid file:",err);
+					fmt.Fprintln(os.Stderr, "Error writing to pid file:", err)
 				}
 				if err = f.Close(); err != nil {
-					fmt.Fprintln(os.Stderr,"Error closing pid file:",err);
-				}	
+					fmt.Fprintln(os.Stderr, "Error closing pid file:", err)
+				}
 			} else {
-				fmt.Fprintln(os.Stderr,"Error opening pid file:",err);
+				fmt.Fprintln(os.Stderr, "Error opening pid file:", err)
 			}
 		}
 	}
 
 	if err == nil {
-		debugging.DEBUG_OUT("Loaded config file");
+		debugging.DEBUG_OUT("Loaded config file")
 	} else {
-		fmt.Fprintln(os.Stderr,"Error loading config:",err);
+		fmt.Fprintln(os.Stderr, "Error loading config:", err)
 	}
 
-//	fmt.Println("Using sink socket:",config.ApiUnixDgramSocket);
-	fmt.Println("Using API socket:",config.HttpUnixSocket);
+	//	fmt.Println("Using sink socket:",config.ApiUnixDgramSocket);
+	fmt.Println("Using API socket:", config.HttpUnixSocket)
 
-	var waitGroup sync.WaitGroup 
+	var waitGroup sync.WaitGroup
 
 	// start Watchdog ASAP
 	if config.Watchdog != nil {
 		err := watchdog.LoadWatchdog(config.Watchdog)
 		if err != nil {
-			log.Errorf("Failed to load watchdog!! %s\n",err.Error())
+			log.Errorf("Failed to load watchdog!! %s\n", err.Error())
 		}
 	}
 
@@ -228,9 +227,9 @@ func main() {
 	unixLogSocket := config.GetUnixLogSocket()
 	debugging.DEBUG_OUT("Starting greaselib. %s\n", unixLogSocket)
 
-	greasego.StartGreaseLib(func(){
+	greasego.StartGreaseLib(func() {
 		debugging.DEBUG_OUT("Grease start cb: Got to here 1\n")
-	});
+	})
 	greasego.SetupStandardLevels()
 	greasego.SetupStandardTags()
 
@@ -246,33 +245,33 @@ func main() {
 		kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG, nil)
 		greasego.AddSink(kernelSink)
 	}
-	
-	debugging.DEBUG_OUT("UnixLogSocket: %s\n", unixLogSocket);
+
+	debugging.DEBUG_OUT("UnixLogSocket: %s\n", unixLogSocket)
 	unixSockSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_UNIXDGRAM, &unixLogSocket)
 	greasego.AddSink(unixSockSink)
-	
+
 	syslogSock := config.GetSyslogSocket()
-	if(len(syslogSock) > 0) {
+	if len(syslogSock) > 0 {
 		syslogSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_SYSLOGDGRAM, &syslogSock)
 		greasego.AddSink(syslogSink)
 	}
 
 	if DB != nil {
 		// register all Job's in the existing config database.
-		DB.ForEachContainerTemplate(func(templ maestroSpecs.ContainerTemplate){
+		DB.ForEachContainerTemplate(func(templ maestroSpecs.ContainerTemplate) {
 			err := processes.RegisterContainer(templ)
 			if err != nil {
-				log.Errorf("Container templ [%s] failed to register: %s\n",templ.GetName())
+				log.Errorf("Container templ [%s] failed to register: %s\n", templ.GetName())
 			} else {
 				debugging.DEBUG_OUT("Container templ found in DB: %+v\n", templ)
 			}
 		})
 
 		// register all Job's in the existing config database.
-		DB.ForEachJob(func(job maestroSpecs.JobDefinition){
+		DB.ForEachJob(func(job maestroSpecs.JobDefinition) {
 			err := processes.RegisterJob(job)
 			if err != nil {
-				log.Errorf("Job [%s] failed to register job: %s\n",job.GetJobName())
+				log.Errorf("Job [%s] failed to register job: %s\n", job.GetJobName())
 			} else {
 				debugging.DEBUG_OUT("Job found in DB: %+v\n", job)
 			}
@@ -281,22 +280,21 @@ func main() {
 
 	client := NewSymphonyClient("http://127.0.0.1:9443/submitLog/1", config.ClientId, defaults.NUMBER_BANKS_WEBLOG, 30*time.Second)
 	client.Start()
-	
+
 	/*********************************************/
 	/*             System stats                  */
-	/*********************************************/	
+	/*********************************************/
 	if config.SysStats != nil {
-		sysStatMgr := sysstats.GetManager() 
+		sysStatMgr := sysstats.GetManager()
 		ok, err := sysStatMgr.ReadConfig(config.SysStats)
 		if ok {
 			Log.MaestroDebugf("sysstats read config ok. Starting...")
 			sysStatMgr.Start()
 		} else {
-			Log.MaestroErrorf("sysstats - error reading config: %s",err.Error())
-			log.Errorf("sysstats - error reading config: %s",err.Error())
+			Log.MaestroErrorf("sysstats - error reading config: %s", err.Error())
+			log.Errorf("sysstats - error reading config: %s", err.Error())
 		}
 	}
-
 
 	/*********************************************/
 	/*             Logger setup                  */
@@ -315,26 +313,26 @@ func main() {
 		fmt.Printf("Symphony / RMI API server not configured.\n")
 	}
 
-	debugging.DEBUG_OUT("targets:",len(config.Targets))
-	for n:=0; n < len(config.Targets);n++ {
+	debugging.DEBUG_OUT("targets:", len(config.Targets))
+	for n := 0; n < len(config.Targets); n++ {
 		if len(config.Targets[n].File) > 0 { // honor any substitution vars for the File targets
 			config.Targets[n].File = maestroConfig.GetInterpolatedConfigString(config.Targets[n].File)
 		}
 		opts := greasego.NewGreaseLibTargetOpts()
 		greasego.AssignFromStruct(opts, config.Targets[n]) //, reflect.TypeOf(config.Targets[n]))
 
-		if(config.Targets[n].Flag_json_escape_strings) {
-			greasego.TargetOptsSetFlags(opts,greasego.GREASE_JSON_ESCAPE_STRINGS)
+		if config.Targets[n].Flag_json_escape_strings {
+			greasego.TargetOptsSetFlags(opts, greasego.GREASE_JSON_ESCAPE_STRINGS)
 		}
 
 		debugging.DEBUG_OUT("%+v\n", opts.FileOpts)
 		debugging.DEBUG_OUT("%+v\n", opts)
 		debugging.DEBUG_OUT("%+v\n", *opts.Format_time)
 
-		if(strings.Compare(config.Targets[n].Name,"toCloud")==0) {
+		if strings.Compare(config.Targets[n].Name, "toCloud") == 0 {
 			fmt.Printf("\nFound toCloud target-------->\n")
 			opts.NumBanks = defaults.NUMBER_BANKS_WEBLOG
-//			DEBUG(_count := 0)
+			//			DEBUG(_count := 0)
 			if config.Symphony != nil && symphony_client != nil && symphony_err == nil {
 				opts.TargetCB = wwrmi.TargetCB
 			} else {
@@ -342,7 +340,7 @@ func main() {
 				// skip this target
 				continue
 			}
-			
+
 			// func(err *greasego.GreaseError, data *greasego.TargetCallbackData){
 			// 	DEBUG(_count++)
 			// 	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
@@ -357,42 +355,41 @@ func main() {
 			// }
 		}
 
-		func(n int, opts *greasego.GreaseLibTargetOpts){
-			greasego.AddTarget(opts,func(err *greasego.GreaseError, optsId int, targId uint32){
-				debugging.DEBUG_OUT("IN CALLBACK %d\n",optsId)
-				if(err != nil) {
-					fmt.Printf("ERROR on creating target: %s\n",err.Str);
+		func(n int, opts *greasego.GreaseLibTargetOpts) {
+			greasego.AddTarget(opts, func(err *greasego.GreaseError, optsId int, targId uint32) {
+				debugging.DEBUG_OUT("IN CALLBACK %d\n", optsId)
+				if err != nil {
+					fmt.Printf("ERROR on creating target: %s\n", err.Str)
 				} else {
 					// after the Target is added, we can setup the Filters for it
-					if(len(config.Targets[n].Filters) > 0) {
-						for l:=0; l<len(config.Targets[n].Filters);l++ {
-							debugging.DEBUG_OUT("Have filter %+v\n",config.Targets[n].Filters[l])
-							filter := greasego.NewGreaseLibFilter();
+					if len(config.Targets[n].Filters) > 0 {
+						for l := 0; l < len(config.Targets[n].Filters); l++ {
+							debugging.DEBUG_OUT("Have filter %+v\n", config.Targets[n].Filters[l])
+							filter := greasego.NewGreaseLibFilter()
 							filter.Target = targId
 							// handle the strings:
 							greasego.AssignFromStruct(filter, config.Targets[n].Filters[l]) //, reflect.TypeOf(config.Targets[n].Filters[l]))
-							greasego.SetFilterValue(filter,greasego.GREASE_LIB_SET_FILTER_TARGET,targId);
-							if(len(config.Targets[n].Filters[l].Levels) > 0) {
+							greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, targId)
+							if len(config.Targets[n].Filters[l].Levels) > 0 {
 								mask := maestroConfig.ConvertLevelStringToUint32Mask(config.Targets[n].Filters[l].Levels)
-								greasego.SetFilterValue(filter,greasego.GREASE_LIB_SET_FILTER_MASK,mask);
+								greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
 							}
-							if(len(config.Targets[n].Filters[l].Tag) > 0) {
-								tag :=  maestroConfig.ConvertTagStringToUint32(config.Targets[n].Filters[l].Tag)
-								greasego.SetFilterValue(filter,greasego.GREASE_LIB_SET_FILTER_MASK,tag);
-							}		
+							if len(config.Targets[n].Filters[l].Tag) > 0 {
+								tag := maestroConfig.ConvertTagStringToUint32(config.Targets[n].Filters[l].Tag)
+								greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
+							}
 							debugging.DEBUG_OUT("Filter -----------> %+v\n", filter)
 							filterid := greasego.AddFilter(filter)
-							debugging.DEBUG_OUT("Filter ID: %d\n",filterid)
+							debugging.DEBUG_OUT("Filter ID: %d\n", filterid)
 						}
 					} else {
 						// by default, send all traffic to any target
-						
+
 					}
 				}
-			})			
-		}(n,opts) // use anonymous function to preserve 'n' before callback completes
-							
-		
+			})
+		}(n, opts) // use anonymous function to preserve 'n' before callback completes
+
 	}
 
 	// should not start workers until after greasego is setup
@@ -406,7 +403,6 @@ func main() {
 		}
 	}
 
-
 	/*********************************************/
 	/*             Process template files        */
 	/*********************************************/
@@ -414,21 +410,20 @@ func main() {
 	// data. These are usually config files needed by different software components
 	// we will later start
 
-
 	// Process static config files before we start any processes
 	debugging.DEBUG_OUT("Processing static file generators...\n")
 	for _, fileop := range config.StaticFileGenerators {
 		if (len(fileop.TemplateFile) > 0 || len(fileop.TemplateString) > 0) && len(fileop.OutputFile) > 0 {
-			op := templates.NewFileOp(fileop.Name,fileop.TemplateFile,fileop.TemplateString,fileop.OutputFile,maestroConfig.GetGlobalConfigDictionary())			
+			op := templates.NewFileOp(fileop.Name, fileop.TemplateFile, fileop.TemplateString, fileop.OutputFile, maestroConfig.GetGlobalConfigDictionary())
 			err := op.ProcessTemplateFile()
 			if err != nil {
-				log.Errorf("Error processing template file %s: %s\n", fileop.TemplateFile,err.Error())
+				log.Errorf("Error processing template file %s: %s\n", fileop.TemplateFile, err.Error())
 			} else {
 				err, wrote, checksum := op.MaybeGenerateFile()
 				if err != nil {
-					log.Errorf("Error creating generated file (%s) %s: %s\n", fileop.Name, fileop.OutputFile,err.Error())					
+					log.Errorf("Error creating generated file (%s) %s: %s\n", fileop.Name, fileop.OutputFile, err.Error())
 				} else {
-					debugging.DEBUG_OUT("Static file generator, template %d - checksum is %s\n", fileop.Name,checksum)
+					debugging.DEBUG_OUT("Static file generator, template %d - checksum is %s\n", fileop.Name, checksum)
 					if wrote {
 						debugging.DEBUG_OUT("Static file generator - wrote out new file for template %s: %s\n", fileop.Name, fileop.OutputFile)
 					} else {
@@ -437,7 +432,7 @@ func main() {
 				}
 			}
 		} else {
-			log.Errorf("Poorly formed 'static_file_generators' entry in config file. Skipping %s\n",fileop.Name)
+			log.Errorf("Poorly formed 'static_file_generators' entry in config file. Skipping %s\n", fileop.Name)
 		}
 	}
 	debugging.DEBUG_OUT("Done with static file generators.\n")
@@ -448,28 +443,26 @@ func main() {
 
 	// starts automatically.
 
-
 	/*********************************************/
 	/*             Task Manager start            */
 	/*********************************************/
-	// the TaskManager is needed to process tasks and 
+	// the TaskManager is needed to process tasks and
 	// is used by the JobsManager and the NetworkManager
 
 	debugging.DEBUG_OUT("doing task.StartTaskManager()\n")
 	tasks.StartTaskManager()
-
 
 	/*********************************************/
 	/*             Network startup               */
 	/*********************************************/
 	neterr := networking.InitNetworkManager()
 	if neterr != nil {
-		Log.MaestroErrorf("Error starting networking subsystem! %s\n",neterr.Error())
-		log.Errorf("Error starting networking subsystem! %s\n",neterr.Error())
+		Log.MaestroErrorf("Error starting networking subsystem! %s\n", neterr.Error())
+		log.Errorf("Error starting networking subsystem! %s\n", neterr.Error())
 	}
 
 	bringUpIfs := func() {
-		// wait a few seconds to start interface bring up. we want the logging to be working, and 
+		// wait a few seconds to start interface bring up. we want the logging to be working, and
 		// other serivces ready.
 		time.Sleep(time.Second * 2)
 		Log.MaestroInfof("Maestro startup: Bringing up existing network interfaces.")
@@ -507,16 +500,16 @@ func main() {
 								log.Errorf("time server error. Bad Response")
 								errors++
 							default:
-								log.Errorf("time server error. %d",code)
+								log.Errorf("time server error. %d", code)
 								errors++
 							}
 							if errors > 50 {
 								log.Errorf("Time server is failing. Maestro will start services that needed time verification anyway.")
 								break
-							}							
+							}
 						} else {
 							log.Warningf("Waiting for time subsytem status channel to come up. 2 seconds..")
-							time.Sleep(time.Second*2)
+							time.Sleep(time.Second * 2)
 						}
 					}
 					// TODO: do things even if get time failed
@@ -527,7 +520,7 @@ func main() {
 			} else {
 				log.Errorf("Maestro time server client failed to start.")
 				if err != nil {
-					log.Errorf("Maestro time server client failure details: %s",err.Error())
+					log.Errorf("Maestro time server client failure details: %s", err.Error())
 				}
 			}
 		} else {
@@ -546,8 +539,8 @@ func main() {
 						for n, err := range errs {
 							// if that published record had an error...
 							if err != nil {
-								Log.MaestroErrorf("MDNS config: static record in config file - record %d - error: %s",n,err.Error())
-								log.Errorf("MDNS config: static record in config file - record %d - error: %s",n,err.Error())
+								Log.MaestroErrorf("MDNS config: static record in config file - record %d - error: %s", n, err.Error())
+								log.Errorf("MDNS config: static record in config file - record %d - error: %s", n, err.Error())
 							}
 						}
 					}
@@ -564,38 +557,36 @@ func main() {
 
 	go bringUpIfs()
 
-
 	/*********************************************/
 	/*               Jobs startup                */
 	/*********************************************/
 
 	debugging.DEBUG_OUT("doing InitImageManager()\n")
-	InitImageManager(config.GetScratchPath(),config.GetImagePath())
+	InitImageManager(config.GetScratchPath(), config.GetImagePath())
 	debugging.DEBUG_OUT("doing StartJobConfigManager()\n")
 	configMgr.StartJobConfigManager(config)
 
 	debugging.DEBUG_OUT("doing processes.InitProcessEvents()\n")
 	processes.InitProcessEvents(config.Stats)
 
-	debugging.DEBUG_OUT("starts:%+v\n",config.JobStarts)
-	debugging.DEBUG_OUT("container_templates:%+v\n",config.ContainerTemplates)
+	debugging.DEBUG_OUT("starts:%+v\n", config.JobStarts)
+	debugging.DEBUG_OUT("container_templates:%+v\n", config.ContainerTemplates)
 
 	// First load existing Jobs / Templates from database:
-		
 
 	// config file Jobs / Templates take precedence
 	for i, _ := range config.ContainerTemplates {
 		var container maestroSpecs.ContainerTemplate
 		container = &config.ContainerTemplates[i]
 		if container.IsMutable() {
-			err := DB.UpsertContainerTemplate( container )
+			err := DB.UpsertContainerTemplate(container)
 			if err != nil {
 				log.Errorf("Error on saving job in DB: %s\n", err.Error())
-			}			
+			}
 		} else {
-			debugging.DEBUG_OUT("Immutable: Not storing config file Container: %s\n",container.GetName())			
+			debugging.DEBUG_OUT("Immutable: Not storing config file Container: %s\n", container.GetName())
 		}
-		processes.RegisterContainer( &config.ContainerTemplates[i] )
+		processes.RegisterContainer(&config.ContainerTemplates[i])
 	}
 
 	for i, _ := range config.JobStarts {
@@ -604,86 +595,75 @@ func main() {
 		var job maestroSpecs.JobDefinition
 		job = &config.JobStarts[i]
 		if job.IsMutable() {
-			err := DB.UpsertJob( job )
+			err := DB.UpsertJob(job)
 			if err != nil {
 				log.Errorf("Error on saving job in DB: %s\n", err.Error())
-			}			
+			}
 		} else {
-			debugging.DEBUG_OUT("Immutable: Not storing config file Job: %s\n",job.GetJobName())			
+			debugging.DEBUG_OUT("Immutable: Not storing config file Job: %s\n", job.GetJobName())
 		}
-		processes.RegisterJob( &config.JobStarts[i] )
+		processes.RegisterJob(&config.JobStarts[i])
 	}
 
 	depErr := processes.ValidateJobs()
 
 	if depErr != nil {
-		fmt.Printf("Error in jobs configuration: %s\n",depErr.Error())
+		fmt.Printf("Error in jobs configuration: %s\n", depErr.Error())
 		os.Exit(1)
 	}
-	
+
 	Log.SetGoLoggerReady() // internal logging
 
 	router := httprouter.New()
-    router.GET("/", Index)
-    router.GET("/hello/:name", Hello)
+	router.GET("/", Index)
+	router.GET("/hello/:name", Hello)
 	AddProcessRoutes(router)
-	
 
 	unixEndpoint := new(UnixHttpEndpoint)
 	err = unixEndpoint.Init(config.GetHttpUnixSocket())
 	if err != nil {
-		log.Error("Error on sink start:",err)
+		log.Error("Error on sink start:", err)
 	} else {
 		defer unixEndpoint.Start(router, &waitGroup)
 		debugging.DEBUG_OUT("Started unix socket HTTP endpoint.")
-//		sink.Shutdown()
-//		waitGroup.Wait()
+		//		sink.Shutdown()
+		//		waitGroup.Wait()
 	}
 
-
 	defer processes.StartAllAutoStartJobs()
-
 
 	/*********************************************/
 	/*               RelayMQ start               */
 	/*********************************************/
-	// RelayMQ is used for passing messages between Maestro and some 
+	// RelayMQ is used for passing messages between Maestro and some
 	// services in the cloud
-	
+
 	if config.RelayMQDriver != nil {
 		log.Info("Starting RelayMQDriver...")
 
-		debugging.DEBUG_OUT("\nClientCert [%s]\n\n",config.RelayMQDriver.ClientCertificate)
-
+		debugging.DEBUG_OUT("\nClientCert [%s]\n\n", config.RelayMQDriver.ClientCertificate)
 
 		driver, err := NewRelayMQDriver(config.RelayMQDriver)
 		if err != nil {
-			log.Errorf("Error when creating RelayMQDriver %s\n",err.Error())
+			log.Errorf("Error when creating RelayMQDriver %s\n", err.Error())
 		} else {
 			err = driver.Connect()
 			if err != nil {
-				log.Errorf("Error connecting RelayMQDriver %s\n",err.Error())
+				log.Errorf("Error connecting RelayMQDriver %s\n", err.Error())
 			}
 		}
 	} else {
 		log.Warning("No RelayMQDriver setup!\n")
 	}
-	
-	
-}
 
+}
 
 /**
 
-Unix socket endpoint: 
+Unix socket endpoint:
 
 Basic tests can be done like:
 
 echo -e "GET /hello/John HTTP/1.1\r\nHost: 127.0.0.1\r\n" | socat unix-connect:/tmp/maestroapi.sock STDIO
 
 **/
-
-
-
-
-
