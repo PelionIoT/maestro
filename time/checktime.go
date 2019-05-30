@@ -198,6 +198,7 @@ func (client *TimeClient) Reconfigure(config *ClientConfig) (err error) {
 
 	if !config.NoTLS {
 		client.client = &http.Client{
+			Timeout: 35 * time.Second,
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   30 * time.Second,
@@ -217,6 +218,7 @@ func (client *TimeClient) Reconfigure(config *ClientConfig) (err error) {
 		}
 	} else {
 		client.client = &http.Client{
+			Timeout: 35 * time.Second,
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   30 * time.Second,
@@ -272,10 +274,8 @@ func (client *TimeClient) getTime() (err error, errcode int, ret *timeResponse) 
 
 	if err == nil {
 		resp, err = client.client.Do(req)
-		if err != nil {
-			if resp != nil {
-				defer resp.Body.Close()
-			}
+		if resp != nil {
+			defer resp.Body.Close()
 		}
 		debugging.DEBUG_OUT("TIME --> response +%v\n", resp)
 		if err == nil {

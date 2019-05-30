@@ -340,10 +340,8 @@ func (sndr *statSender) postStats() (err error) {
 
 	if err == nil {
 		resp, err = sndr.client.client.Do(req)
-		if err != nil {
-			if resp != nil {
-				defer resp.Body.Close()
-			}
+		if resp != nil {
+			defer resp.Body.Close()
 		}
 		debugging.DEBUG_OUT("RMI --> response +%v", resp)
 		if err == nil && resp != nil && resp.StatusCode != 200 {
