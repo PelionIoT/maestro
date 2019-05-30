@@ -287,6 +287,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 
 	if !config.NoTLS {
 		ret.client = &http.Client{
+			Timeout: 35 * time.Second,
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   30 * time.Second,
@@ -307,6 +308,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 		}
 	} else {
 		ret.client = &http.Client{
+			Timeout: 35 * time.Second,
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   30 * time.Second,
