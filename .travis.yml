@@ -14,6 +14,9 @@ script:
   # Build maestro
   - ./build.sh
 
+  # Run unit tests
+  - go test "github.com/${TRAVIS_REPO_SLUG}"
+
 
 matrix:
   include:
