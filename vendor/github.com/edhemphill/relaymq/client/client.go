@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"io/ioutil"
 	"strconv"
 	"sync"
 	"time"
@@ -518,12 +519,11 @@ func (client *RelayMQClient) Publish(queue string, message string) error {
 	request.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.httpClient.Do(request)
-
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
+	_,_ = ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("SFDSAFSDA %d\n", resp.StatusCode)

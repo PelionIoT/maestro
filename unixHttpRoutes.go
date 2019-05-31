@@ -210,8 +210,8 @@ func handleGetLatestNetworkEvents(w http.ResponseWriter, r *http.Request, ps htt
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("{\"error\":\"server-not-ready\"}")))
-		defer r.Body.Close()
 	}
+	defer r.Body.Close()
 }
 
 func sendAPIErrorOrAlt(w http.ResponseWriter, err error, alt string, altcode int) {
@@ -276,6 +276,7 @@ func handleBatchOps(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("{\"error\":\"Badly formed\"}"))
 	}
+	defer r.Body.Close()
 
 }
 
@@ -326,6 +327,7 @@ func handleImageOp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("{\"error\":\"Badly formed\"}"))
 	}
+	defer r.Body.Close()
 }
 
 // stubbed out handlers
@@ -408,6 +410,7 @@ func handleJobOp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func handleGetTaskStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 
 }
 
@@ -435,30 +438,43 @@ func handleAllJobStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 }
 
 func handleJobStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleDeleteJob(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleDeleteJobs(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleSignalJob(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleAddContainerTemplate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleDelContainerTemplate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleGetAllContainerTemplates(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleGetContainerTemplate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleChangeContainerTemplate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleSetStatsConfig(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleGetStatsConfig(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleReboot(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 func handleShutdown(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 }
 
 type configResponse struct {
@@ -748,17 +764,17 @@ func handleStartProcess(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 
 // Router for: GET /processStarted/:uuid
 func handleProcessUpAlert(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	defer r.Body.Close()
 }
 
 // Route for: POST /processFailed/:uuid
 func handleProcessFailedAlert(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	defer r.Body.Close()
 }
 
 // Router for: GET /getRunningProcesses
 func handleGetRunningProcesses(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	defer r.Body.Close()
 }
 
 // Router for: GET /lastEvents
@@ -781,5 +797,5 @@ func handleGetLastEvents(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	} else {
 		w.Write(output)
 	}
-
+	defer r.Body.Close()
 }
