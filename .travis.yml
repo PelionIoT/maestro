@@ -7,9 +7,17 @@ env:
     - upstream="armPelionEdge/maestro"
 
 
-# Note: This repo has an unmaintained 'GoDep' index.  Bypassing for now.
-#       https://docs.travis-ci.com/user/languages/go/#godep-support
-install: echo ""
+# GoLang has an odd dependency management scheme.  Imports are hard-linked to
+# their parent repos.  Forked repos therefore must either modify _all_ of their
+# imports, or change their directory naming to match their parent.
+#
+# For reasons that I hope are obvious, we do the latter here.
+install: 
+  - |
+    mkdir -p "../../${upstream}"
+    mv * ".git" "../../${upstream}/"
+    cd "../../${upstream}"
+  
 
 script: 
   # Build dependencies
@@ -19,7 +27,7 @@ script:
   - ./build.sh
 
   # Run unit tests
-  - go test "github.com/${TRAVIS_REPO_SLUG}" || true
+  - go test "github.com/${upstream}" || true
 
 
 matrix:
