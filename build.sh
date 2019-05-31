@@ -23,16 +23,17 @@ trap 'on_err "${BASH_SOURCE}" "${LINENO}" "${BASH_COMMAND}"' ERR
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-  SELF="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
   SOURCE="$(readlink "$SOURCE")"
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 
 THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-pushd $THIS_DIR
 
-if [ \( -n "$DEBUG" \) -o \( -n "$DEBUG2" \) ]; then
+pushd "${THIS_DIR}"
+
+GOTAGS=""
+if [[ -n "${DEBUG:-}" ]] || [[ -n "${DEBUG2:-}" ]]; then
   echo "DEBUG ON"
   GOTAGS="-tags debug"
 	make native.a-debug
@@ -42,22 +43,20 @@ fi
 
 popd
 
+
 # let's get the current commit, and make sure Version() has this.
-COMMIT=`git rev-parse --short=7 HEAD`
-DATE=`date`
+COMMIT=$(git rev-parse --short=7 HEAD)
+DATE=$(date)
 sed -i -e "s/COMMIT_NUMBER/${COMMIT}/g" maestroutils/status.go 
 sed -i -e "s/BUILD_DATE/${DATE}/g" maestroutils/status.go 
 
 # highlight errors: https://serverfault.com/questions/59262/bash-print-stderr-in-red-color
 # color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
 
-if [ "$1" != "preprocess_only" ]; then
-	pushd $GOPATH/bin
-  echo $PWD
-	if [ ! -z "$TIGHT" ]; then
-	    go build $GOTAGS -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
+if [[ "${1:-}" != "preprocess_only" ]]; then
+	if [[ -n "${TIGHT:-}" ]]; then
+	    go build "${GOTAGS}" -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
 	else
-	    go build $GOTAGS "$@" github.com/armPelionEdge/maestro/maestro 
+	    go build "${GOTAGS}" "$@" github.com/armPelionEdge/maestro/maestro 
 	fi
-	popd
 fi
