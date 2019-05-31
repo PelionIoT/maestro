@@ -81,15 +81,15 @@ func main() {
 	configFlag := flag.String("config","./maestro.config","Config path")
 	dumpMetaVars := flag.Bool("dump_meta_vars",false,"Dump config file meta variables only")
 	versionFlag := flag.Bool("version",false,"Dump version information")
-	debugServerFlag := flag.Bool("debug_loopback",false,"Start a debug loopback on http://127.0.0.1:6060")
-	debugMemory := flag.Bool("debug_mem",false,"Debugging memory stats")
+	debugServerFlag := flag.Bool("debug_loopback",true,"Start a debug loopback on http://127.0.0.1:6060")
+	debugMemory := flag.Bool("debug_mem",true,"Debugging memory stats")
 	flag.Parse();
 
-	DebugPprof(*debugServerFlag)
+	debugging.DebugPprof(*debugServerFlag)
 
 	if *debugMemory {
-        DumpMemStats();
-		go RuntimeMemStats(300)
+	        debugging.DumpMemStats();
+		go debugging.RuntimeMemStats(300)
 	}
 
 	if *versionFlag {
