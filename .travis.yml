@@ -14,9 +14,11 @@ env:
 # For reasons that I hope are obvious, we do the latter here.
 install: 
   - |
-    mkdir -p "../../${upstream}"
-    mv * ".git" "../../${upstream}/"
-    cd "../../${upstream}"
+    if [[ "${TRAVIS_REPO_SLUG}" != "${upstream}" ]]; then
+      mkdir -p "../../${upstream}"
+      mv * ".git" "../../${upstream}/"
+      cd "../../${upstream}"
+    fi
   
 
 script: 
