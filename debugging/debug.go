@@ -94,6 +94,7 @@ func RuntimeMemStats(duration int) {
 
 		b, _ := json.Marshal(local)
 		fmt.Println(string(b))
+		fmt.Println("Number of go routines:", runtime.NumGoroutine())
 	}
 }
 
