@@ -26,4 +26,4 @@
 */
 
 #define GREASE_LIB_VERSION "0.1.2"
-#define GREASE_LIB_COMMIT "6cf0b3e"
+#define GREASE_LIB_COMMIT "5b578dd"
