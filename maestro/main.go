@@ -150,8 +150,6 @@ func main() {
 
 	config.FinalizeConfig()
 
-	debugging.DEBUG_OUT("RelayMQ: %+v\n",config.RelayMQDriver)
-	  
 	if *dumpMetaVars {
 		fmt.Printf(" Format: {{VARNAME}} = [[VALUE]]\n\n")
 		dict := maestroConfig.GetGlobalConfigDictionary()
@@ -642,34 +640,6 @@ func main() {
 
 
 	defer processes.StartAllAutoStartJobs()
-
-
-	/*********************************************/
-	/*               RelayMQ start               */
-	/*********************************************/
-	// RelayMQ is used for passing messages between Maestro and some 
-	// services in the cloud
-	
-	if config.RelayMQDriver != nil {
-		log.Info("Starting RelayMQDriver...")
-
-		debugging.DEBUG_OUT("\nClientCert [%s]\n\n",config.RelayMQDriver.ClientCertificate)
-
-
-		driver, err := NewRelayMQDriver(config.RelayMQDriver)
-		if err != nil {
-			log.Errorf("Error when creating RelayMQDriver %s\n",err.Error())
-		} else {
-			err = driver.Connect()
-			if err != nil {
-				log.Errorf("Error connecting RelayMQDriver %s\n",err.Error())
-			}
-		}
-	} else {
-		log.Warning("No RelayMQDriver setup!\n")
-	}
-	
-	
 }
 
 

@@ -42,5 +42,4 @@ const MIN_DISK_SPACE_SCRATCH_DISK = 5 * 1024 * 1024 // in bytes, 5MB
 
 const TASK_SRC_LOCAL = "localsocket"
 
-const TASK_SRC_RELAYMQ = "relaymq"
 

@@ -139,14 +139,6 @@
 			"Rev": "cc9eb1d7ad760af14e8f918698f745e80377af4f"
 		},
 		{
-			"ImportPath": "github.com/edhemphill/relaymq",
-			"Rev": "2e6085cdc6bb3aeaf1a08d32d527309333217f08"
-		},
-		{
-			"ImportPath": "github.com/edhemphill/relaymq/client",
-			"Rev": "2e6085cdc6bb3aeaf1a08d32d527309333217f08"
-		},
-		{
 			"ImportPath": "github.com/go-ole/go-ole",
 			"Comment": "v1.2.2",
 			"Rev": "39dc8486bd0952279431257138bc428275b86797"
