@@ -58,7 +58,6 @@ type YAMLMaestroConfig struct {
 	//	ApiUnixDgramSocket string `yaml:"apiUnixDgramSocket"` // not used yet
 	HttpUnixSocket       string                                  `yaml:"httpUnixSocket"`
 	VarDefs              []SubstVars                             `yaml:"var_defs"`
-	RelayMQDriver        *RelayMQDriverConfig                    `yaml:"relaymq"`
 	TimeServer           *time.ClientConfig                      `yaml:"time_server"`
 	Mdns                 *MdnsSetup                              `yaml:"mdns"`
 	Watchdog             *maestroSpecs.WatchdogConfig            `yaml:"watchdog"`
