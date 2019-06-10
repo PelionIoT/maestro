@@ -344,10 +344,10 @@ func (sndr *statSender) postStats() (err error) {
 	}
 	resp, err = sndr.client.client.Do(req)
 	if err != nil {
-	        log.MaestroErrorf("Error on POST request: %s\n", err.Error())
-                debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
-                return
-        }
+		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
+		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
+		return
+	}
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -359,8 +359,8 @@ func (sndr *statSender) postStats() (err error) {
 		err = newClientError(resp)
 		return
 	}
-        // Read and discard response body
-        _, err = io.Copy(ioutil.Discard, resp.Body)
+	// Read and discard response body
+	_, err = io.Copy(ioutil.Discard, resp.Body)
 
 	return
 }
