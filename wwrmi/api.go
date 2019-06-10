@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"strings"
 	"io"
+	"io/ioutil"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -836,26 +837,33 @@ func (client *Client) postLogs() (err error) {
 	// Client implements io.Reader's Read(), so we do this
 	client.sentBytes = 0
 	req, err = http.NewRequest("POST", client.postLogsUrl, client)
-	//	req.Cancel = c
-
-	if err == nil {
-		resp, err = client.client.Do(req)
-		if err != nil {
-			if resp != nil {
-				defer resp.Body.Close()
-			}
-		}
-		debugging.DEBUG_OUT("RMI --> response +%v",resp)
-		if err == nil && resp != nil && resp.StatusCode != 200 {
-			debugging.DEBUG_OUT("RMI bad response - creating error object\n")
-			bodystring, _ := utils.StringifyReaderWithLimit(resp.Body,300)
-			log.MaestroErrorf("RMI: Error on POST request for logs: Response was %d (Body <%s>)",resp.StatusCode,bodystring)
-			err = newClientError(resp)
-		}
-	} else {
-		log.MaestroErrorf("Error on POST request: %s\n",err.Error())		
+	if err != nil {
+		log.MaestroErrorf("Error on POST request: %s\n",err.Error())
 		debugging.DEBUG_OUT("RMI ERROR: %s\n",err.Error())
+		return
 	}
+
+	resp, err = client.client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		log.MaestroErrorf("Error on POST request: %s\n",err.Error())
+		debugging.DEBUG_OUT("RMI ERROR: %s\n",err.Error())
+		return
+	}
+
+	debugging.DEBUG_OUT("RMI --> response +%v",resp)
+	if resp != nil && resp.StatusCode != 200 {
+		debugging.DEBUG_OUT("RMI bad response - creating error object\n")
+		bodystring, _ := utils.StringifyReaderWithLimit(resp.Body,300)
+		log.MaestroErrorf("RMI: Error on POST request for logs: Response was %d (Body <%s>)",resp.StatusCode,bodystring)
+		err = newClientError(resp)
+		return
+	}
+	// Read and discard response body
+	_, err = io.Copy(ioutil.Discard, resp.Body)
+
 	return
 }
 
