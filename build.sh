@@ -53,10 +53,9 @@ sed -i -e "s/BUILD_DATE/${DATE}/g" maestroutils/status.go
 # highlight errors: https://serverfault.com/questions/59262/bash-print-stderr-in-red-color
 # color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
 
-#Deveopers may have a GOBIN defined. If not define it to current dir.
-if [ -z "$GOBIN" ]
-then
-  GOBIN=.
+#Developers may have a GOBIN defined. If not define it to ./bin
+if [ -z "${GOBIN}" ]; then
+  GOBIN=./bin
 fi
 
 if [[ "${1:-}" != "preprocess_only" ]]; then

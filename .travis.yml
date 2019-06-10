@@ -5,6 +5,7 @@ dist: xenial
 env:
   global:
     - upstream="armPelionEdge/maestro"
+    - GOBIN="./bin"
 
 
 # GoLang has an odd dependency management scheme.  Imports are hard-linked to
