@@ -36,9 +36,9 @@ GOTAGS=""
 if [[ -n "${DEBUG:-}" ]] || [[ -n "${DEBUG2:-}" ]]; then
   echo "DEBUG ON"
   GOTAGS="-tags debug"
-	make native.a-debug
+  make native.a-debug
 else
-	make native.a
+  make native.a
 fi
 
 popd
@@ -53,10 +53,19 @@ sed -i -e "s/BUILD_DATE/${DATE}/g" maestroutils/status.go
 # highlight errors: https://serverfault.com/questions/59262/bash-print-stderr-in-red-color
 # color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
 
+#Deveopers may have a GOBIN defined. If not define it to current dir.
+if [ -z "$GOBIN" ]
+then
+  GOBIN=.
+fi
+
 if [[ "${1:-}" != "preprocess_only" ]]; then
-	if [[ -n "${TIGHT:-}" ]]; then
-	    go build "${GOTAGS}" -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
-	else
-	    go build "${GOTAGS}" "$@" github.com/armPelionEdge/maestro/maestro 
-	fi
+  mkdir -p $GOBIN
+  pushd $GOBIN
+  if [[ -n "${TIGHT:-}" ]]; then
+    go build ${GOTAGS} -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
+  else
+    go build ${GOTAGS} "$@" github.com/armPelionEdge/maestro/maestro 
+  fi
+  popd
 fi

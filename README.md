@@ -68,7 +68,7 @@ export GOBIN="$HOME/work/gostuff/bin"
 export PATH="$PATH:$GOROOT/bin:$GOBIN"
 ```
 
-then just run: `bash ./setup-go.sh` 
+then just run: `source ./setup-go.sh` 
 
 Run your build commands from this sub-shell.
 
@@ -116,7 +116,7 @@ Different subsystems have different test suites. Running these may require root 
 Example, from `$GOPATH/src/github.com/armPelionEdge/maestro`:
 
 ```
-DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo \
+DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo -E \
   LD_LIBRARY_PATH=../vendor/github.com/armPelionEdge/greasego/deps/lib go test -v -run DhcpRequest
 ```
 
