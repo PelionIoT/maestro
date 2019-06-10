@@ -16,24 +16,24 @@ package wwrmi
 // limitations under the License.
 
 import (
-	"net/url"
-	"strings"
-	"io"
-	"io/ioutil"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/armPelionEdge/greasego"
+	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestro/events"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/sysstats"
+	"github.com/armPelionEdge/maestro/utils"
+	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/events"
-	"github.com/armPelionEdge/maestro/sysstats"
-	"github.com/armPelionEdge/maestro/utils"	
-	"github.com/armPelionEdge/greasego"
 )
 
 const (
@@ -46,10 +46,10 @@ const (
 	// amount of stats until we send some
 	statThreshold = 10
 	// the maximum amount of time we will wait until threshold is hit in ms
-//	maxWaitTime = 2500
+	//	maxWaitTime = 2500
 	// the threshold of bytes until we send (unless maxWaitTime passes)
 	byteThreshold = 50 * 20 // say N lines, at Y bytes each
-	// number of buffers to hold logs. Each buffer will hold one callback worth of log entries 
+	// number of buffers to hold logs. Each buffer will hold one callback worth of log entries
 	// from the greasego/greaselib subsystem
 	// Bear in mind greaselib has its own internal rotating buffers
 	// this defaults to NUM_BANKS (4) which is defined in greaseLib/logger.h
@@ -58,23 +58,23 @@ const (
 	// when the target is created
 	// this should be at least 1 less than what NUM_BANKs is set to
 	// so that the internal thread of the logger does not get jammed up
-	// (if it does it will also start to drop logs, since it 
+	// (if it does it will also start to drop logs, since it
 	// will not have any buffers left)
-	defaultMaxBuffers = 10   // max amount of outboundBuffers
+	defaultMaxBuffers = 10 // max amount of outboundBuffers
 	// defaultNumBuffers = 3    // starting amount of outboundBuffer
 	defaultSendTimeThreshold uint32 = 2500 // ms
 	defaultSendSizeThreshold uint32 = 4096 // bytes
 	// defaultBufferSize = 8192 // 8k - outboundBufferSize
-	cmdShutdown = 1
-	cmdSendLogs = 2
+	cmdShutdown  = 1
+	cmdSendLogs  = 2
 	cmdSendStats = 3
 	// commands used by senders
-	sndrSendNow = 1
+	sndrSendNow  = 1
 	sndrShutdown = 0xFF
 	// SysStatsCountThresholdDefault default is 10
 	SysStatsCountThresholdDefault = 10
 	// SysStatsTimeThresholdDefault default is every minute
-	SysStatsTimeThresholdDefault = 60 * 1000  
+	SysStatsTimeThresholdDefault = 60 * 1000
 	// SyStatsMaxSysStatsMaxBufferDefault default is 100
 	SysStatsMaxBufferDefault = 100
 )
@@ -87,11 +87,11 @@ type ctrlToken struct {
 
 type ClientError struct {
 	StatusCode int
-	Status string
+	Status     string
 }
 
 func (err *ClientError) Error() string {
-	return fmt.Sprintf("RMI Client Error: %d - %s",err.StatusCode,err.Status)
+	return fmt.Sprintf("RMI Client Error: %d - %s", err.StatusCode, err.Status)
 }
 
 func newClientError(resp *http.Response) (ret *ClientError) {
@@ -110,7 +110,7 @@ type ClientConfig struct {
 	// by a certificate authority in the default list. If the
 	// server is signed by a certificate authority in the default
 	// list it can be omitted.
-	RootCA []byte	// will be converted to byte array
+	RootCA       []byte // will be converted to byte array
 	RootCAString string `yaml:"root_ca"`
 
 	// The ServerName is also only required if the root ca chain
@@ -129,11 +129,11 @@ type ClientConfig struct {
 	// This is the PEM encoded SSL client certificate. This is required
 	// for all https based client connections. It provides the relay identity
 	// to the server
-	ClientCertificate []byte
+	ClientCertificate       []byte
 	ClientCertificateString string `yaml:"client_cert"`
 	// This is the PEM encoded SSL client private key. This is required
 	// for all https based client connections.
-	ClientKey []byte
+	ClientKey       []byte
 	ClientKeyString string `yaml:"client_key"`
 	// This is the hostname or IP address of the Symphony server
 	Host string `yaml:"host"`
@@ -159,10 +159,10 @@ type ClientConfig struct {
 	DisableSysStats bool `yaml:"disable_sys_stats"`
 	// BufferSize is the size of each of these buffers in bytes
 	//BufferSize uint32 `yaml:"buffer_size"`
-	// SendSizeThreshold is the amount of bytes being held before the 
+	// SendSizeThreshold is the amount of bytes being held before the
 	// worker will start sending
 	SendSizeThreshold uint32 `yaml:"send_size_threshold"`
-	// SendTimeThreshold is the amount of time in milliseconds before the worker 
+	// SendTimeThreshold is the amount of time in milliseconds before the worker
 	// will start sending logs
 	SendTimeThreshold uint32 `yaml:"send_time_threshold"`
 	// SysStatsCountThreshold is the threshold where we will send stats
@@ -184,20 +184,20 @@ type Client struct {
 	client    *http.Client
 	tlsconfig tls.Config
 	// empty logBuffer's to place stuff
-	availableFifo     *logBufferFIFO
+	availableFifo *logBufferFIFO
 	// logBuffer's to send
-	willSendFifo      *logBufferFIFO
+	willSendFifo *logBufferFIFO
 	// logBuffers which are bing sent (but might fail and go back into willSendFifo)
-	sendingFifo       *logBufferFIFO
-	ctrlChan chan *ctrlToken
+	sendingFifo *logBufferFIFO
+	ctrlChan    chan *ctrlToken
 
-	host      string
-	port      int
-	url       string
-	postLogsUrl string
+	host         string
+	port         int
+	url          string
+	postLogsUrl  string
 	postStatsUrl string
 	// numBuffers uint32
-	maxBuffers uint32
+	maxBuffers        uint32
 	sendTimeThreshold uint32
 	sendSizeThreshold uint32
 	// bufferSize uint32
@@ -211,22 +211,22 @@ type Client struct {
 	logWorkerRunning bool
 
 	// if true, then the sendSizeThreshold is ignored
-	// and the sender backs off "backoff" time 
+	// and the sender backs off "backoff" time
 	backingOff bool
-	backoff          time.Duration
+	backoff    time.Duration
 	// TODO callback for when client has failed
-	locker sync.Mutex
+	locker    sync.Mutex
 	waitStart *sync.Cond
 
-	buflocker sync.Mutex
+	buflocker   sync.Mutex
 	readOngoing bool
 	// for sending + queing stats
 	statsSender *statSender
 	// our subscription for sysstats events
 	sysStatsEventSubscription events.EventSubscription
-	sysStatsMaxQueued uint32
-	sysStatsTimeThreshold uint32
-	sysStatsCountThreshold uint32
+	sysStatsMaxQueued         uint32
+	sysStatsTimeThreshold     uint32
+	sysStatsCountThreshold    uint32
 }
 
 // NewClient creates a new client object to the Symphony API server
@@ -249,7 +249,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 		if len(config.ClientKeyString) > 0 {
 			config.ClientKey = []byte(config.ClientKeyString)
 		}
-	}	
+	}
 
 	if config.RootCA != nil {
 		if !rootCAs.AppendCertsFromPEM(config.RootCA) {
@@ -294,7 +294,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 					Timeout:   30 * time.Second,
 					KeepAlive: 30 * time.Second,
 				}).Dial,
-				MaxIdleConnsPerHost: 100,
+				MaxIdleConnsPerHost:   100,
 				TLSHandshakeTimeout:   10 * time.Second,
 				ResponseHeaderTimeout: 10 * time.Second,
 				ExpectContinueTimeout: 1 * time.Second,
@@ -316,7 +316,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 					Timeout:   30 * time.Second,
 					KeepAlive: 30 * time.Second,
 				}).Dial,
-				MaxIdleConnsPerHost: 100,
+				MaxIdleConnsPerHost:   100,
 				TLSHandshakeTimeout:   10 * time.Second,
 				ResponseHeaderTimeout: 10 * time.Second,
 				ExpectContinueTimeout: 1 * time.Second,
@@ -347,16 +347,16 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 	} else {
 		ret.sendTimeThreshold = defaultSendTimeThreshold
 	}
-	// log buffer FIFOs. 
+	// log buffer FIFOs.
 	ret.availableFifo = New_logBufferFIFO(ret.maxBuffers)
-	ret.willSendFifo = New_logBufferFIFO(ret.maxBuffers-1)
-	ret.sendingFifo = New_logBufferFIFO(ret.maxBuffers-1)	
+	ret.willSendFifo = New_logBufferFIFO(ret.maxBuffers - 1)
+	ret.sendingFifo = New_logBufferFIFO(ret.maxBuffers - 1)
 
-	// pre-create all the structs. 
+	// pre-create all the structs.
 	var n uint32
-	for n=0; n < ret.maxBuffers; n++ {
+	for n = 0; n < ret.maxBuffers; n++ {
 		buf := new(logBuffer)
-		ret.availableFifo.Push(buf)		
+		ret.availableFifo.Push(buf)
 	}
 
 	if config.Port == 0 {
@@ -371,20 +371,20 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 	if len(config.UrlLogsEndpoint) > 0 {
 		_, err2 := url.ParseRequestURI(config.UrlLogsEndpoint)
 		if err2 != nil {
-			err = fmt.Errorf("bad parse 'url_logs' config: %s",err2.Error())
+			err = fmt.Errorf("bad parse 'url_logs' config: %s", err2.Error())
 			return
 		}
 		ret.postLogsUrl = config.UrlLogsEndpoint
-		log.MaestroDebugf("RMI: using logs endpoint of %s",ret.postLogsUrl)		
+		log.MaestroDebugf("RMI: using logs endpoint of %s", ret.postLogsUrl)
 	}
 	if len(config.UrlStatsEndpoint) > 0 {
 		_, err2 := url.ParseRequestURI(config.UrlStatsEndpoint)
 		if err2 != nil {
-			err = fmt.Errorf("bad parse 'url_stats' config: %s",err2.Error())
+			err = fmt.Errorf("bad parse 'url_stats' config: %s", err2.Error())
 			return
 		}
 		ret.postStatsUrl = config.UrlStatsEndpoint
-		log.MaestroDebugf("RMI: using stats endpoint of %s",ret.postStatsUrl)
+		log.MaestroDebugf("RMI: using stats endpoint of %s", ret.postStatsUrl)
 	}
 
 	ret.waitStart = sync.NewCond(&ret.locker)
@@ -407,7 +407,6 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 	}
 	return
 }
-
 
 func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byte) (err error) {
 	// client.buflocker.Lock()
@@ -466,7 +465,7 @@ func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byt
 	if client.sendableBytes > client.sendSizeThreshold {
 		client.locker.Unlock()
 		cmd := new(ctrlToken)
-		cmd.code = cmdSendLogs	
+		cmd.code = cmdSendLogs
 		client.ctrlChan <- cmd
 	} else {
 		client.locker.Unlock()
@@ -478,15 +477,15 @@ func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byt
 var _count int
 
 // This is a target callback to assign to the grease subsystem.
-func TargetCB(err *greasego.GreaseError, data *greasego.TargetCallbackData){
+func TargetCB(err *greasego.GreaseError, data *greasego.TargetCallbackData) {
 
 	_count++
-	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
-	if(err != nil) {
+	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n", _count)
+	if err != nil {
 		fmt.Printf("ERROR in toCloud target CB %s\n", err.Str)
 	} else {
 		buf := data.GetBufferAsSlice()
-		debugging.DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,string(buf));
+		debugging.DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n", data, string(buf))
 		client, err2 := GetMainClient(nil)
 		if err2 == nil {
 			client.locker.Lock()
@@ -497,9 +496,9 @@ func TargetCB(err *greasego.GreaseError, data *greasego.TargetCallbackData){
 				return
 			}
 			client.locker.Unlock()
-			client.SubmitLogs(data,buf)
+			client.SubmitLogs(data, buf)
 		} else {
-			log.MaestroErrorf("RMI client not ready! logs will be dropped. details: %s",err2.Error())
+			log.MaestroErrorf("RMI client not ready! logs will be dropped. details: %s", err2.Error())
 			greasego.RetireCallbackData(data)
 		}
 	}
@@ -523,7 +522,7 @@ func (client *Client) Valid() bool {
 	return !client.notValidConfig
 }
 
-// StartWorkers starts any IO workers, and will not return until all workers 
+// StartWorkers starts any IO workers, and will not return until all workers
 // are confirmed as started
 func (client *Client) StartWorkers() (err error) {
 	if client.notValidConfig {
@@ -537,9 +536,6 @@ func (client *Client) StartWorkers() (err error) {
 	client.statsSender.start()
 	return
 }
-
-
-
 
 // func (client *Client) IsLogWorkerRunning() (ret bool) {
 // 	client.locker.Lock()
@@ -566,26 +562,26 @@ func (client *Client) Read(p []byte) (copied int, err error) {
 	remain := len(p)
 	buflen := 0
 	if !client.readOngoing {
-		copy(p[copied:],[]byte("["))
+		copy(p[copied:], []byte("["))
 		copied++
 	}
 	client.readOngoing = true
 	buf := client.willSendFifo.Peek()
 	for buf != nil {
 		debugging.DEBUG_OUT("RMI Read() (logs) to of loop\n")
-		buflen = len(buf.godata) 
+		buflen = len(buf.godata)
 		if copied >= len(p) {
-			client.sentBytes += uint32(copied-1)
+			client.sentBytes += uint32(copied - 1)
 			return
 		}
 		if buflen+1 > remain { // need room for ending ']'
 			// no more room in this Read's p[]
-			client.sentBytes += uint32(copied-1)
+			client.sentBytes += uint32(copied - 1)
 			return
 		}
-		buf = client.willSendFifo.Pop()		
-		// write data to p 
-		copy(p[copied:],buf.godata)
+		buf = client.willSendFifo.Pop()
+		// write data to p
+		copy(p[copied:], buf.godata)
 		copied += buflen
 		remain -= buflen
 		// release the memory it referenced back to the greaseLib
@@ -596,25 +592,23 @@ func (client *Client) Read(p []byte) (copied int, err error) {
 	debugging.DEBUG_OUT("RMI Read() (logs) EOF\n")
 	if copied > 1 {
 		// we ran out of buffers, so say EOF
-		client.sentBytes += uint32(copied-1)
-		copy(p[copied-2:],[]byte("]")) // replace last ',' with ']'
+		client.sentBytes += uint32(copied - 1)
+		copy(p[copied-2:], []byte("]")) // replace last ',' with ']'
 	} else {
 		// it was en empty read. Not what we want (this should not happen)
 		// but let's make it valid JSON
 		if remain > 1 {
-			copy(p[1:],[]byte("]")) // replace last ',' with ']'
+			copy(p[1:], []byte("]")) // replace last ',' with ']'
 			err = errors.New("no data")
 			client.readOngoing = false
 			return
 		}
 	}
-//	debugging.DEBUG_OUT("RMI - READ EOF >>%s<<\n",string(p))
+	//	debugging.DEBUG_OUT("RMI - READ EOF >>%s<<\n",string(p))
 	client.readOngoing = false
 	err = io.EOF
 	return
 }
-
-
 
 // the client worker goroutine
 // does the sending of data to the server
@@ -637,10 +631,10 @@ func (client *Client) clientLogWorker() {
 	client.locker.Unlock()
 
 	var handleErr = func(clienterr error) {
-		debugging.DEBUG_OUT("RMI clientLogWorker.handleErr(%+v)\n",clienterr)
+		debugging.DEBUG_OUT("RMI clientLogWorker.handleErr(%+v)\n", clienterr)
 		if clienterr != nil {
 			errs := clienterr.Error()
-			if strings.HasSuffix(errs,"no data") {
+			if strings.HasSuffix(errs, "no data") {
 				debugging.DEBUG_OUT("handleErr(no data) - NOOP\n")
 				// do nothing. No data was sent.
 				return
@@ -702,13 +696,13 @@ func (client *Client) clientLogWorker() {
 	// 	}
 	// }
 
-	commandLoop:
-	for {		
-		debugging.DEBUG_OUT("RMI clientLogWorker top of for{} (%d)\n",int(timeout))
+commandLoop:
+	for {
+		debugging.DEBUG_OUT("RMI clientLogWorker top of for{} (%d)\n", int(timeout))
 		start = time.Now()
 		select {
 		case <-time.After(timeout):
-			debugging.DEBUG_OUT("RMI triggered - timeout after %d\n",timeout)
+			debugging.DEBUG_OUT("RMI triggered - timeout after %d\n", timeout)
 			err := client.postLogs()
 			handleErr(err)
 
@@ -734,8 +728,8 @@ func (client *Client) clientLogWorker() {
 					if timeout > 10000 {
 						debugging.DEBUG_OUT("RMI ignoring cmdSendLogs\n")
 						continue
-					}	
-					// here to see how well this is working		
+					}
+					// here to see how well this is working
 					debugging.DEBUG_OUT("RMI triggered - (ALMOST IGNORED) cmdSendLogs\n")
 				} else {
 					client.locker.Unlock()
@@ -760,7 +754,7 @@ func (client *Client) clientLogWorker() {
 				client.backoff = timeout
 			}
 			timeout = client.backoff
-			debugging.DEBUG_OUT("RMI send logs is backing off %d ms\n",client.backoff)
+			debugging.DEBUG_OUT("RMI send logs is backing off %d ms\n", client.backoff)
 		}
 		client.locker.Unlock()
 	}
@@ -825,7 +819,6 @@ func (client *Client) clientLogWorker() {
 	client.locker.Unlock()
 }
 
-
 // TODO cancel http requests
 // see: https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 
@@ -833,13 +826,13 @@ func (client *Client) clientLogWorker() {
 func (client *Client) postLogs() (err error) {
 	var req *http.Request
 	var resp *http.Response
-	debugging.DEBUG_OUT("RMI POST %s >>>\n",client.postLogsUrl)
+	debugging.DEBUG_OUT("RMI POST %s >>>\n", client.postLogsUrl)
 	// Client implements io.Reader's Read(), so we do this
 	client.sentBytes = 0
 	req, err = http.NewRequest("POST", client.postLogsUrl, client)
 	if err != nil {
-		log.MaestroErrorf("Error on POST request: %s\n",err.Error())
-		debugging.DEBUG_OUT("RMI ERROR: %s\n",err.Error())
+		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
+		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
 		return
 	}
 
@@ -848,16 +841,16 @@ func (client *Client) postLogs() (err error) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		log.MaestroErrorf("Error on POST request: %s\n",err.Error())
-		debugging.DEBUG_OUT("RMI ERROR: %s\n",err.Error())
+		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
+		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
 		return
 	}
 
-	debugging.DEBUG_OUT("RMI --> response +%v",resp)
+	debugging.DEBUG_OUT("RMI --> response +%v", resp)
 	if resp != nil && resp.StatusCode != 200 {
 		debugging.DEBUG_OUT("RMI bad response - creating error object\n")
-		bodystring, _ := utils.StringifyReaderWithLimit(resp.Body,300)
-		log.MaestroErrorf("RMI: Error on POST request for logs: Response was %d (Body <%s>)",resp.StatusCode,bodystring)
+		bodystring, _ := utils.StringifyReaderWithLimit(resp.Body, 300)
+		log.MaestroErrorf("RMI: Error on POST request for logs: Response was %d (Body <%s>)", resp.StatusCode, bodystring)
 		err = newClientError(resp)
 		return
 	}
@@ -867,12 +860,10 @@ func (client *Client) postLogs() (err error) {
 	return
 }
 
-
-
 // StopWorkers stops any worker routines of the client. The client cane effectively be lost
 // garabage collected afterwards
 func (client *Client) StopWorkers() {
-	client.availableFifo.Shutdown()	
+	client.availableFifo.Shutdown()
 	client.sendingFifo.Shutdown()
 	client.willSendFifo.Shutdown()
 }
