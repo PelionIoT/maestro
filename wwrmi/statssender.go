@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -336,26 +337,31 @@ func (sndr *statSender) postStats() (err error) {
 	// Client implements io.Reader's Read(), so we do this
 	//client.sentBytes = 0
 	req, err = http.NewRequest("POST", sndr.client.postStatsUrl, sndr)
-	//	req.Cancel = c
-
-	if err == nil {
-		resp, err = sndr.client.client.Do(req)
-		if err != nil {
-			if resp != nil {
-				defer resp.Body.Close()
-			}
-		}
-		debugging.DEBUG_OUT("RMI --> response +%v", resp)
-		if err == nil && resp != nil && resp.StatusCode != 200 {
-			bodystring, _ := utils.StringifyReaderWithLimit(resp.Body, 300)
-			log.MaestroErrorf("RMI: Error on POST request for stats: Response was %d (Body <%s>)", resp.StatusCode, bodystring)
-			debugging.DEBUG_OUT("RMI bad response - creating error object\n")
-			err = newClientError(resp)
-		}
-	} else {
+	if err != nil {
 		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
 		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
+		return
 	}
+	resp, err = sndr.client.client.Do(req)
+	if err != nil {
+	        log.MaestroErrorf("Error on POST request: %s\n", err.Error())
+                debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
+                return
+        }
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	debugging.DEBUG_OUT("RMI --> response +%v", resp)
+	if resp != nil && resp.StatusCode != 200 {
+		bodystring, _ := utils.StringifyReaderWithLimit(resp.Body, 300)
+		log.MaestroErrorf("RMI: Error on POST request for stats: Response was %d (Body <%s>)", resp.StatusCode, bodystring)
+		debugging.DEBUG_OUT("RMI bad response - creating error object\n")
+		err = newClientError(resp)
+		return
+	}
+        // Read and discard response body
+        _, err = io.Copy(ioutil.Discard, resp.Body)
+
 	return
 }
 
