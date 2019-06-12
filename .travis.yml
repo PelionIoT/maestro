@@ -31,10 +31,16 @@ script:
 
   # Run unit tests
   - cd "../../${upstream}"
-  - DEBUG=1 DEBUG2=1 ./build.sh && cd sysstats && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v && cd ..
-  - DEBUG=1 DEBUG2=1 ./build.sh && cd maestroConfig && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v && cd ..
-  - DEBUG=1 DEBUG2=1 ./build.sh && cd events && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v && cd ..
-
+  - > 
+    (DEBUG=1 DEBUG2=1 ./build.sh;
+    cd sysstats;
+    LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v;
+    cd ..;
+    cd maestroConfig;
+    LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v;
+    cd ..;
+    )
+  
 matrix:
   include:
 
