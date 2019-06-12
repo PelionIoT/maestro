@@ -1674,6 +1674,15 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 	manager := NewDeferredResponseManager()
 	manager.Start()
 
+	//Wait until the manager is running before subscribing, otherwise we will hang
+	for { 
+		if(manager.running != true) {
+			time.Sleep(1000) 
+		} else {
+			break
+		}
+	}
+
 	// note - you must release the channel before handing to manager
 	// if you want the manager to handle the subscription auto timingout
 	sub.ReleaseChannel()

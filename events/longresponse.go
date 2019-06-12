@@ -499,7 +499,9 @@ func (manager *DeferredResponseManager) AddEventSubscription(sub EventSubscripti
 		manager.responders.Store(id, responder)
 		debug_out("AddEventSubscription - adding id %s", id)
 		// we assigned a new subscription / responder - so call wakeup watcher
+		manager.chanDatMutex.Lock()
 		manager.rebuildIndex()
+		manager.chanDatMutex.Unlock()
 		responder.manager.wakeup()
 		debug_out("AddEventSubscription - rebuilt index and wokeup manager (%s)", id)
 		sub.ReleaseChannel()
