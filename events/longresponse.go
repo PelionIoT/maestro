@@ -340,7 +340,7 @@ func (manager *DeferredResponseManager) waitOnChannels() {
 				}
 				responder.sub.ReleaseChannel()
 			} else {
-				debug_out("Note - channel closed %", responder.sub.GetID())
+				debug_out("Note - channel closed %s", responder.sub.GetID())
 				// TODO remove channel - its been closed
 				closed = true
 				// removeChan(n)

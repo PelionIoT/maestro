@@ -221,7 +221,7 @@ func (channel *eventChannel) getSlaveByID(id string) (ret *slaveChannel, ok bool
 	var ok2 bool
 	var retp interface{}
 	retp, ok = channel.slaves.Load(id)
-	debug_out("Slaves map @ %p %+v, %+v\n", channel.slaves, retp, ok)
+	debug_out("Slaves map @ %v %+v, %+v\n", channel.slaves, retp, ok)
 	if ok {
 		ret, ok2 = retp.(*slaveChannel)
 		if !ok2 {
@@ -265,11 +265,11 @@ func (slave *slaveChannel) Close() {
 	if !slave.closed {
 		slave.closed = true
 		// remove from parent
-		debug_out("Slaves map @ (close) %p - id %s\n", slave.parent.slaves, slave.id)
+		debug_out("Slaves map @ (close) %v - id %s\n", slave.parent.slaves, slave.id)
 		slave.parent.slaves.Delete(slave.id)
 		close(slave.output)
 	} else {
-		debug_out("Slaves map @ (closed already) %p - id %s\n", slave.parent.slaves, slave.id)
+		debug_out("Slaves map @ (closed already) %v - id %s\n", slave.parent.slaves, slave.id)
 	}
 	slave.closingMutex.Unlock()
 }
