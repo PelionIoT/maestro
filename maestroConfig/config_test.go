@@ -16,11 +16,41 @@ package maestroConfig
 // limitations under the License.
 
 import (
+    "fmt"	
     "testing"
+    "log"
+    "strings"
 )
 
 func TestMain(m *testing.M) {
     m.Run()
+}
+
+func TestLoadFromFile(t *testing.T) {
+	config_loader := new(YAMLMaestroConfig)
+	err := config_loader.LoadFromFile("../test-assets/wwrelay-config.yaml")
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("Loaded the config = %+v\n", config_loader)
+	}
+}
+
+func TestConfigVarRead(t *testing.T) {
+	config_loader := new(YAMLMaestroConfig)
+	err := config_loader.LoadFromFile("../test-assets/wwrelay-config.yaml")
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+		t.FailNow()
+	} else {
+		if(strings.Compare(config_loader.ClientId, "WWRL000001") != 0) {
+			fmt.Printf("clientId from config = %+v expected:WWRL000001\n", config_loader.ClientId)
+			t.FailNow()
+		} else {
+			fmt.Printf("clientId from config = %+v\n", config_loader.ClientId)
+		}
+	}
 }
 
 // package main
@@ -97,3 +127,4 @@ func TestMain(m *testing.M) {
     
     
 // }
+
