@@ -19,14 +19,14 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"strings"
-	"sync"
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/stow"
 	"github.com/armPelionEdge/zeroconf"
 	"github.com/boltdb/bolt"
+	"strings"
+	"sync"
 )
 
 // This package implements a small mdns server which is programatically controllable

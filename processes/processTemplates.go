@@ -25,13 +25,13 @@ package processes
 // 	GetExecCmd() string
 // 	GetEnv() []string
 // 	GetPreArgs() []string
-// 	GetPostArgs() []string	
-// 	IsInheritEnv() bool	
+// 	GetPostArgs() []string
+// 	IsInheritEnv() bool
 // 	// The process sends the magic maestro OK string on startup
 // 	// In this case, maestro will wait for this string before setting
 // 	// the job state to RUNNING
 // 	// After this string it will redirect log output
-// 	UsesOkString() bool 
+// 	UsesOkString() bool
 // }
 
 // type JobDefinition interface {
@@ -44,9 +44,9 @@ package processes
 // 	// a string to be sent via stdin on process startup
 // 	GetMessageForProcess() string
 
-// 	// the command to run. If the 
+// 	// the command to run. If the
 // 	GetExecCmd() string
-// 	GetArgs() []string	
+// 	GetArgs() []string
 // 	GetEnv() []string
 // 	GetPgid() int  // a value of zero indicate create a new PGID
 // 	IsInheritEnv() bool
@@ -54,7 +54,7 @@ package processes
 // 	GetDependsOn() []string
 // 	IsAutostart() bool
 // 	GetRestartOnDependencyFail() bool
-// 	IsRestart() bool 
+// 	IsRestart() bool
 // 	GetRestartLimit() uint32
 // 	GetRestartPause() uint32
 

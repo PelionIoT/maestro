@@ -2,4 +2,4 @@
 
 package events
 
-func logEvent(format string, a ...interface{}) { }
+func logEvent(format string, a ...interface{}) {}

@@ -16,27 +16,27 @@ package configMgr
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 type CompositeProcessConfigPayload struct {
-	Moduleconfigs map[string]maestroSpecs.JobDefinition  `json:"moduleconfigs,omitempty"`
-	ProcessConfig string `json:"process_config,omitempty"`
+	Moduleconfigs map[string]maestroSpecs.JobDefinition `json:"moduleconfigs,omitempty"`
+	ProcessConfig string                                `json:"process_config,omitempty"`
 	// this is the path on the local file system to maestro local APIs
 	// It is used for getting configs
 	// Later this will be differentiated from a 'root' socket path
-	// which will allow additional APIs. 
-    MaestroUserSocketPath string `json:"maestro_user_socket_path,omitempty"`
-    // For privleged APIs, which will starting and stopping processes, etc.
-    // UNIMPLEMENTED
-    MaestroRootSocketPath string `json:"maestro_root_socket_path,omitempty"`
+	// which will allow additional APIs.
+	MaestroUserSocketPath string `json:"maestro_user_socket_path,omitempty"`
+	// For privleged APIs, which will starting and stopping processes, etc.
+	// UNIMPLEMENTED
+	MaestroRootSocketPath string `json:"maestro_root_socket_path,omitempty"`
 }
 
 func NewCompositeProcessConfigPayload() (ret *CompositeProcessConfigPayload) {
 	ret = new(CompositeProcessConfigPayload)
 	ret.Moduleconfigs = make(map[string]maestroSpecs.JobDefinition)
-	debugging.DEBUG_OUT("UNIX %s %s\n",JobConfigMgr().globalConfig.GetHttpUnixSocket(), JobConfigMgr().globalConfig.HttpUnixSocket)
+	debugging.DEBUG_OUT("UNIX %s %s\n", JobConfigMgr().globalConfig.GetHttpUnixSocket(), JobConfigMgr().globalConfig.HttpUnixSocket)
 	ret.MaestroUserSocketPath = JobConfigMgr().globalConfig.GetHttpUnixSocket()
 	return
 }

@@ -122,6 +122,7 @@ func showDhcpRequestProgress(state int, addinfo string) (keepgoing bool) {
 }
 
 const DHCP_TEST_INTERFACE_NAME = "wlan1"
+
 func TestDhcpRequest(t *testing.T) {
 
 	var leaseinfo DhcpLeaseInfo

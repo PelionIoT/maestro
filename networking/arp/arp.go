@@ -1,6 +1,5 @@
 package arp
 
-
 import (
 	"bytes"
 	"encoding/binary"
