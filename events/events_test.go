@@ -66,7 +66,7 @@ func (this *testStorageManager) RegisterStorageUser(user storage.StorageUser) {
 		user.StorageInit(this)
 		user.StorageReady(this)
 	} else {
-		log.Fatal("test DB failed.")
+		log.Fatalf("test DB failed.")
 	}
 }
 
@@ -101,7 +101,7 @@ const stop_value = 0xF00D
 func TestFanout1(t *testing.T) {
 	_, id, err := MakeEventChannel("stuff", true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -109,7 +109,7 @@ func TestFanout1(t *testing.T) {
 
 	sub, err := SubscribeToChannel("stuff", 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -137,19 +137,19 @@ func TestFanout1(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 					latchon(hook)
 					// default:
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub.ReleaseChannel()
 		}
@@ -165,11 +165,11 @@ func TestFanout1(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -180,11 +180,11 @@ func TestFanout1(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -195,11 +195,11 @@ func TestFanout1(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -211,7 +211,7 @@ func TestFanout1(t *testing.T) {
 func TestFanout2(t *testing.T) {
 	_, id, err := MakeEventChannel("stuff2", true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -219,7 +219,7 @@ func TestFanout2(t *testing.T) {
 
 	sub, err := SubscribeToChannel("stuff2", 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -247,19 +247,19 @@ func TestFanout2(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 					latchon(hook)
 					// default:
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub.ReleaseChannel()
 		}
@@ -275,11 +275,11 @@ func TestFanout2(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -290,11 +290,11 @@ func TestFanout2(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -305,11 +305,11 @@ func TestFanout2(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -321,7 +321,7 @@ func TestFanout2(t *testing.T) {
 func TestFanout2WithTimeout(t *testing.T) {
 	_, id, err := MakeEventChannel("stuff2timeout", true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -331,7 +331,7 @@ func TestFanout2WithTimeout(t *testing.T) {
 
 	sub, err := SubscribeToChannel("stuff2timeout", timeout)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -359,19 +359,19 @@ func TestFanout2WithTimeout(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 					latchon(hook)
 					// default:
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel timedout?? should be available. wrong.")
+				log.Fatalf("channel timedout?? should be available. wrong.")
 				sub.ReleaseChannel()
 				break
 			}
@@ -389,11 +389,11 @@ func TestFanout2WithTimeout(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -404,11 +404,11 @@ func TestFanout2WithTimeout(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -419,11 +419,11 @@ func TestFanout2WithTimeout(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -435,7 +435,7 @@ func TestFanout2WithTimeout(t *testing.T) {
 func TestFanoutGetSubscription(t *testing.T) {
 	_, id, err := MakeEventChannel("somename", true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -443,7 +443,7 @@ func TestFanoutGetSubscription(t *testing.T) {
 
 	sub, err := SubscribeToChannel("somename", 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -453,9 +453,9 @@ func TestFanoutGetSubscription(t *testing.T) {
 	var ok bool
 	ok, sub = GetSubscription("somename", subid)
 	if !ok {
-		log.Fatal("GetSubscription() call failed!")
+		log.Fatalf("GetSubscription() call failed!")
 	} else if sub == nil {
-		log.Fatal("GetSubscription() returned a nil EventSubscription")
+		log.Fatalf("GetSubscription() returned a nil EventSubscription")
 	}
 
 	// listen := func() {
@@ -482,19 +482,19 @@ func TestFanoutGetSubscription(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 					latchon(hook)
 					// default:
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub.ReleaseChannel()
 		}
@@ -510,11 +510,11 @@ func TestFanoutGetSubscription(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -525,11 +525,11 @@ func TestFanoutGetSubscription(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -540,11 +540,11 @@ func TestFanoutGetSubscription(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -557,7 +557,7 @@ func TestFanout2TimeoutDoesNotHappen(t *testing.T) {
 	channame := "timeouthappens"
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -567,7 +567,7 @@ func TestFanout2TimeoutDoesNotHappen(t *testing.T) {
 
 	sub, err := SubscribeToChannel(channame, timeout)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -598,12 +598,12 @@ func TestFanout2TimeoutDoesNotHappen(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 
 					//					latchon(hook)
@@ -614,7 +614,7 @@ func TestFanout2TimeoutDoesNotHappen(t *testing.T) {
 				sub.ReleaseChannel() // releases GetChannel() call
 				fmt.Printf("past ReleaseChannel\n")
 			} else {
-				log.Fatal("channel timedout?? should be available. Something is wrong.\n")
+				log.Fatalf("channel timedout?? should be available. Something is wrong.\n")
 				//				latchon(hook)
 				break
 			}
@@ -632,11 +632,11 @@ func TestFanout2TimeoutDoesNotHappen(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -647,11 +647,11 @@ func TestFanout2TimeoutDoesNotHappen(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -662,11 +662,11 @@ func TestFanout2TimeoutDoesNotHappen(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -679,7 +679,7 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 	channame := "timeouthappens2"
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -689,7 +689,7 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 
 	sub, err := SubscribeToChannel(channame, timeout)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -711,7 +711,7 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 			time.Sleep(time.Duration(timeout*2) * time.Nanosecond)
 			ok, subchan := sub.GetChannel()
 			if ok {
-				log.Fatal("Wrong. The channel should have timed out.")
+				log.Fatalf("Wrong. The channel should have timed out.")
 				// all code below until end of if{} is unreachable. just leaving for
 				// continuity
 				select {
@@ -724,12 +724,12 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 
 					//					latchon(hook)
@@ -743,7 +743,7 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 				fmt.Printf("channel timedout?? shouldn't be available. OK. 2\n")
 				//				latchon(hook)
 				if !sub.IsClosed() {
-					log.Fatal("Wrong. subcription should now report closed. It timedout.")
+					log.Fatalf("Wrong. subcription should now report closed. It timedout.")
 				}
 				break
 			}
@@ -761,11 +761,11 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -776,11 +776,11 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -791,11 +791,11 @@ func TestFanout2TimeoutDoesHappen(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -808,7 +808,7 @@ func TestBasicSubscribeClose(t *testing.T) {
 	fmt.Printf("Making channel...\n")
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -818,7 +818,7 @@ func TestBasicSubscribeClose(t *testing.T) {
 	fmt.Printf("Subscribing to channel...\n")
 	sub, err := SubscribeToChannel(channame, 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 	fmt.Printf("Past subscribe channel\n")
@@ -831,7 +831,7 @@ func TestBasicSubscribeClose(t *testing.T) {
 	ok, subret := GetSubscription(channame, subid)
 	fmt.Printf("Past GetSubscription %v %v", ok, subret)
 	if ok {
-		log.Fatal("Should not be able to get subscription by ID - should be closed")
+		log.Fatalf("Should not be able to get subscription by ID - should be closed")
 	}
 
 }
@@ -842,7 +842,7 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 	fmt.Printf("Making channel...")
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -853,7 +853,7 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 	fmt.Printf("Subscribing to channel...")
 	sub, err := SubscribeToChannel(channame, timeout)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -880,18 +880,18 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 			ok, sub := GetSubscription(channame, subid)
 
 			if ok {
-				log.Fatal("Should not be able to get subscription by ID - should be timed out")
+				log.Fatalf("Should not be able to get subscription by ID - should be timed out")
 			} else {
 				if sub != nil {
 					log.Printf("not nil, but: %+v\n", sub)
-					log.Fatal("Should return nil if subscription gone.")
+					log.Fatalf("Should return nil if subscription gone.")
 				}
 				return
 			}
 			// just left for context:
 			ok, subchan := sub.GetChannel()
 			if ok {
-				log.Fatal("Wrong. The channel should have timed out.")
+				log.Fatalf("Wrong. The channel should have timed out.")
 				// all code below until end of if{} is unreachable. just leaving for
 				// continuity
 				select {
@@ -904,12 +904,12 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 
 					//					latchon(hook)
@@ -923,7 +923,7 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 				fmt.Printf("channel timedout?? should be available. OK. 2\n")
 				//				latchon(hook)
 				if !sub.IsClosed() {
-					log.Fatal("Wrong. subcription should now report closed. It timedout.")
+					log.Fatalf("Wrong. subcription should now report closed. It timedout.")
 				}
 				break
 			}
@@ -941,11 +941,11 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -956,11 +956,11 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -971,11 +971,11 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -987,7 +987,7 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 func TestFanout2Multi(t *testing.T) {
 	_, id, err := MakeEventChannel("stuff2", true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -995,13 +995,13 @@ func TestFanout2Multi(t *testing.T) {
 
 	sub, err := SubscribeToChannel("stuff2", 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 	sub.ReleaseChannel()
 	sub2, err := SubscribeToChannel("stuff2", 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 	sub2.ReleaseChannel()
@@ -1031,19 +1031,19 @@ func TestFanout2Multi(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 					latchon(hook)
 					// default:
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub.ReleaseChannel()
 		}
@@ -1067,19 +1067,19 @@ func TestFanout2Multi(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 					latchon(hook2)
 					// default:
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub2.ReleaseChannel()
 		}
@@ -1096,11 +1096,11 @@ func TestFanout2Multi(t *testing.T) {
 		needlatch(hook2)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1113,11 +1113,11 @@ func TestFanout2Multi(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1129,11 +1129,11 @@ func TestFanout2Multi(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1145,7 +1145,7 @@ func TestNofanout1(t *testing.T) {
 	chan_name := "stuff3"
 	_, id, err := MakeEventChannel(chan_name, false, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -1153,7 +1153,7 @@ func TestNofanout1(t *testing.T) {
 
 	sub, err := SubscribeToChannel(chan_name, 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 	sub.ReleaseChannel()
@@ -1179,19 +1179,19 @@ func TestNofanout1(t *testing.T) {
 							break listenLoop
 						} else {
 							if sdata.x != x+1 {
-								log.Fatal("Did not get correct data in event.")
+								log.Fatalf("Did not get correct data in event.")
 							}
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 					latchon(hook)
 					// default:
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub.ReleaseChannel()
 		}
@@ -1207,11 +1207,11 @@ func TestNofanout1(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1222,11 +1222,11 @@ func TestNofanout1(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1237,11 +1237,11 @@ func TestNofanout1(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1254,7 +1254,7 @@ func TestNofanout2Multi(t *testing.T) {
 	chan_name := "stuff4"
 	_, id, err := MakeEventChannel(chan_name, false, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -1264,13 +1264,13 @@ func TestNofanout2Multi(t *testing.T) {
 
 	sub, err := SubscribeToChannel(chan_name, 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
 	sub2, err := SubscribeToChannel(chan_name, 0)
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -1298,7 +1298,7 @@ func TestNofanout2Multi(t *testing.T) {
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 				case <-hook:
 					fmt.Println("got 'hook' break")
@@ -1308,7 +1308,7 @@ func TestNofanout2Multi(t *testing.T) {
 					//     latchon(hook)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub.ReleaseChannel()
 		}
@@ -1336,7 +1336,7 @@ func TestNofanout2Multi(t *testing.T) {
 							x = sdata.x
 						}
 					} else {
-						log.Fatal("Failed type assertion")
+						log.Fatalf("Failed type assertion")
 					}
 				case <-hook:
 					fmt.Println("got 'hook' break")
@@ -1347,7 +1347,7 @@ func TestNofanout2Multi(t *testing.T) {
 					//     latchon(hook2)
 				}
 			} else {
-				log.Fatal("channel should be available. wrong.")
+				log.Fatalf("channel should be available. wrong.")
 			}
 			sub2.ReleaseChannel()
 		}
@@ -1363,11 +1363,11 @@ func TestNofanout2Multi(t *testing.T) {
 		//        needlatch(hook)
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1378,11 +1378,11 @@ func TestNofanout2Multi(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1393,11 +1393,11 @@ func TestNofanout2Multi(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1408,11 +1408,11 @@ func TestNofanout2Multi(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1424,11 +1424,11 @@ func TestNofanout2Multi(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 		close(hook)
@@ -1457,7 +1457,7 @@ func TestResponseManager1(t *testing.T) {
 	channame := "Monterrey"
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -1465,7 +1465,7 @@ func TestResponseManager1(t *testing.T) {
 
 	sub, err := SubscribeToChannel(channame, 0) // subscribe with no timeout
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -1478,8 +1478,17 @@ func TestResponseManager1(t *testing.T) {
 	// note - you must release the channel before handing to manager
 	// if you want the manager to handle the subscription auto timingout
 	sub.ReleaseChannel()
-
 	manager.Start()
+
+	//Wait until the manager is running before subscribing, otherwise we will hang
+	for { 
+		if(manager.running != true) {
+			time.Sleep(1000) 
+		} else {
+			break
+		}
+	}
+
 	subid, _, err := manager.AddEventSubscription(sub) // _ is responder
 
 	handler := manager.MakeSubscriptionHttpHandler("test", func(w http.ResponseWriter, req *http.Request) (err error, id string) {
@@ -1504,7 +1513,7 @@ func TestResponseManager1(t *testing.T) {
 	/////////////////
 
 	if err != nil {
-		log.Fatal("Got error from manager.AddEventSubscriotion: %+v", err)
+		log.Fatalf("Got error from manager.AddEventSubscriotion: %+v", err)
 		t.FailNow()
 	}
 
@@ -1529,7 +1538,7 @@ func TestResponseManager1(t *testing.T) {
 			err = json.Unmarshal(inbuf, &inevents)
 
 			if err != nil {
-				log.Fatal("Failed to decode json. --> ", err.Error())
+				log.Fatalf("Failed to decode json. --> %v", err.Error())
 			}
 
 			fmt.Printf("inevents: %+v\n", inevents)
@@ -1547,7 +1556,7 @@ func TestResponseManager1(t *testing.T) {
 					x = ev.Data.X
 				}
 				// } else {
-				// 	log.Fatal("Failed to cast .Data to test 'dat2' type")
+				// 	log.Fatalf("Failed to cast .Data to test 'dat2' type")
 				// }
 			}
 
@@ -1563,19 +1572,19 @@ func TestResponseManager1(t *testing.T) {
 			// 				break listenLoop
 			// 			} else {
 			// 				if sdata.x != x+1 {
-			// 					log.Fatal("Did not get correct data in event.")
+			// 					log.Fatalf("Did not get correct data in event.")
 			// 				}
 			// 				x = sdata.x
 			// 			}
 			// 		} else {
-			// 			log.Fatal("Failed type assertion")
+			// 			log.Fatalf("Failed type assertion")
 			// 		}
 			// 		latchon(hook)
 			// 		// default:
 			// 		//     latchon(hook)
 			// 	}
 			// } else {
-			// 	log.Fatal("channel should be available. wrong.")
+			// 	log.Fatalf("channel should be available. wrong.")
 			// }
 			// sub.ReleaseChannel()
 		}
@@ -1594,7 +1603,7 @@ func TestResponseManager1(t *testing.T) {
 
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: ", err2)
+			log.Fatalf("Error on SubmitEvent channel: %v", err2)
 			t.FailNow()
 		}
 		if dropped {
@@ -1609,7 +1618,7 @@ func TestResponseManager1(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
@@ -1625,7 +1634,7 @@ func TestResponseManager1(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
@@ -1637,6 +1646,7 @@ func TestResponseManager1(t *testing.T) {
 
 }
 
+
 // Test the ResponseManager by creating a subchannel, then a mock server, and simulating a long poll
 // In this case, the client, after getting events, takes 5 seconds to ask for more, and the
 // long response handler times out before this.
@@ -1645,7 +1655,7 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 	channame := "Guadalajara"
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -1653,7 +1663,7 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 
 	sub, err := SubscribeToChannel(channame, 0) // subscribe with no timeout
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -1663,6 +1673,15 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 
 	manager := NewDeferredResponseManager()
 	manager.Start()
+
+	//Wait until the manager is running before subscribing, otherwise we will hang
+	for { 
+		if(manager.running != true) {
+			time.Sleep(1000) 
+		} else {
+			break
+		}
+	}
 
 	// note - you must release the channel before handing to manager
 	// if you want the manager to handle the subscription auto timingout
@@ -1693,7 +1712,7 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 	/////////////////
 
 	if err != nil {
-		log.Fatal("Got error from manager.AddEventSubscriotion: %+v", err)
+		log.Fatalf("Got error from manager.AddEventSubscriotion: %+v", err)
 		t.FailNow()
 	}
 
@@ -1724,16 +1743,16 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 						fmt.Println("Got StatusNoContent")
 						break
 					} else {
-						log.Fatal("Got StatusNoContent but did not get the first 2 data events")
+						log.Fatalf("Got StatusNoContent but did not get the first 2 data events")
 						break
 					}
 				} else {
-					log.Fatal("Got weird StatusCode back %d", res.StatusCode)
+					log.Fatalf("Got weird StatusCode back %d", res.StatusCode)
 				}
 			}
 
 			if err != nil {
-				log.Fatal("Failed to decode json. --> ", err.Error())
+				log.Fatalf("Failed to decode json. --> %v", err.Error())
 			}
 
 			fmt.Printf("inevents: %+v\n", inevents)
@@ -1743,16 +1762,16 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 				fmt.Printf("listener: Got event (%d) %d\n", n, ev.Data.X)
 				if ev.Data.X == stop_value {
 					//					fmt.Printf("got last data\n")
-					log.Fatal("got last data - should not have\n")
+					log.Fatalf("got last data - should not have\n")
 					break listenLoop
 				} else {
 					if ev.Data.X != x+1 {
-						log.Fatal("Did not get correct data in event.")
+						log.Fatalf("Did not get correct data in event.")
 					}
 					x = ev.Data.X
 				}
 				// } else {
-				// 	log.Fatal("Failed to cast .Data to test 'dat2' type")
+				// 	log.Fatalf("Failed to cast .Data to test 'dat2' type")
 				// }
 			}
 
@@ -1778,11 +1797,11 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: ", err2)
+			log.Fatalf("Error on SubmitEvent channel: %v", err2)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1793,11 +1812,11 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1809,11 +1828,11 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -1827,7 +1846,7 @@ func TestResponseManagerTimeout1(t *testing.T) {
 	channame := "Tequila"
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -1835,7 +1854,7 @@ func TestResponseManagerTimeout1(t *testing.T) {
 
 	sub, err := SubscribeToChannel(channame, int64(time.Millisecond*2500)) // subscribe with no timeout
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -1845,6 +1864,15 @@ func TestResponseManagerTimeout1(t *testing.T) {
 
 	manager := NewDeferredResponseManager()
 	manager.Start()
+
+	//Wait until the manager is running before subscribing, otherwise we will hang
+	for { 
+		if(manager.running != true) {
+			time.Sleep(1000) 
+		} else {
+			break
+		}
+	}
 
 	// note - you must release the channel before handing to manager
 	// if you want the manager to handle the subscription auto timingout
@@ -1874,7 +1902,7 @@ func TestResponseManagerTimeout1(t *testing.T) {
 	/////////////////
 
 	if err != nil {
-		log.Fatal("Got error from manager.AddEventSubscriotion: %+v", err)
+		log.Fatalf("Got error from manager.AddEventSubscriotion: %+v", err)
 		t.FailNow()
 	}
 
@@ -1917,12 +1945,12 @@ func TestResponseManagerTimeout1(t *testing.T) {
 						break
 					}
 				} else {
-					log.Fatal("Got weird StatusCode back:", res.StatusCode)
+					log.Fatalf("Got weird StatusCode back: %v", res.StatusCode)
 				}
 			}
 
 			if err != nil {
-				log.Fatal("Failed to decode json. --> ", err.Error())
+				log.Fatalf("Failed to decode json. --> %v", err.Error())
 			}
 
 			fmt.Printf("inevents: %+v\n", inevents)
@@ -1940,7 +1968,7 @@ func TestResponseManagerTimeout1(t *testing.T) {
 					x = ev.Data.X
 				}
 				// } else {
-				// 	log.Fatal("Failed to cast .Data to test 'dat2' type")
+				// 	log.Fatalf("Failed to cast .Data to test 'dat2' type")
 				// }
 			}
 
@@ -1964,7 +1992,7 @@ func TestResponseManagerTimeout1(t *testing.T) {
 
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: ", err2)
+			log.Fatalf("Error on SubmitEvent channel: %v", err2)
 			t.FailNow()
 		}
 		if dropped {
@@ -1979,7 +2007,7 @@ func TestResponseManagerTimeout1(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
@@ -1995,11 +2023,11 @@ func TestResponseManagerTimeout1(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -2015,7 +2043,7 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 	channame := "Hermosillo"
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -2023,7 +2051,7 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 
 	sub, err := SubscribeToChannel(channame, 0) // subscribe with no timeout
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -2033,6 +2061,15 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 
 	manager := NewDeferredResponseManager()
 	manager.Start()
+
+	//Wait until the manager is running before subscribing, otherwise we will hang
+	for { 
+		if(manager.running != true) {
+			time.Sleep(1000) 
+		} else {
+			break
+		}
+	}
 
 	// note - you must release the channel before handing to manager
 	// if you want the manager to handle the subscription auto timingout
@@ -2068,7 +2105,7 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 	/////////////////
 
 	if err != nil {
-		log.Fatal("Got error from manager.AddEventSubscriotion: %+v", err)
+		log.Fatalf("Got error from manager.AddEventSubscriotion: %+v", err)
 		t.FailNow()
 	}
 
@@ -2099,16 +2136,16 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 						fmt.Println("Got StatusNoContent")
 						break
 					} else {
-						log.Fatal("Got StatusNoContent but did not get the first 2 data events")
+						log.Fatalf("Got StatusNoContent but did not get the first 2 data events")
 						break
 					}
 				} else {
-					log.Fatal("Got weird StatusCode back %d", res.StatusCode)
+					log.Fatalf("Got weird StatusCode back %d", res.StatusCode)
 				}
 			}
 
 			if err != nil {
-				log.Fatal("Failed to decode json. --> ", err.Error())
+				log.Fatalf("Failed to decode json. --> %v", err.Error())
 			}
 
 			fmt.Printf("inevents: %+v\n", inevents)
@@ -2122,12 +2159,12 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 					break listenLoop
 				} else {
 					if ev.Data.X != x+1 {
-						log.Fatal("Did not get correct data in event.")
+						log.Fatalf("Did not get correct data in event.")
 					}
 					x = ev.Data.X
 				}
 				// } else {
-				// 	log.Fatal("Failed to cast .Data to test 'dat2' type")
+				// 	log.Fatalf("Failed to cast .Data to test 'dat2' type")
 				// }
 			}
 
@@ -2153,7 +2190,7 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: ", err2)
+			log.Fatalf("Error on SubmitEvent channel: %v", err2)
 			t.FailNow()
 		}
 		if dropped {
@@ -2168,11 +2205,11 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -2184,11 +2221,11 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -2200,7 +2237,7 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 	channame := "Tijuana"
 	_, id, err := MakeEventChannel(channame, true, false)
 	if err != nil {
-		log.Fatal("Error making event channel: %+v", err)
+		log.Fatalf("Error making event channel: %+v", err)
 		t.FailNow()
 	} else {
 		fmt.Printf("master channel created: %s\n", id)
@@ -2208,7 +2245,7 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 
 	sub, err := SubscribeToChannel(channame, int64(time.Millisecond*2500)) // subscribe with no timeout
 	if err != nil {
-		log.Fatal("Subscribe to channel error: %+v", err)
+		log.Fatalf("Subscribe to channel error: %+v", err)
 		t.FailNow()
 	}
 
@@ -2219,6 +2256,15 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 	manager := NewDeferredResponseManager()
 	manager.Start()
 
+	//Wait until the manager is running before subscribing, otherwise we will hang
+	for { 
+		if(manager.running != true) {
+			time.Sleep(1000) 
+		} else {
+			break
+		}
+	}
+    
 	// note - you must release the channel before handing to manager
 	// if you want the manager to handle the subscription auto timingout
 	sub.ReleaseChannel()
@@ -2226,7 +2272,7 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 	subid, _, err := manager.AddEventSubscription(sub) // _ is responder
 
 	router := httprouter.New()
-
+	
 	handler := manager.MakeSubscriptionHttprouterHandler("test", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (err error, id string) {
 		// parts := strings.Split(req.URL.Path, "/")
 		// id = parts[len(parts)-1]
@@ -2251,7 +2297,7 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 	/////////////////
 
 	if err != nil {
-		log.Fatal("Got error from manager.AddEventSubscriotion: %+v", err)
+		log.Fatalf("Got error from manager.AddEventSubscriotion: %+v", err)
 		t.FailNow()
 	}
 
@@ -2278,11 +2324,11 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 			if res.StatusCode != 200 {
 				if res.StatusCode == http.StatusNoContent {
 					if x > 1 {
-						log.Fatal("Got StatusNoContent - should get 404")
+						log.Fatalf("Got StatusNoContent - should get 404")
 						//						fmt.Println("Got StatusNoContent")
 						break
 					} else {
-						log.Fatal("Got StatusNoContent but did not get the first 2 data events")
+						log.Fatalf("Got StatusNoContent but did not get the first 2 data events")
 						break
 					}
 				} else if res.StatusCode == http.StatusNotFound {
@@ -2294,12 +2340,12 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 						break
 					}
 				} else {
-					log.Fatal("Got weird StatusCode back:", res.StatusCode)
+					log.Fatalf("Got weird StatusCode back: %v", res.StatusCode)
 				}
 			}
 
 			if err != nil {
-				log.Fatal("Failed to decode json. --> ", err.Error())
+				log.Fatalf("Failed to decode json. --> %v", err.Error())
 			}
 
 			fmt.Printf("inevents: %+v\n", inevents)
@@ -2341,7 +2387,7 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 
 		dropped, err2 := SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: ", err2)
+			log.Fatalf("Error on SubmitEvent channel: %v", err2)
 			t.FailNow()
 		}
 		if dropped {
@@ -2356,11 +2402,11 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 		fmt.Println("@SubmitEvent 2")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 
@@ -2372,11 +2418,11 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 		fmt.Println("@SubmitEvent end")
 		dropped, err2 = SubmitEvent(names, d)
 		if err2 != nil {
-			log.Fatal("Error on SubmitEvent channel: %+v", err)
+			log.Fatalf("Error on SubmitEvent channel: %+v", err)
 			t.FailNow()
 		}
 		if dropped {
-			log.Fatal("Wrong - should not have dropped")
+			log.Fatalf("Wrong - should not have dropped")
 			t.FailNow()
 		}
 

@@ -340,7 +340,7 @@ func (manager *DeferredResponseManager) waitOnChannels() {
 				}
 				responder.sub.ReleaseChannel()
 			} else {
-				debug_out("Note - channel closed %", responder.sub.GetID())
+				debug_out("Note - channel closed %s", responder.sub.GetID())
 				// TODO remove channel - its been closed
 				closed = true
 				// removeChan(n)
@@ -499,7 +499,9 @@ func (manager *DeferredResponseManager) AddEventSubscription(sub EventSubscripti
 		manager.responders.Store(id, responder)
 		debug_out("AddEventSubscription - adding id %s", id)
 		// we assigned a new subscription / responder - so call wakeup watcher
+		manager.chanDatMutex.Lock()
 		manager.rebuildIndex()
+		manager.chanDatMutex.Unlock()
 		responder.manager.wakeup()
 		debug_out("AddEventSubscription - rebuilt index and wokeup manager (%s)", id)
 		sub.ReleaseChannel()
