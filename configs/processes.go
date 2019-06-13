@@ -16,21 +16,20 @@ package configs
 // limitations under the License.
 
 type ProcessesConfig struct {
-    // specify in milliseconds
-    ReaperInterval int `yaml:"reaper_interval"`
+	// specify in milliseconds
+	ReaperInterval int `yaml:"reaper_interval"`
 }
 
 var ProcessesDefaults *ProcessesConfig
 
 func init() {
-    ProcessesDefaults = &ProcessesConfig{ ReaperInterval: 2000 }
+	ProcessesDefaults = &ProcessesConfig{ReaperInterval: 2000}
 }
 
-func (config *ProcessesConfig) GetReaperInterval() (int) {
-    if config.ReaperInterval > 0 {
-        return config.ReaperInterval
-    } else {
-        return ProcessesDefaults.ReaperInterval
-    }
+func (config *ProcessesConfig) GetReaperInterval() int {
+	if config.ReaperInterval > 0 {
+		return config.ReaperInterval
+	} else {
+		return ProcessesDefaults.ReaperInterval
+	}
 }
-

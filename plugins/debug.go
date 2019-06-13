@@ -2,11 +2,11 @@
 
 package plugins
 
-import(
+import (
 	"fmt"
-	"unsafe"
-	"reflect"
 	"plugin"
+	"reflect"
+	"unsafe"
 )
 
 func InspectPlugin(p *plugin.Plugin) {

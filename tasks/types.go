@@ -16,15 +16,15 @@ package tasks
 // limitations under the License.
 
 import (
-    "github.com/armPelionEdge/hashmap"  // thread-safe, fast hashmaps
+	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
 )
 
-var tasks *hashmap.HashMap // threadsafe hashmap string (taskid): *MaestroTask
+var tasks *hashmap.HashMap    // threadsafe hashmap string (taskid): *MaestroTask
 var handlers *hashmap.HashMap // maps Op.Type : TaskHandler
 var metaTasks *hashmap.HashMap
 
 func setupHashmaps() {
 	tasks = hashmap.New(10)
 	handlers = hashmap.New(10)
-	metaTasks = hashmap.New(10)	
+	metaTasks = hashmap.New(10)
 }

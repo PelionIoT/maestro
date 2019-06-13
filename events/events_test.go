@@ -1481,9 +1481,9 @@ func TestResponseManager1(t *testing.T) {
 	manager.Start()
 
 	//Wait until the manager is running before subscribing, otherwise we will hang
-	for { 
-		if(manager.running != true) {
-			time.Sleep(1000) 
+	for {
+		if manager.running != true {
+			time.Sleep(1000)
 		} else {
 			break
 		}
@@ -1646,7 +1646,6 @@ func TestResponseManager1(t *testing.T) {
 
 }
 
-
 // Test the ResponseManager by creating a subchannel, then a mock server, and simulating a long poll
 // In this case, the client, after getting events, takes 5 seconds to ask for more, and the
 // long response handler times out before this.
@@ -1675,9 +1674,9 @@ func TestResponseManagerClientWaits5Seconds(t *testing.T) {
 	manager.Start()
 
 	//Wait until the manager is running before subscribing, otherwise we will hang
-	for { 
-		if(manager.running != true) {
-			time.Sleep(1000) 
+	for {
+		if manager.running != true {
+			time.Sleep(1000)
 		} else {
 			break
 		}
@@ -1866,9 +1865,9 @@ func TestResponseManagerTimeout1(t *testing.T) {
 	manager.Start()
 
 	//Wait until the manager is running before subscribing, otherwise we will hang
-	for { 
-		if(manager.running != true) {
-			time.Sleep(1000) 
+	for {
+		if manager.running != true {
+			time.Sleep(1000)
 		} else {
 			break
 		}
@@ -2063,9 +2062,9 @@ func TestResponseManagerRouterClientWaits5Seconds(t *testing.T) {
 	manager.Start()
 
 	//Wait until the manager is running before subscribing, otherwise we will hang
-	for { 
-		if(manager.running != true) {
-			time.Sleep(1000) 
+	for {
+		if manager.running != true {
+			time.Sleep(1000)
 		} else {
 			break
 		}
@@ -2257,14 +2256,14 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 	manager.Start()
 
 	//Wait until the manager is running before subscribing, otherwise we will hang
-	for { 
-		if(manager.running != true) {
-			time.Sleep(1000) 
+	for {
+		if manager.running != true {
+			time.Sleep(1000)
 		} else {
 			break
 		}
 	}
-    
+
 	// note - you must release the channel before handing to manager
 	// if you want the manager to handle the subscription auto timingout
 	sub.ReleaseChannel()
@@ -2272,7 +2271,7 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 	subid, _, err := manager.AddEventSubscription(sub) // _ is responder
 
 	router := httprouter.New()
-	
+
 	handler := manager.MakeSubscriptionHttprouterHandler("test", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (err error, id string) {
 		// parts := strings.Split(req.URL.Path, "/")
 		// id = parts[len(parts)-1]

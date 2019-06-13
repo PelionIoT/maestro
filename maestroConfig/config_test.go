@@ -16,14 +16,14 @@ package maestroConfig
 // limitations under the License.
 
 import (
-    "fmt"	
-    "testing"
-    "log"
-    "strings"
+	"fmt"
+	"log"
+	"strings"
+	"testing"
 )
 
 func TestMain(m *testing.M) {
-    m.Run()
+	m.Run()
 }
 
 func TestLoadFromFile(t *testing.T) {
@@ -44,7 +44,7 @@ func TestConfigVarRead(t *testing.T) {
 		log.Fatalf("Failed to load config: %v", err)
 		t.FailNow()
 	} else {
-		if(strings.Compare(config_loader.ClientId, "WWRL000001") != 0) {
+		if strings.Compare(config_loader.ClientId, "WWRL000001") != 0 {
 			fmt.Printf("clientId from config = %+v expected:WWRL000001\n", config_loader.ClientId)
 			t.FailNow()
 		} else {
@@ -66,7 +66,6 @@ func TestConfigVarRead(t *testing.T) {
 
 // var re_findEnvSubs *regexp.Regexp
 // var re_innerEnv *regexp.Regexp
-
 
 // func subInEnvVars(in string, varmap map[string]string) (out string) {
 //  m := re_findEnvSubs.FindAllStringSubmatch(in,-1)
@@ -92,15 +91,14 @@ func TestConfigVarRead(t *testing.T) {
 //              //out = in //string.replace(in,match,"",-1)
 //          }
 //      }
-        
+
 //  }
 // //    else {
-// //       out = in    
+// //       out = in
 // //   }
 //  out = in
 //  return
 // }
-
 
 // func main() {
 //  fmt.Println("Hello, playground")
@@ -108,23 +106,19 @@ func TestConfigVarRead(t *testing.T) {
 //  re_findEnvSubs = regexp.MustCompile(_re_findEnvSubs)
 //  re_innerEnv = regexp.MustCompile(_re_innerEnv)
 
-//  envvars := map[string]string{"PORT": "9001", "MOLY": "moly"}    
+//  envvars := map[string]string{"PORT": "9001", "MOLY": "moly"}
 
-//  var test1 = "https://cloud.com:${PORT|443}" 
-    
+//  var test1 = "https://cloud.com:${PORT|443}"
+
 //  var test2 = "stuff"
 //  var test3 = "holy${MOLY}"
-//  var test4 = "https://cloud.com:${PORT2|1111}"   
-//  var test5 = "something{{}}${ELSE}!" 
-    
-    
+//  var test4 = "https://cloud.com:${PORT2|1111}"
+//  var test5 = "something{{}}${ELSE}!"
+
 //  fmt.Printf("%s --> %s\n",test1,subInEnvVars(test1,envvars));
 //  fmt.Printf("%s --> %s\n",test2,subInEnvVars(test2,envvars));
 //  fmt.Printf("%s --> %s\n",test3,subInEnvVars(test3,envvars));
 //  fmt.Printf("%s --> %s\n",test4,subInEnvVars(test4,envvars));
 //  fmt.Printf("%s --> %s\n",test5,subInEnvVars(test5,envvars));
-    
-    
-    
-// }
 
+// }

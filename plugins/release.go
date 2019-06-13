@@ -2,8 +2,8 @@
 
 package plugins
 
-import(
+import (
 	"plugin"
 )
 
-func InspectPlugin(p *plugin.Plugin) { }
+func InspectPlugin(p *plugin.Plugin) {}
