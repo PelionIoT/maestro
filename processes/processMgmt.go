@@ -1397,141 +1397,121 @@ func sawClosedRedirectedFD() {
 // attempts to reap a child, but does not block
 // a valid PID is returned if a reap happened, otherwise 0
 func ReapChildren() (ret int, status unix.WaitStatus) {
-	ret = 0
-	//	usage := new(unix.Rusage)
+	pid, err := unix.Wait4(-1, &status, const_WNOHANG|const_WUNTRACED|const_WCONTINUED, nil) //usage
+	debugging.DEBUG_OUT("ReapChildren() = %d %d\n", pid, err)
+	if err != nil && err != syscall.Errno(0) {
+		debugging.DEBUG_OUT("ReapChildren(): Skipped main ReapChildren handler %s\n", err.Error())
+		ret = 0
+		return
+	}
 
-	stop := 2
+	if ret = pid; pid <= 0 {
+		debugging.DEBUG_OUT("ReapChildren(): Invalid PID\n")
+		return
+	}
 
-mainReapLoop:
-	for stop > 0 {
-		pid, err := unix.Wait4(-1, &status, const_WNOHANG|const_WUNTRACED|const_WCONTINUED, nil) //usage)
-		debugging.DEBUG_OUT("ReapChildren() = %d %d\n", pid, err)
-		if err == nil || err == syscall.Errno(0) {
-			ret = pid
-			if pid > 0 {
-				now := time.Now()
-				record, ok := GetTrackedProcessByPid(pid)
-				if ok {
-					if status.Exited() {
-						ret = pid
-						ev := new(ProcessEvent)
-						record.ExitValue = status.ExitStatus()
-						ev.ExitVal = record.ExitValue
-						procLogDebugf("Process was reaped. A tracked process shutdown. PID %d - Job [%s] - exit val %d\n", pid, record.Job, record.ExitValue)
-						ev.Name = "process_ended"
-						ev.Pid = pid
-						ev.When = now.UnixNano()
-						record.Stopped = now
-						//			ProcessEvents.Push(ev)
-						SubmitEvent(ev)
-					}
-					debugging.DEBUG_OUT("ReapChildren(): saw signal: %d\n", status.Signal())
-					// For exit status defs, see: https://golang.org/src/syscall/syscall_linux.go?s=5302:5335#L203
-					exited := status.Exited()
+	now := time.Now()
+	record, ok := GetTrackedProcessByPid(pid)
+	if ok {
+		// Check if process exited or stopped
+		// For status -> WaitStatus defs, see: https://golang.org/src/syscall/syscall_linux.go
+		exited := status.Exited() || status.Stopped()
 
-					// Bear in mind, a process could die - from say a 'kill' command, in which
-					// case we would be signaled, but Exited() would not return true.
-					// Confusing, yes. In any case here are the gophers discussing this:
-					// https://github.com/golang/go/issues/19798
+		// Bear in mind, a process could die - from say a 'kill' command, in which
+		// case we would be signaled, but Exited() would not return true.
+		// Confusing, yes. In any case here are the gophers discussing this:
+		// https://github.com/golang/go/issues/19798
 
-					if status.Signaled() {
-						switch status.Signal() {
-						case syscall.SIGTERM:
-							procLogWarnf("Process %d saw signal SIGTERM\n", pid)
-							debugging.DEBUG_OUT("Process %d saw signal SIGTERM\n", pid)
-							stop = 0
-							exited = true
-						case syscall.SIGKILL:
-							procLogErrorf("Process %d saw signal SIGKILL\n", pid)
-							debugging.DEBUG_OUT("Process %d saw signal SIGKILL\n", pid)
-							stop = 0
-							exited = true
-						default:
-							// some other signal, so whatever
-							// May be SIGCHLD, or may be other values
-							// NOTE: on Arm kernels, the expected value seems to change
-							procLogWarnf("Process %d saw signal 0x%x\n", pid, status.Signal())
-							debugging.DEBUG_OUT("Process %d saw signal %x\n", pid, status.Signal()&0xFF)
-							//							continue mainReapLoop
-						}
-					}
-					// if exited || status.Signaled() { //   ?? -->  || status.CoreDump() {
+		if status.Signaled() {
+			switch status.Signal() {
+			case syscall.SIGTERM:
+				procLogWarnf("Process %d saw signal SIGTERM\n", pid)
+				debugging.DEBUG_OUT("Process %d saw signal SIGTERM\n", pid)
+				exited = true
+			case syscall.SIGKILL:
+				procLogErrorf("Process %d saw signal SIGKILL\n", pid)
+				debugging.DEBUG_OUT("Process %d saw signal SIGKILL\n", pid)
+				exited = true
+			default:
+				// some other signal, so whatever
+				// May be SIGCHLD, or may be other values
+				// NOTE: on Arm kernels, the expected value seems to change
+				procLogWarnf("Process %d saw signal 0x%x\n", pid, status.Signal())
+				debugging.DEBUG_OUT("Process %d saw signal %x\n", pid, status.Signal()&0xFF)
+			}
+		}
 
-					// only do any of this, if there was a real exit
-					// not just that we saw a signal
-					if exited {
-						status_p, ok2 := jobsByName.GetStringKey(record.Job)
-						if ok2 {
-							status := (*processStatus)(status_p)
-							status.lock()
-							var internalEv *processEvent
-							if status.status == STOPPING {
-								// expected death
-								internalEv = newProcessEvent(record.Job, internalEvent_job_controlledExit)
-							} else {
-								// unexpected death
-								internalEv = newProcessEvent(record.Job, internalEvent_job_died)
-							}
-							status.status = STOPPED
-							status.unlock()
-							// delete ProcessRecord. Process is gone.
-							RemoveTrackedProcessByPid(pid)
-							controlChan <- internalEv
-						} else {
-							// ok - maybe its a composite process instead:
-							status_p, ok2 := compositeProcessesById.GetStringKey(record.CompId)
-							if ok2 {
-								debugging.DEBUG_OUT("Process PID %d was a composite process. Notifying all internal jobs.\n", pid)
-								procLogWarnf("Process PID %d was a composite process. Notifying all internal jobs.\n", pid)
-								//  Lookup in Composite table instead
-								status := (*processStatus)(status_p)
-								debugging.DEBUG_OUT("AT LOCK - comp process\n")
-								status.lock()
-								debugging.DEBUG_OUT("PAST LOCK - comp process\n")
-								//								var internalEv *processEvent
-								if status.status == STOPPING {
-									// expected death
-									status.sendEventAndSetStatusForCompProcess(STOPPED, internalEvent_job_controlledExit)
-									//									internalEv = newProcessEvent(record.Job, internalEvent_job_controlledExit)
-								} else {
-									// unexpected death
-									status.sendEventAndSetStatusForCompProcess(STOPPED, internalEvent_job_died)
-									// status.sendEventForAllChildren(internalEvent_job_died)
-									//									internalEv = newProcessEvent(record.Job, internalEvent_job_died)
-								}
-								status.unlock()
-								debugging.DEBUG_OUT("PAST UNLOCK - comp process\n")
-								// delete ProcessRecord. Process is gone.
-								RemoveTrackedProcessByPid(pid)
-								//								controlChan <- internalEv
-							} else {
-								stop = 0
-								procLogWarnf("Process was reaped PID %d -> A record was found but no Job / Compid entry was found in the processManager for %s\n", pid, record.Job)
-								debugging.DEBUG_OUT("ReapChildren(): Process was reaped PID %d -> A record was found but no Job / Compid entry was found in the processManager for %s\n", pid, record.Job)
-							}
-						}
-					} else {
-						procLogDebugf("Ignoring process PID %d - signal %d - child did not exit.\n", pid, status.Signal())
-						continue mainReapLoop
-					}
-					// } else {
-					// 	debugging.DEBUG_OUT("ReapChildren(): Process was reaped PID %d -> Status was something else\n")
-					// 	stop--
-					// }
+		if exited {
+			ev := new(ProcessEvent)
+			record.ExitValue = status.ExitStatus()
+			ev.ExitVal = record.ExitValue
+			procLogDebugf("Process was reaped. A tracked process shutdown. PID %d - Job [%s] - exit val %d\n", pid, record.Job, record.ExitValue)
+			ev.Name = "process_ended"
+			ev.Pid = pid
+			ev.When = now.UnixNano()
+			record.Stopped = now
+			SubmitEvent(ev)
+		}
+
+		// only do any of this, if there was a real exit not just that we saw a signal
+		if exited {
+			status_p, ok2 := jobsByName.GetStringKey(record.Job)
+			if ok2 {
+				status := (*processStatus)(status_p)
+				status.lock()
+				var internalEv *processEvent
+				if status.status == STOPPING {
+					// expected death
+					internalEv = newProcessEvent(record.Job, internalEvent_job_controlledExit)
 				} else {
-					procLogWarnf("Process was reaped. A un-tracked process shutdown. PID %d w/ exit val %d\n", pid, status.ExitStatus())
-					debugging.DEBUG_OUT("ReapChildren(): Process was reaped. A un-tracked process shutdown. PID %d w/ exit val %d\n", pid, status.ExitStatus())
-					stop--
+					// unexpected death
+					internalEv = newProcessEvent(record.Job, internalEvent_job_died)
 				}
+				status.status = STOPPED
+				status.unlock()
+				// delete ProcessRecord. Process is gone.
+				RemoveTrackedProcessByPid(pid)
+				controlChan <- internalEv
 			} else {
-				stop--
+				// ok - maybe its a composite process instead:
+				status_p, ok2 := compositeProcessesById.GetStringKey(record.CompId)
+				if ok2 {
+					debugging.DEBUG_OUT("Process PID %d was a composite process. Notifying all internal jobs.\n", pid)
+					procLogWarnf("Process PID %d was a composite process. Notifying all internal jobs.\n", pid)
+					//  Lookup in Composite table instead
+					status := (*processStatus)(status_p)
+					debugging.DEBUG_OUT("AT LOCK - comp process\n")
+					status.lock()
+					debugging.DEBUG_OUT("PAST LOCK - comp process\n")
+					//								var internalEv *processEvent
+					if status.status == STOPPING {
+						// expected death
+						status.sendEventAndSetStatusForCompProcess(STOPPED, internalEvent_job_controlledExit)
+						//									internalEv = newProcessEvent(record.Job, internalEvent_job_controlledExit)
+					} else {
+						// unexpected death
+						status.sendEventAndSetStatusForCompProcess(STOPPED, internalEvent_job_died)
+						// status.sendEventForAllChildren(internalEvent_job_died)
+						//									internalEv = newProcessEvent(record.Job, internalEvent_job_died)
+					}
+					status.unlock()
+					debugging.DEBUG_OUT("PAST UNLOCK - comp process\n")
+					// delete ProcessRecord. Process is gone.
+					RemoveTrackedProcessByPid(pid)
+					// controlChan <- internalEv
+				} else {
+					procLogWarnf("Process was reaped PID %d -> A record was found but no Job / Compid entry was found in the processManager for %s\n", pid, record.Job)
+					debugging.DEBUG_OUT("ReapChildren(): Process was reaped PID %d -> A record was found but no Job / Compid entry was found in the processManager for %s\n", pid, record.Job)
+				}
 			}
 		} else {
-			stop--
-			debugging.DEBUG_OUT("ReapChildren(): Skipped main ReapChildren handler %s\n", err.Error())
-			ret = 0
+			procLogDebugf("Ignoring process PID %d - signal %d - child did not exit.\n", pid, status.Signal())
 		}
+	} else {
+		procLogWarnf("Process was reaped. A un-tracked process shutdown. PID %d w/ exit val %d\n", pid, status.ExitStatus())
+		debugging.DEBUG_OUT("ReapChildren(): Process was reaped. A un-tracked process shutdown. PID %d w/ exit val %d\n", pid, status.ExitStatus())
 	}
+
 	return
 }
 
