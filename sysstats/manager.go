@@ -172,6 +172,7 @@ func continueCheckContext(ctx context.Context) (keepgoing bool, err error) {
 	case <-ctx.Done():
 		err = ctx.Err()
 		keepgoing = false
+		log.MaestroInfof("Stats: ctx.Done")
 	default:
 	}
 	return
@@ -223,7 +224,8 @@ func (mgr *SysStats) OneTimeRun(name string) (stat *StatPayload, err error) {
 	if ok {
 		rstat, ok := rstatP.(RunnableStat)
 		if ok {
-			ctx := context.TODO() // FIXME
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Millisecond)
+			defer cancel()
 			stat, err = rstat.RunStat(ctx, true)
 		} else {
 			err = errors.New("corruption in internal stat runner map")
@@ -243,7 +245,8 @@ func (mgr *SysStats) periodicRunner() {
 		rstat, ok := stat.(RunnableStat)
 		if ok && ok2 {
 			log.MaestroDebugf(logPx+"running stat %s", name)
-			ctx := context.TODO() // FIXME
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Millisecond)
+			defer cancel()
 			data, err := rstat.RunStat(ctx, configChanged)
 			// get stat - put in events channel queue
 			if err == nil {
