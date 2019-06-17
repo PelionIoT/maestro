@@ -54,7 +54,7 @@ sed -i -e "s/BUILD_DATE/${DATE}/g" maestroutils/status.go
 # color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
 
 #Developers may have a GOBIN defined. If not define it to ./bin
-if [ -z "${GOBIN}" ]; then
+if [ -z "${GOBIN:-}" ]; then
   GOBIN=./bin
 fi
 
