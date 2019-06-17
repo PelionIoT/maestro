@@ -59,6 +59,12 @@ char *get_error_str(int _errno) {
 	return ret;
 }
 
+void free_error_str(char *str) {
+	if (NULL != str) {
+		free(str);
+	}
+}
+
 
 pid_t reapChildren() {
 	int status = 0;
@@ -302,6 +308,7 @@ int createChild(char* szCommand,
 		char *errs = get_error_str(errno);
 		DBG_MAESTRO("createChild's child process past execvpe(%s) ERROR: %d %d %s\n",szCommand,nResult,errno,errs);
 		fprintf(stderr,"createChild's child process past execvpe(%s) ERROR: %d %d %s\n",szCommand,nResult,errno,errs);
+		free_error_str(errs);
 
 		// FAILURE...
 
