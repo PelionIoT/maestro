@@ -349,18 +349,21 @@ func AddLevelLabel(val uint32, label string) {
 	cstr := C.CString(label)
 	clen := C.strlen(cstr)
 	C.GreaseLib_addLevelLabel(C.uint32_t(val), cstr, C.int(clen))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func AddTagLabel(val uint32, label string) {
 	cstr := C.CString(label)
 	clen := C.strlen(cstr)
 	C.GreaseLib_addTagLabel(C.uint32_t(val), cstr, C.int(clen))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func AddOriginLabel(val uint32, label string) {
 	cstr := C.CString(label)
 	clen := C.strlen(cstr)
 	C.GreaseLib_addOriginLabel(C.uint32_t(val), cstr, C.int(clen))
+	C.free(unsafe.Pointer(cstr))
 }
 
 // Assigns values to a struct based on StructTags of `greaseAssign` and `greaseType`
@@ -881,102 +884,142 @@ func SetInternalLogOrigin(originid uint32, name string) {
 
 func LogError(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_error, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_error, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogErrorf(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_error, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_error, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogWarning(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_warning, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_warning, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogWarningf(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_warning, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_warning, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogInfo(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_info, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_info, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogInfof(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_info, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_info, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogDebug(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_debug, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_debug, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogDebugf(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_debug, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_debug, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogSuccess(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_success, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_success, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogSuccessf(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_self_meta_success, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_self_meta_success, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogError_noOrigin(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_error, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_error, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogErrorf_noOrigin(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_error, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_error, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogWarning_noOrigin(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_warning, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_warning, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogWarningf_noOrigin(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_warning, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_warning, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogInfo_noOrigin(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_info, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_info, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogInfof_noOrigin(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_info, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_info, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogDebug_noOrigin(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_debug, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_debug, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogDebugf_noOrigin(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_debug, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_debug, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogSuccess_noOrigin(a ...interface{}) {
 	out := fmt.Sprint(a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_success, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_success, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func LogSuccessf_noOrigin(format string, a ...interface{}) {
 	out := fmt.Sprintf(format, a...)
-	C.GreaseLib_logCharBuffer(&C.go_meta_success, C.CString(out), C.int(len(out)))
+	cstr := C.CString(out)
+	C.GreaseLib_logCharBuffer(&C.go_meta_success, cstr, C.int(len(out)))
+	C.free(unsafe.Pointer(cstr))
 }
 
 func GetUnusedTagId() (goret uint32) {
