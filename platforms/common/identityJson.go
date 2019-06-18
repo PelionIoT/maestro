@@ -159,21 +159,21 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 
 			if len(identityData.EthernetMAC) > 0 {
 				if len(identityData.EthernetMAC) != 6 {
-					log.Errorf("Identity file %s has invalid length data for ethernetMAC address", path)
+					log.Errorf("Identity file %s has invalid length data for ethernetMAC address\n", path)
 				} else {
 					var eMac string = convertByteSliceToHexString(identityData.EthernetMAC)
 					if len(eMac) < 12 {
-						log.Errorf("EthernetMAC in identity appears corrupt")
+						log.Error("EthernetMAC in identity appears corrupt")
 					} else {
 						eMac = eMac[:2] + ":" + eMac[2:4] + ":" + eMac[4:6] + ":" + eMac[6:8] + ":" + eMac[8:10] + ":" + eMac[10:12]
 					}
 					dict.AddArch("ETHERNET_MAC", eMac)
 				}
 			} else {
-				log.Warnf("Identity file %s has no ethernetMAC address", path)
+				log.Warnf("Identity file %s has no ethernetMAC address\n", path)
 			}
 			if len(identityData.SixMAC) > 0 && len(identityData.SixMAC) != 8 {
-				log.Errorf("Identity file %s has invalid length data for ethernetMAC address", path)
+				log.Errorf("Identity file %s has invalid length data for ethernetMAC address\n", path)
 			} else {
 				dict.AddArch("SIXLBR_MAC", convertByteSliceToHexString(identityData.SixMAC))
 			}
@@ -192,7 +192,7 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 
 			// Need the Gateway services resources (without protocol), required by devicejs and devicedb configuration
 			if len(identityData.GatewayServicesAddress) < 8 {
-				log.Errorf("GatewayServicesAddress in identity appears corrupt")
+				log.Error("GatewayServicesAddress in identity appears corrupt")
 			} else {
 				identityData.GatewayServicesResource = identityData.GatewayServicesAddress[8:len(identityData.GatewayServicesAddress)]
 			}
@@ -208,17 +208,17 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 			// Untar the mcc_config and save it in userdata
 			mcc, err := hex.DecodeString(identityData.MccConfig)
 			if err != nil {
-				log.Errorf("Failed to decode mcc, error- %s", err)
+				log.Errorf("Failed to decode mcc, error- %s\n", err)
 			} else {
 				err = ioutil.WriteFile(mcc_config_file, []byte(mcc), 0644)
 				if err != nil {
-					log.Errorf("Failed to write %s, Error- %s", mcc_config_file, err)
+					log.Errorf("Failed to write %s, Error- %s\n", mcc_config_file, err)
 				}
 
 				arch := archiver.NewTarGz()
 				err = arch.Unarchive(mcc_config_file, mcc_untar_dir)
 				if err != nil {
-					log.Errorf("Failed to untar mcc_config- %s", err)
+					log.Errorf("Failed to untar mcc_config- %s\n", err)
 				}
 			}
 
@@ -229,7 +229,7 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 					s = fmt.Sprintf("%s", identityData.SSL.Client.Cert)
 					dict.AddArch("CLIENT_CERT_PEM", s)
 				} else {
-					log.Warnf("Identity file %s has no ssl.client info", path)
+					log.Warnf("Identity file %s has no ssl.client info\n", path)
 				}
 				if identityData.SSL.Server != nil {
 					s := fmt.Sprintf("%s", identityData.SSL.Server.Key)
@@ -237,7 +237,7 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 					s = fmt.Sprintf("%s", identityData.SSL.Server.Cert)
 					dict.AddArch("SERVER_CERT_PEM", s)
 				} else {
-					log.Warnf("Identity file %s has no ssl.server info", path)
+					log.Warnf("Identity file %s has no ssl.server info\n", path)
 				}
 				if identityData.SSL.CA != nil {
 					s := fmt.Sprintf("%s", identityData.SSL.CA.Intermediate)
@@ -246,7 +246,7 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 					dict.AddArch("CA_CERT_PEM", s2)
 					dict.AddArch("CA_CHAIN_CERT_PEM", s2+s)
 				} else {
-					log.Warnf("Identity file %s has no ssl.ca info", path)
+					log.Warnf("Identity file %s has no ssl.ca info\n", path)
 				}
 
 			}

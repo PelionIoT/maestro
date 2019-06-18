@@ -111,7 +111,7 @@ func (mgr *Manager) StorageReady(instance storage.MaestroDBStorageInterface) {
 	mgr.db = instance.GetDb()
 	err := mgr.loadAllData()
 	if err != nil {
-		log.MaestroErrorf("mdns manager: Failed to load existing network interface settings: %s", err.Error())
+		log.MaestroErrorf("mdns manager: Failed to load existing network interface settings: %s\n", err.Error())
 	}
 }
 
@@ -190,7 +190,7 @@ func (mgr *Manager) PublishEntry(entry *ConfigEntry) (err error) {
 			existing, ok := actual.(*ConfigEntry)
 			if ok {
 				// ok - there is an existing entry...
-				log.MaestroInfof(logPrefix+"existing mdns record published. stopping and removing. (%s)", hash)
+				log.MaestroInfof(logPrefix+"existing mdns record published. stopping and removing. (%s)\n", hash)
 				if len(existing.servers) > 0 {
 					for _, server := range existing.servers {
 						server.Shutdown()
@@ -199,7 +199,7 @@ func (mgr *Manager) PublishEntry(entry *ConfigEntry) (err error) {
 				existing.servers = nil
 				mgr.published.Store(hash, entry)
 			} else {
-				log.MaestroErrorf(logPrefix + "Possible internal map corruption.")
+				log.MaestroError(logPrefix + "Possible internal map corruption.")
 			}
 		}
 		// publish the said new entry
@@ -245,12 +245,12 @@ func (mgr *Manager) loadAllData() (err error) {
 			// 	this.newInterfaceMutex.Unlock()
 			// 	DEBUG_OUT("loadAllInterfaceData() see if: %s --> %+v\n", ifname, ifdata)
 			// } else {
-			// 	log.MaestroErrorf("networkManager: Critical problem with interface [%s] config. Not loading config.", ifname)
+			// 	log.MaestroErrorf("networkManager: Critical problem with interface [%s] config. Not loading config.\n", ifname)
 			// }
 		} else {
 			err = errors.New("Internal DB corruption")
 			debugging.DEBUG_OUT(logPrefix+"internal DB corruption - @ %s\n", string(key[:]))
-			log.MaestroErrorf(logPrefix + "internal DB corruption")
+			log.MaestroError(logPrefix + "internal DB corruption")
 		}
 		return true
 	}, &temp)
@@ -266,7 +266,7 @@ func (mgr *Manager) LoadFromConfigFile(entries []*ConfigEntry) (allok bool, errs
 		debugging.DEBUG_OUT("mdns: record: %+v\n", entry)
 		err := mgr.PublishEntry(entry)
 		if err != nil {
-			log.MaestroErrorf(logPrefix+"Failed to publish mdns record: %s %s %s - %s", entry.Name, entry.Service, entry.Text, err.Error())
+			log.MaestroErrorf(logPrefix+"Failed to publish mdns record: %s %s %s - %s\n", entry.Name, entry.Service, entry.Text, err.Error())
 			allok = false
 			errs = append(errs, err)
 		} else {

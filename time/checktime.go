@@ -310,7 +310,7 @@ func (client *TimeClient) getTime() (err error, errcode int, ret *timeResponse) 
 			}
 		}
 	} else {
-		log.MaestroErrorf("Error on GET request: %s", err.Error())
+		log.MaestroErrorf("Error on GET request: %s\n", err.Error())
 		debugging.DEBUG_OUT("TIME ERROR: %s\n", err.Error())
 		err = errors.New("Failed to create request")
 		errcode = BadResponse
@@ -322,7 +322,7 @@ func (client *TimeClient) sendToStatusChannel(val int) {
 	select {
 	case client.statusChannel <- val:
 	default:
-		log.MaestroWarnf("time status channel is blocking.")
+		log.MaestroWarn("time status channel is blocking.")
 	}
 }
 
@@ -369,21 +369,21 @@ func (client *TimeClient) worker() {
 				if timeresp.Time > recentTime {
 					timespec := timeToTimeval(timeresp.Time)
 					now := time.Now().UnixNano() / 1000000
-					log.MaestroInfof("Time: time being adjusted. Skew is %d ms", now-timeresp.Time)
+					log.MaestroInfof("Time: time being adjusted. Skew is %d ms\n", now-timeresp.Time)
 					if client.pretend {
-						log.MaestroInfof("Time: time would be set to %d s %d us - but prentending only.", timespec.Sec, timespec.Usec)
+						log.MaestroInfof("Time: time would be set to %d s %d us - but prentending only.\n", timespec.Sec, timespec.Usec)
 					} else {
 						errno := syscall.Settimeofday(&timespec)
 						if errno != nil {
-							log.MaestroErrorf("Time: settimeofday failed: %s", errno.Error())
+							log.MaestroErrorf("Time: settimeofday failed: %s\n", errno.Error())
 							client.sendToStatusChannel(SycallFailed)
 						} else {
-							log.MaestroSuccessf("Time: time of day updated.")
+							log.MaestroSuccess("Time: time of day updated.")
 							client.sendToStatusChannel(SetTimeOk)
 						}
 					}
 				} else {
-					log.MaestroErrorf("Time server reported INSANE time value (%ld) - ignoring.", timeresp.Time)
+					log.MaestroErrorf("Time server reported INSANE time value (%ld) - ignoring.\n", timeresp.Time)
 					client.sendToStatusChannel(InsaneResponse)
 				}
 				// send to status channel

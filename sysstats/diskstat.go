@@ -98,7 +98,7 @@ func (stat *DiskConfig) RunStat(ctx context.Context, configChanged bool) (ret *S
 		for _, item := range stat.IgnoreMountpointsRegex {
 			compiled, err2 := regexp.Compile(item)
 			if err2 != nil {
-				log.MaestroErrorf("Bad regex (will ignore) in stat %s - IgnoreMountpointsRegex: %s", stat.Name, err2.Error())
+				log.MaestroErrorf("Bad regex (will ignore) in stat %s - IgnoreMountpointsRegex: %s\n", stat.Name, err2.Error())
 			} else {
 				stat.blackListedMountsRegex = append(stat.blackListedMountsRegex, compiled)
 			}
@@ -106,7 +106,7 @@ func (stat *DiskConfig) RunStat(ctx context.Context, configChanged bool) (ret *S
 		for _, item := range stat.IgnorePartitionsRegex {
 			compiled, err2 := regexp.Compile(item)
 			if err2 != nil {
-				log.MaestroErrorf("Bad regex (will ignore) in stat %s - IgnorePartitionsRegex: %s", stat.Name, err2.Error())
+				log.MaestroErrorf("Bad regex (will ignore) in stat %s - IgnorePartitionsRegex: %s\n", stat.Name, err2.Error())
 			} else {
 				stat.blackListedPartsRegex = append(stat.blackListedPartsRegex, compiled)
 			}

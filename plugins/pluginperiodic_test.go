@@ -45,19 +45,19 @@ func TestPeriodicStuff(t *testing.T) {
 	testN := 0
 
 	callback := func(param interface{}) {
-		log.Printf("in callback()")
+		log.Println("in callback()")
 		if param != nil {
 			stuff, ok := param.(*teststructs.Stuff)
 			if !ok {
-				log.Fatalf("Ouch - failed to cast to teststructs.Stuff - which is th data type used by the plugin.")
+				log.Fatal("Ouch - failed to cast to teststructs.Stuff - which is th data type used by the plugin.")
 			} else {
 				testN = stuff.PanicAtTheDisco
 				if stuff.PanicAtTheDisco > 10 {
-					log.Printf("Ok, test complete.")
+					log.Println("Ok, test complete.")
 				}
 			}
 		} else {
-			log.Fatalf("Ouch - plugin's callback - param was nil (?)")
+			log.Fatal("Ouch - plugin's callback - param was nil (?)")
 		}
 	}
 
@@ -80,7 +80,7 @@ func TestPeriodicStuff(t *testing.T) {
 	log.Printf("Load from cache ok. 15 second test\n")
 	time.Sleep(15 * time.Second) // need enough time to hit 10
 	if testN < 9 {
-		log.Fatalf("Did not call callbacks enough. (testN == %d)", testN)
+		log.Fatalf("Did not call callbacks enough. (testN == %d)\n", testN)
 	} else {
 		StopPeriodicOfPlugin("../../maestro-plugins-template/testpluginperiodic/testpluginperiodic.so", "CallMePeriodically")
 	}

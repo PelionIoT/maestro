@@ -425,7 +425,7 @@ func GeneratePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, devic
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
 	if err != nil {
-		log.Errorf("Failed to create certificate: %s", err)
+		log.Errorf("Failed to create certificate: %s\n", err)
 		return
 	}
 	out := &bytes.Buffer{}
@@ -444,7 +444,7 @@ func GeneratePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, devic
 func WritePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, key string, cert string, log maestroSpecs.Logger) (err error) {
 	// eepromData, err := read_eeprom(log)
 	// if err != nil {
-	// 	log.Errorf("Failed to read eeprom before writing, error- %s", err)
+	// 	log.Errorf("Failed to read eeprom before writing, error- %s\n", err)
 	// 	return
 	// }
 
@@ -483,12 +483,12 @@ func WritePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, key stri
 	}
 
 	// if err != nil {
-	// 	log.Errorf("Failed to marshal eepromData, error- %s", err)
+	// 	log.Errorf("Failed to marshal eepromData, error- %s\n", err)
 	// 	return
 	// }
 	// err = ioutil.WriteFile("/sys/bus/i2c/devices/1-0050/eeprom", eepromJson, 0600)
 	// if err != nil {
-	// 	log.Errorf("Failed to write eeprom, error- %s", err)
+	// 	log.Errorf("Failed to write eeprom, error- %s\n", err)
 	// 	return
 	// }
 

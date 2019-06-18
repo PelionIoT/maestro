@@ -195,7 +195,7 @@ func SendGratuitous(arp *Gratuitous) error { //, out *int) error {
 	if err != nil {
 		return fmt.Errorf("failed to get interface %q: %v", arp.IfaceName, err)
 	}
-	logDebug("Sending gratuitous ARP for %s (%s) via %s", arp.IP, iface.HardwareAddr, iface.Name)
+	logDebug("Sending gratuitous ARP for %s (%s) via %s\n", arp.IP, iface.HardwareAddr, iface.Name)
 	m, err := gratuitousARPReply(arp.IP, iface.HardwareAddr)
 	if err != nil {
 		return err

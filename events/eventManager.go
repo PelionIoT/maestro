@@ -369,7 +369,7 @@ func (channel *eventChannel) submitEvent(ev *MaestroEvent) (dropped bool, droppe
 		nextev = channel.fifo.Pop()
 	}
 	if dropped {
-		log.MaestroWarnf("EventManager - dropping an event on master channel %s", channel.id)
+		log.MaestroWarnf("EventManager - dropping an event on master channel %s\n", channel.id)
 	}
 	// channel.slaveReadIterLock.Lock()
 	funcSubmitEv := func(key, val interface{}) bool {
@@ -387,9 +387,9 @@ func (channel *eventChannel) submitEvent(ev *MaestroEvent) (dropped bool, droppe
 					logEvent("submitEvent() (fanout) slave --> %s  %+v\n", channel.id, ev)
 				default:
 					// if ok {
-					log.MaestroWarnf("EventManager - dropping an event on slave(fanout) [%s] of channel %s", id, channel.id)
+					log.MaestroWarnf("EventManager - dropping an event on slave(fanout) [%s] of channel %s\n", id, channel.id)
 					// } else {
-					// 	log.MaestroErrorf("EventManager - seems to have corruption in event map")
+					// 	log.MaestroError("EventManager - seems to have corruption in event map")
 					// }
 				}
 			} else {
@@ -401,9 +401,9 @@ func (channel *eventChannel) submitEvent(ev *MaestroEvent) (dropped bool, droppe
 					logEvent("submitEvent() slave --> %s   %+v\n", channel.id, ev)
 				default:
 					// if ok {
-					log.MaestroWarnf("EventManager - dropping an event on slave [%s] of channel %s", id, channel.id)
+					log.MaestroWarnf("EventManager - dropping an event on slave [%s] of channel %s\n", id, channel.id)
 					// } else {
-					// 	log.MaestroErrorf("EventManager - seems to have corruption in event map")
+					// 	log.MaestroError("EventManager - seems to have corruption in event map")
 					// }
 				}
 			}
@@ -439,7 +439,7 @@ func SubmitEvent(channelNames []string, data interface{}) (dropped bool, err err
 				dropped = true
 			}
 			if dropped {
-				log.MaestroWarnf("EventManager - dropping an event on channel %s", name)
+				log.MaestroWarnf("EventManager - dropping an event on channel %s\n", name)
 			}
 		} else {
 			errout := newMaestroEventError("No channel named: " + name)

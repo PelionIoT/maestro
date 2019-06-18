@@ -119,7 +119,7 @@ func GetPlatformVars(dict *templates.TemplateVarDictionary, log maestroSpecs.Log
 	fmt.Printf("PLATFORM_RP200: %d values\n", n)
 
 	if err != nil {
-		log.Errorf("Failed to add struct value: %s", err.Error())
+		log.Errorf("Failed to add struct value: %s\n", err.Error())
 	}
 
 	// to test errors being reported.

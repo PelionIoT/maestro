@@ -302,7 +302,7 @@ func (this *taskManagerInstance) forEachIfTask(cb IfTaskCB) error {
 		if ok {
 			return cb(ty) // true, then we should keep iterating
 		} else {
-			log.MaestroWarn("Possible DB corruption - not castable to MaestroTask\n")
+			log.MaestroWarn("Possible DB corruption - not castable to MaestroTask")
 			return false
 		}
 	}, &temp)
@@ -317,7 +317,7 @@ func (this *taskManagerInstance) deleteIfTask(cb IfTaskCB) error {
 		if ok {
 			return cb(ty) // true, then it should be deleted
 		} else {
-			log.MaestroWarn("Possible DB corruption - not castable to MaestroTask\n")
+			log.MaestroWarn("Possible DB corruption - not castable to MaestroTask")
 			return false
 		}
 	}, &temp)
@@ -734,7 +734,7 @@ func runFinishAck(task *MaestroTask, handler AckHandler) {
 	err := handler.SendFinishedAck(task)
 	if err != nil {
 		debugging.DEBUG_OUT("Task %s ackHandler.SendFinishedAck() failed %s\n", task.Id, err.Error())
-		log.MaestroErrorf("Task %s ackHandler.SendFinishedAck() failed %s", task.Id, err.Error())
+		log.MaestroErrorf("Task %s ackHandler.SendFinishedAck() failed %s\n", task.Id, err.Error())
 	}
 }
 
@@ -742,7 +742,7 @@ func runFailedAck(task *MaestroTask, handler AckHandler) {
 	err := handler.SendFailedAck(task)
 	if err != nil {
 		debugging.DEBUG_OUT("Task %s ackHandler.SendFailedAck() failed %s\n", task.Id, err.Error())
-		log.MaestroErrorf("Task %s ackHandler.SendFailedAck() failed %s", task.Id, err.Error())
+		log.MaestroErrorf("Task %s ackHandler.SendFailedAck() failed %s\n", task.Id, err.Error())
 	}
 }
 

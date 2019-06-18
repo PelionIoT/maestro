@@ -103,7 +103,7 @@ func init() {
 			return
 			// timeout is 20 seconds --> In 20 seconds, if no events, the handler will return StatusNoContent
 		}, func(w http.ResponseWriter, req *http.Request) {
-			log.MaestroErrorf("Error ocurred in longpoll handler for network events.")
+			log.MaestroError("Error ocurred in longpoll handler for network events.")
 		}, nil, 20*time.Second)
 
 		return nil
@@ -141,7 +141,7 @@ func jsonEscape(s string) (ret string) {
 	byts, err := json.Marshal(s)
 	if err != nil {
 		ret = fmt.Sprintf("encode error")
-		log.MaestroErrorf("error encoding JSON: %s", err.Error())
+		log.MaestroErrorf("error encoding JSON: %s\n", err.Error())
 	} else {
 		ret = string(byts)
 	}
@@ -636,11 +636,11 @@ func handlePostJobConfig(w http.ResponseWriter, r *http.Request, ps httprouter.P
 
 			if len(config.Name) < 1 {
 				config.Name = ps.ByName("confname")
-				log.MaestroWarnf("Poorly formed POST /jobConfig. Normalizing Name to %s", config.Name)
+				log.MaestroWarnf("Poorly formed POST /jobConfig. Normalizing Name to %s\n", config.Name)
 			}
 			if len(config.Job) < 1 {
 				config.Job = ps.ByName("jobname")
-				log.MaestroWarnf("Poorly formed POST /jobConfig. Normalizing Job to %s", config.Job)
+				log.MaestroWarnf("Poorly formed POST /jobConfig. Normalizing Job to %s\n", config.Job)
 			}
 
 			err = configMgr.JobConfigMgr().SetConfig(ps.ByName("confname"), ps.ByName("jobname"), &config)
@@ -713,8 +713,7 @@ func handleStartProcess(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	// processes.ExecFile(args[0],args[:],nil,nil)
 
 	log.MaestroInfo("GOT START PROCESS")
-	log.MaestroInfof("GOT START PROCESS %d", 10)
-
+	
 	decoder := json.NewDecoder(r.Body)
 	var msg Msg_StartProcess
 	err := decoder.Decode(&msg)

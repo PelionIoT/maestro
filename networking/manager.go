@@ -236,7 +236,7 @@ func (inst *networkManagerInstance) getDnsBufferForInterface(ifname string) (ret
 	if ok {
 		ret, ok = retI.(*dnsBuf)
 		if !ok {
-			log.MaestroErrorf("NetworkManager: internal error @ getDnsBufferForInterface()")
+			log.MaestroError("NetworkManager: internal error @ getDnsBufferForInterface()")
 		}
 	}
 	return
@@ -277,10 +277,10 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 			// check to make sure its a valid IP, by parsing it using the go net package
 			ip := net.ParseIP(ipS)
 			if ip != nil {
-				log.MaestroDebugf("NetworkManager: adding static DNS entry %s", ipS)
+				log.MaestroDebugf("NetworkManager: adding static DNS entry %s\n", ipS)
 				writer.WriteString(fmt.Sprintf("nameserver %s\n", ipS))
 			} else {
-				log.MaestroErrorf(`NetworkManager: top level config of static 'nameserver' "%s" is not a valid address.`, ipS)
+				log.MaestroErrorf("NetworkManager: top level config of static 'nameserver' %s is not a valid address.\n", ipS)
 			}
 		}
 
@@ -297,7 +297,7 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 			}
 			buf.lock.Unlock()
 		} else {
-			log.MaestroErrorf("NetworkManager: internal error @ finalizeDNS")
+			log.MaestroError("NetworkManager: internal error @ finalizeDNS")
 		}
 		return true
 	}
@@ -306,7 +306,7 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 
 	err = writer.Flush()
 	if err == nil {
-		log.MaestroSuccessf("NetworkManager: wrote out DNS resolv.conf (%s) ok", path)
+		log.MaestroSuccessf("NetworkManager: wrote out DNS resolv.conf (%s) ok\n", path)
 	}
 	debugging.DEBUG_OUT("finalizeDNS() wrote %s ok\n", path)
 	return
@@ -337,7 +337,7 @@ func (this *networkManagerInstance) decIfThreadCount() {
 }
 func (this *networkManagerInstance) waitForActiveInterfaceThreads(timeout_seconds int) (wastimeout bool) {
 	if !this.threadCountEnable {
-		log.MaestroErrorf("NetworkManager: Called waitForActiveInterfaceThreads - threadCountEnable is false!")
+		log.MaestroError("NetworkManager: Called waitForActiveInterfaceThreads - threadCountEnable is false!")
 		return
 	}
 	timeout := time.Second * time.Duration(timeout_seconds)
@@ -346,7 +346,7 @@ func (this *networkManagerInstance) waitForActiveInterfaceThreads(timeout_second
 	select {
 	case cmd := <-this.threadCountChan:
 		if cmd.cmd != no_interface_threads {
-			debugging.DEBUG_OUT("Uknown command entered threadCountChan channel")
+			debugging.DEBUG_OUT("Uknown command entered threadCountChan channel\n")
 		}
 		// break CountLoop
 	case <-time.After(timeout):
@@ -382,7 +382,7 @@ func (this *networkManagerInstance) StorageReady(instance storage.MaestroDBStora
 	this.db = instance.GetDb()
 	err := this.loadAllInterfaceData()
 	if err != nil {
-		log.MaestroErrorf("NetworkManager: Failed to load existing network interface settings: %s", err.Error())
+		log.MaestroErrorf("NetworkManager: Failed to load existing network interface settings: %s\n", err.Error())
 	}
 }
 
@@ -400,7 +400,7 @@ func (this *networkManagerInstance) GetInterfacesAsJson(enabled_only bool, up_on
 		}
 		// ifname := "<interface name>"
 		// ifname, _ = item.Key.(string)
-		// log.MaestroDebugf("NetworkManager: see existing setup for if [%s]", ifname)
+		// log.MaestroDebugf("NetworkManager: see existing setup for if [%s]\n", ifname)
 
 		// if item.Value != nil {
 		ifdata := (*NetworkInterfaceData)(item.Value)
@@ -471,7 +471,7 @@ func resetIfDataFromStoredConfig(netdata *NetworkInterfaceData) error {
 	if netdata.StoredIfconfig != nil {
 		ifconf = netdata.StoredIfconfig
 	} else {
-		log.MaestroWarnf("Interface [%s] does not have a StoredConfig. Why?", netdata.IfName)
+		log.MaestroWarnf("Interface [%s] does not have a StoredConfig. Why?\n", netdata.IfName)
 		if netdata.RunningIfconfig != nil {
 			ifconf = netdata.RunningIfconfig
 		} else {
@@ -495,7 +495,7 @@ func updateIfConfigFromStored(netdata *NetworkInterfaceData) (ok bool, err error
 	if netdata.StoredIfconfig != nil {
 		ok = true
 	} else {
-		log.MaestroErrorf("NetworkManager: CRITICAL updateIfConfigFromStored encountered nil StoredIfconfig")
+		log.MaestroError("NetworkManager: CRITICAL updateIfConfigFromStored encountered nil StoredIfconfig")
 		ok = false
 		err = errors.New("No StoredIfconfig")
 	}
@@ -520,7 +520,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 		err := this.networkConfigDB.Get(ifname, &storedifconfig)
 		if err != nil {
 			if err != stow.ErrNotFound {
-				log.MaestroErrorf("NetworkManager: problem with database on if %s - Get: %s", ifname, err.Error())
+				log.MaestroErrorf("NetworkManager: problem with database on if %s - Get: %s\n", ifname, err.Error())
 			} else {
 				// ret = new(NetworkInterfaceData)
 				// ret.IfName = ifconf.IfName
@@ -528,7 +528,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				this.byInterfaceName.Set(ifname, unsafe.Pointer(newconf))
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
-					log.MaestroErrorf("NetworkManager: Problem (1) storing config for interface [%s]: %s", ifconf.IfName, err)
+					log.MaestroErrorf("NetworkManager: Problem (1) storing config for interface [%s]: %s\n", ifconf.IfName, err)
 				}
 				// // ret.RunningIfconfig = new(maestroSpecs.NetIfConfigPayload)
 				// // ret.RunningIfconfig.IfName = ifname
@@ -547,9 +547,9 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				this.byInterfaceName.Set(ifname, unsafe.Pointer(newconf))
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
-					log.MaestroErrorf("NetworkManager: Problem (2) storing config for interface [%s]: %s", ifconf.IfName, err)
+					log.MaestroErrorf("NetworkManager: Problem (2) storing config for interface [%s]: %s\n", ifconf.IfName, err)
 				} else {
-					log.MaestroInfof("NetworkManager: interface [%s] - setting \"replace\"", ifconf.IfName)
+					log.MaestroInfof("NetworkManager: interface [%s] - setting \"replace\"\n", ifconf.IfName)
 				}
 
 			} else if ifconf.Existing == "override" {
@@ -573,9 +573,9 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				this.byInterfaceName.Set(ifname, unsafe.Pointer(&storedifconfig))
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
-					log.MaestroErrorf("NetworkManager: Problem (3) storing config for interface [%s]: %s", ifconf.IfName, err)
+					log.MaestroErrorf("NetworkManager: Problem (3) storing config for interface [%s]: %s\n", ifconf.IfName, err)
 				} else {
-					log.MaestroInfof("NetworkManager: interface [%s] - setting \"override\"", ifconf.IfName)
+					log.MaestroInfof("NetworkManager: interface [%s] - setting \"override\"\n", ifconf.IfName)
 				}
 
 			} else { // else do nothingm db has priority
@@ -591,7 +591,7 @@ func (this *networkManagerInstance) getIfFromDb(ifname string) (ret *NetworkInte
 	if err != nil {
 		//            debugging.DEBUG_OUT("getOrNewInterfaceData: %s - error %s\n",ifname,err.Error())
 		if err != stow.ErrNotFound {
-			log.MaestroErrorf("NetworkManager: problem with database Get: %s", err.Error())
+			log.MaestroErrorf("NetworkManager: problem with database Get: %s\n", err.Error())
 		}
 	}
 	return
@@ -664,12 +664,12 @@ func (this *networkManagerInstance) loadAllInterfaceData() (err error) {
 				this.newInterfaceMutex.Unlock()
 				debugging.DEBUG_OUT("loadAllInterfaceData() see if: %s --> %+v\n", ifname, ifdata)
 			} else {
-				log.MaestroErrorf("NetworkManager: Critical problem with interface [%s] config. Not loading config.", ifname)
+				log.MaestroErrorf("NetworkManager: Critical problem with interface [%s] config. Not loading config.\n", ifname)
 			}
 		} else {
 			err = errors.New("Internal DB corruption")
 			debugging.DEBUG_OUT("NetworkManager: internal DB corruption - @if %s\n", ifname)
-			log.MaestroErrorf("NetworkManager: internal DB corruption")
+			log.MaestroError("NetworkManager: internal DB corruption")
 		}
 		return true
 	}, &temp)
@@ -711,12 +711,12 @@ func (this *networkManagerInstance) SetupExistingInterfaces(config *maestroSpecs
 		}
 		ifname := "<interface name>"
 		ifname, _ = item.Key.(string)
-		log.MaestroDebugf("NetworkManager: see existing setup for if [%s]", ifname)
+		log.MaestroDebugf("NetworkManager: see existing setup for if [%s]\n", ifname)
 		if item.Value != nil {
 			ifdata := (*NetworkInterfaceData)(item.Value)
 
 			if ifdata == nil {
-				log.MaestroErrorf("NetworkManager: Interface [%s] does not have an interface data structure.", ifname)
+				log.MaestroErrorf("NetworkManager: Interface [%s] does not have an interface data structure.\n", ifname)
 				continue
 			}
 
@@ -725,22 +725,22 @@ func (this *networkManagerInstance) SetupExistingInterfaces(config *maestroSpecs
 			if ifdata.StoredIfconfig != nil {
 				ifconfig = ifdata.StoredIfconfig
 			} else if ifdata.RunningIfconfig != nil {
-				log.MaestroWarnf("NetworkManager: unusual, StoredIfconfig for if [%s] is nil. using RunningIfconfig", ifname)
+				log.MaestroWarnf("NetworkManager: unusual, StoredIfconfig for if [%s] is nil. using RunningIfconfig\n", ifname)
 				ifconfig = ifdata.RunningIfconfig
 			} else {
-				log.MaestroErrorf("NetworkManager: unusual, StoredIfconfig & RunningIfconfig for if [%s] is nil. skipping interface setup", ifname)
+				log.MaestroErrorf("NetworkManager: unusual, StoredIfconfig & RunningIfconfig for if [%s] is nil. skipping interface setup\n", ifname)
 				continue
 			}
 
 			// if ifconfig == nil {
-			//     log.MaestroErrorf("Interface [%s] did not have a valid ifconfig data structure.",ifdata.IfName)
+			//     log.MaestroErrorf("Interface [%s] did not have a valid ifconfig data structure.\n",ifdata.IfName)
 			//     continue
 			// }
 
 			if ifconfig.DhcpV4Enabled {
-				log.MaestroInfof(LOG_PREFIX+"Interface [%s] has DHCP enabled.", ifconfig.IfName)
+				log.MaestroInfof(LOG_PREFIX+"Interface [%s] has DHCP enabled.\n", ifconfig.IfName)
 			} else {
-				log.MaestroInfof(LOG_PREFIX+"Interface [%s] has a static IP config.", ifconfig.IfName)
+				log.MaestroInfof(LOG_PREFIX+"Interface [%s] has a static IP config.\n", ifconfig.IfName)
 			}
 
 			// create an Internal task and submit it
@@ -848,14 +848,14 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 		// the channel can hold one next command
 		ifdata.dhcpWorkerControl = make(chan networkThreadMessage, 1)
 	} else {
-		log.MaestroWarnf("NetworkManager: Can't start DHCP lease routine, as interface '%s' is no longer managed!", ifname)
+		log.MaestroWarnf("NetworkManager: Can't start DHCP lease routine, as interface '%s' is no longer managed!\n", ifname)
 		this.decIfThreadCount()
 		return
 	}
 
 	ifconfig := op.GetIfConfig()
 	if ifconfig == nil {
-		log.MaestroErrorf("NetworkManager: No interface config in operation Can't start DHCP thread for If %s", ifname)
+		log.MaestroErrorf("NetworkManager: No interface config in operation Can't start DHCP thread for If %s\n", ifname)
 		this.decIfThreadCount()
 		return
 	}
@@ -874,7 +874,7 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 	leaseinfo := ifdata.DhcpLease
 
 	if leaseinfo != nil && leaseinfo.IsValid() {
-		//		debugging.DEBUG_OUT("DHCP goDhcp() LEASE IS VALID :)")
+		//		debugging.DEBUG_OUT("DHCP goDhcp() LEASE IS VALID \n")
 		// Step #1
 		// if still have a lease, and the lease is not out yet, then just set the IP
 		// and engage the watcher for the lease
@@ -884,11 +884,11 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 			remainrenewal = leaseinfo.rebindTime - now
 		}
 		if remainrenewal >= 30 {
-			log.MaestroInfof("DHCP lease is still valid. Setting up address, and waiting until renew.")
+			log.MaestroInfo("DHCP lease is still valid. Setting up address, and waiting until renew.")
 			// ifresult, err :=
 			_, err := SetupInterfaceFromLease(ifconfig, leaseinfo)
 			if err != nil {
-				log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease.")
+				log.MaestroError("NetworkManager: Problem setting up from old lease. Will try new lease.")
 				leaseinfo = nil
 				ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease} // rebind?
 			} else {
@@ -898,7 +898,7 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 				nextstate = &networkThreadMessage{cmd: dhcp_renew_lease}
 			}
 		} else {
-			log.MaestroInfof("NetworkManager: DHCP: looks like lease is expired or almost expired. Let's get a new one.")
+			log.MaestroInfo("NetworkManager: DHCP: looks like lease is expired or almost expired. Let's get a new one.")
 			ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease} // rebind?
 		}
 	} else {
@@ -923,12 +923,12 @@ DhcpLoop:
 
 				ok, ifpref, r := this.primaryTable.findPreferredRoute()
 				if ok {
-					log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v", ifpref, r)
+					log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
 					err = this.primaryTable.setPreferredRoute(!this.networkConfig.DontOverrideDefaultRoute)
 					if err == nil {
-						log.MaestroInfof("NetworkManager: set default route to %s %+v", ifpref, r)
+						log.MaestroInfof("NetworkManager: set default route to %s %+v\n", ifpref, r)
 					} else {
-						log.MaestroErrorf("NetworkManager: error setting preferred route: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: error setting preferred route: %s\n", err.Error())
 					}
 				}
 			case state_LOWER_UP:
@@ -944,13 +944,13 @@ DhcpLoop:
 					if ifdata.CurrentIPv4Addr != nil {
 						success, newlease, err := InitRebootDhcpLease(ifname, ifdata.CurrentIPv4Addr, requestopts)
 						if err != nil {
-							log.MaestroErrorf("NetworkManager: DHCP (InitReboot) for '%s' failed: %s", ifname, err.Error())
+							log.MaestroErrorf("NetworkManager: DHCP (InitReboot) for '%s' failed: %s\n", ifname, err.Error())
 							timeout = DHCP_NET_TRANSITION_TIMEOUT
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
 							continue DhcpLoop
 						}
 						if success == dhcp4client.Rejected {
-							nmLogWarnf("DHCP server rejected request. Will try new lease.")
+							nmLogWarnf("DHCP server rejected request. Will try new lease.\n")
 							timeout = DHCP_NET_TRANSITION_TIMEOUT
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
 							continue DhcpLoop
@@ -959,13 +959,13 @@ DhcpLoop:
 							nextstate = &networkThreadMessage{cmd: dhcp_renew_lease}
 							timeout = time.Duration(newlease.renewalTime) * time.Second
 						} else {
-							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed - no lease?", ifname)
+							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed - no lease?\n", ifname)
 							timeout = DHCP_NET_TRANSITION_TIMEOUT
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
 							continue DhcpLoop
 						}
 					} else {
-						log.MaestroWarnf("NetworkManager: DHCP (LOWER_UP) had no current IP! Bumping to discovery.")
+						log.MaestroWarn("NetworkManager: DHCP (LOWER_UP) had no current IP! Bumping to discovery.")
 						timeout = DHCP_NET_TRANSITION_TIMEOUT
 						ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease}
 						continue DhcpLoop
@@ -974,7 +974,7 @@ DhcpLoop:
 					// ok, setup the interface.
 					result, err := SetupInterfaceFromLease(ifdata.RunningIfconfig, newlease)
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease. Details: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease. Details: %s\n", err.Error())
 						leaseinfo = nil
 						ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease} // rebind?
 					} else {
@@ -998,26 +998,26 @@ DhcpLoop:
 					// setup default route
 					routeset, gw, err := setupDefaultRouteInPrimaryTable(this, ifdata.RunningIfconfig, leaseinfo)
 					if routeset {
-						log.MaestroInfof("NetworkManager: default route from DHCP: %s - recorded in primary table", gw)
+						log.MaestroInfof("NetworkManager: default route from DHCP: %s - recorded in primary table\n", gw)
 					}
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: error setting adding default route to primaryTable via DHCP: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: error setting adding default route to primaryTable via DHCP: %s\n", err.Error())
 					}
 					// ok, now finalize the default route
 					this.finalizePrimaryRoutes()
 					// setup DNS
 					dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.networkConfig.DnsIgnoreDhcp)
 					if dnsset {
-						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary", primarydns)
+						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 						ifdata.hadDNS = true
 						err = this.finalizeDns()
 					}
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s\n", err.Error())
 					}
 
 				} else {
-					log.MaestroWarnf("NetworkManager: Stopping DHCP lease renewal, as interface '%s' is no longer managed!", ifname)
+					log.MaestroWarnf("NetworkManager: Stopping DHCP lease renewal, as interface '%s' is no longer managed!\n", ifname)
 					break DhcpLoop
 				}
 
@@ -1032,13 +1032,13 @@ DhcpLoop:
 					if ifdata.DhcpLease != nil {
 						success, newlease, err = RequestOrRenewDhcpLease(ifname, ifdata.DhcpLease, requestopts)
 						if err != nil {
-							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed: %s", ifname, err.Error())
+							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed: %s\n", ifname, err.Error())
 							if err.Error() == "timeout" {
 								// if this was indeed a timeout, let's try a fresh lease.
-								nmLogDebugf("if: %s - Trying to get a fresh lease...", ifname)
+								nmLogDebugf("if: %s - Trying to get a fresh lease...\n", ifname)
 								success, newlease, err = GetFreshDhcpLease(ifname, requestopts)
 								if err != nil {
-									log.MaestroErrorf("NetworkManager: DHCP (fresh lease) for '%s' failed: %s", ifname, err.Error())
+									log.MaestroErrorf("NetworkManager: DHCP (fresh lease) for '%s' failed: %s\n", ifname, err.Error())
 									timeout = DHCP_NETWORK_FAILURE_TIMEOUT_DURATION
 									nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
 									continue DhcpLoop
@@ -1050,7 +1050,7 @@ DhcpLoop:
 							}
 						}
 						if success == dhcp4client.Rejected {
-							nmLogWarnf("DHCP server rejected request. Will try new lease.")
+							nmLogWarnf("DHCP server rejected request. Will try new lease.\n")
 							timeout = DHCP_NETWORK_FAILURE_TIMEOUT_DURATION
 							ifdata.DhcpLease = nil
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
@@ -1058,16 +1058,16 @@ DhcpLoop:
 						}
 					} else {
 						// New lease. Easy, just ask for one
-						nmLogDebugf("No existing lease for if %s. Requesting now.", ifname)
+						nmLogDebugf("No existing lease for if %s. Requesting now.\n", ifname)
 						success, newlease, err = RequestOrRenewDhcpLease(ifname, nil, requestopts)
 						if err != nil {
-							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed: %s", ifname, err.Error())
+							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed: %s\n", ifname, err.Error())
 							timeout = DHCP_NETWORK_FAILURE_TIMEOUT_DURATION
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
 							continue DhcpLoop
 						}
 						if success == dhcp4client.Rejected {
-							nmLogWarnf("DHCP server rejected request. Will try new lease.")
+							nmLogWarnf("DHCP server rejected request. Will try new lease.\n")
 							timeout = DHCP_NETWORK_FAILURE_TIMEOUT_DURATION
 							ifdata.DhcpLease = nil
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
@@ -1076,7 +1076,7 @@ DhcpLoop:
 					}
 
 					if success != dhcp4client.Success {
-						nmLogWarnf("DHCP did not provide an ACK. Will try new lease.")
+						nmLogWarnf("DHCP did not provide an ACK. Will try new lease.\n")
 						timeout = DHCP_NETWORK_FAILURE_TIMEOUT_DURATION
 						ifdata.DhcpLease = nil
 						nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
@@ -1096,7 +1096,7 @@ DhcpLoop:
 
 					result, err := SetupInterfaceFromLease(ifdata.RunningIfconfig, newlease)
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease. Details: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease. Details: %s\n", err.Error())
 						leaseinfo = nil
 						ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease} // rebind?
 					} else {
@@ -1106,7 +1106,7 @@ DhcpLoop:
 							ifdata.CurrentIPv4Addr = result.ipv4
 							ifdata.DhcpLease = newlease
 							leaseinfo = newlease
-							log.MaestroDebugf("NetworkManager: Committing if data %s", ifname)
+							log.MaestroDebugf("NetworkManager: Committing if data %s\n", ifname)
 							this.commitInterfaceData(ifname)
 						}
 						nextstate = &networkThreadMessage{cmd: dhcp_renew_lease}
@@ -1125,9 +1125,9 @@ DhcpLoop:
 								IP:        result.ipv4,
 							})
 							if arperr != nil {
-								nmLogErrorf("Erroring sending gratuitous ARP: %s", arperr.Error())
+								nmLogErrorf("Erroring sending gratuitous ARP: %s\n", arperr.Error())
 							} else {
-								nmLogDebugf("Gratuitous ARP sent for IP %s", result.IPV4)
+								nmLogDebugf("Gratuitous ARP sent for IP %s\n", result.IPV4)
 							}
 						} else {
 							nmLogErrorf("SetupInterfaceFromLease() has invalid results array or no address for if %s", ifname)
@@ -1140,19 +1140,19 @@ DhcpLoop:
 						// setup default route
 						routeset, gw, err := setupDefaultRouteInPrimaryTable(this, ifdata.RunningIfconfig, leaseinfo)
 						if routeset {
-							log.MaestroInfof("NetworkManager: default route from DHCP: %s - recorded in primary table", gw)
+							log.MaestroInfof("NetworkManager: default route from DHCP: %s - recorded in primary table\n", gw)
 						}
 						if err != nil {
-							log.MaestroErrorf("NetworkManager: error setting adding default route to primaryTable via DHCP: %s", err.Error())
+							log.MaestroErrorf("NetworkManager: error setting adding default route to primaryTable via DHCP: %s\n", err.Error())
 						}
 						// ok, now finalize the default route
 						this.finalizePrimaryRoutes()
 						// ok, ifpref, r := this.primaryTable.findPreferredRoute()
 						// if ok {
-						// 	log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v", ifpref, r)
+						// 	log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
 						// 	err = this.primaryTable.setPreferredRoute()
 						// 	if err == nil {
-						// 		log.MaestroInfof("NetworkManager: set default route to %s %+v", ifpref, r)
+						// 		log.MaestroInfof("NetworkManager: set default route to %s %+v\n", ifpref, r)
 						// 	} else {
 						// 		log.MaestroErrorf("NetworkManager: error setting preferred route: %s", err.Error())
 						// 	}
@@ -1161,17 +1161,17 @@ DhcpLoop:
 						// setup DNS
 						dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.networkConfig.DnsIgnoreDhcp)
 						if dnsset {
-							log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary", primarydns)
+							log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 							ifdata.hadDNS = true
 							err = this.finalizeDns()
 						}
 						if err != nil {
-							log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s", err.Error())
+							log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s\n", err.Error())
 						}
 					}
 
 				} else {
-					log.MaestroWarnf("NetworkManager: Stopping DHCP lease request, as interface '%s' is no longer managed!", ifname)
+					log.MaestroWarnf("NetworkManager: Stopping DHCP lease request, as interface '%s' is no longer managed!\n", ifname)
 					break DhcpLoop
 				}
 			case dhcp_renew_lease:
@@ -1183,13 +1183,13 @@ DhcpLoop:
 					if ifdata.DhcpLease != nil {
 						success, newlease, err = RenewFromServer(ifname, ifdata.DhcpLease, requestopts)
 						if err != nil {
-							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed: %s", ifname, err.Error())
+							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed: %s\n", ifname, err.Error())
 							timeout = DHCP_NETWORK_FAILURE_TIMEOUT_DURATION
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
 							continue DhcpLoop
 						}
 						if success == dhcp4client.Rejected {
-							nmLogWarnf("DHCP server rejected renewal request. Will try new lease.")
+							nmLogWarnf("DHCP server rejected renewal request. Will try new lease.\n")
 							timeout = DHCP_NET_TRANSITION_TIMEOUT
 							ifdata.DhcpLease = nil
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
@@ -1199,7 +1199,7 @@ DhcpLoop:
 							nextstate = &networkThreadMessage{cmd: dhcp_renew_lease}
 							timeout = time.Duration(newlease.renewalTime) * time.Second
 						} else {
-							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed - no lease?", ifname)
+							log.MaestroErrorf("NetworkManager: DHCP for '%s' failed - no lease?\n", ifname)
 							timeout = DHCP_NETWORK_FAILURE_TIMEOUT_DURATION
 							nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
 							continue DhcpLoop
@@ -1208,13 +1208,13 @@ DhcpLoop:
 					} else {
 						// No DhcpLease on file? we probably should not have gotten here,
 						// but just immediately go back to Discovery
-						log.MaestroWarnf("NetworkManager: DHCP tried renew lease, but had no existing lease. Bumping to discovery.")
+						log.MaestroWarn("NetworkManager: DHCP tried renew lease, but had no existing lease. Bumping to discovery.")
 						ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease}
 						continue DhcpLoop
 					}
 
 					if success != dhcp4client.Success {
-						nmLogWarnf("DHCP renewal did not provide an ACK. Will try new lease.")
+						nmLogWarnf("DHCP renewal did not provide an ACK. Will try new lease.\n")
 						timeout = DHCP_NET_TRANSITION_TIMEOUT
 						ifdata.DhcpLease = nil
 						nextstate = &networkThreadMessage{cmd: dhcp_get_lease}
@@ -1224,7 +1224,7 @@ DhcpLoop:
 					// ok, setup the interface.
 					result, err := SetupInterfaceFromLease(ifdata.RunningIfconfig, newlease)
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease. Details: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: Problem setting up from old lease. Will try new lease. Details: %s\n", err.Error())
 						leaseinfo = nil
 						ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: dhcp_get_lease} // rebind?
 					} else {
@@ -1256,36 +1256,36 @@ DhcpLoop:
 					// setup default route
 					routeset, gw, err := setupDefaultRouteInPrimaryTable(this, ifdata.RunningIfconfig, leaseinfo)
 					if routeset {
-						log.MaestroInfof("NetworkManager: default route from DHCP: %s - recorded in primary table", gw)
+						log.MaestroInfof("NetworkManager: default route from DHCP: %s - recorded in primary table\n", gw)
 					}
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: error setting adding default route to primaryTable via DHCP: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: error setting adding default route to primaryTable via DHCP: %s\n", err.Error())
 					}
 					// ok, now finalize the default route
 					this.finalizePrimaryRoutes()
 					// ok, ifpref, r := this.primaryTable.findPreferredRoute()
 					// if ok {
-					// 	log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v", ifpref, r)
+					// 	log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
 					// 	err = this.primaryTable.setPreferredRoute()
 					// 	if err == nil {
-					// 		log.MaestroInfof("NetworkManager: set default route to %s %+v", ifpref, r)
+					// 		log.MaestroInfof("NetworkManager: set default route to %s %+v\n", ifpref, r)
 					// 	} else {
-					// 		log.MaestroErrorf("NetworkManager: error setting preferred route: %s", err.Error())
+					// 		log.MaestroErrorf("NetworkManager: error setting preferred route: %s\n", err.Error())
 					// 	}
 					// }
 					// setup DNS
 					dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.networkConfig.DnsIgnoreDhcp)
 					if dnsset {
-						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary", primarydns)
+						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 						ifdata.hadDNS = true
 						err = this.finalizeDns()
 					}
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s", err.Error())
+						log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s\n", err.Error())
 					}
 
 				} else {
-					log.MaestroWarnf("NetworkManager: Stopping DHCP lease renewal, as interface '%s' is no longer managed!", ifname)
+					log.MaestroWarnf("NetworkManager: Stopping DHCP lease renewal, as interface '%s' is no longer managed!\n", ifname)
 					break DhcpLoop
 				}
 			case dhcp_rebind_lease:
@@ -1299,7 +1299,7 @@ DhcpLoop:
 				ifdata = this.getInterfaceData(ifname)
 				if ifdata != nil {
 					if ifdata.DhcpLease != nil {
-						log.MaestroInfof("NetworkManager: DHCP: Releasing IP for interface %s", ifname)
+						log.MaestroInfof("NetworkManager: DHCP: Releasing IP for interface %s\n", ifname)
 						ReleaseFromServer(ifname, ifdata.DhcpLease)
 						if ifdata.hadDNS {
 							this.removeDnsBufferForInterface(ifname)
@@ -1309,21 +1309,21 @@ DhcpLoop:
 						break DhcpLoop
 					}
 				}
-				log.MaestroWarnf("NetworkManager: Stopping DHCP lease (release requested), as interface '%s' is no longer managed!", ifname)
+				log.MaestroWarnf("NetworkManager: Stopping DHCP lease (release requested), as interface '%s' is no longer managed!\n", ifname)
 				break DhcpLoop
 				// release the IP - to the server TODO
 				// stop this thread
 
 			case thread_shutdown:
 				debugging.DEBUG_OUT("DhcpLoop to - @thread_shutdown [%s]\n", ifname)
-				log.MaestroInfof("NetworkManager: DHCP worker for if %s got shutdown", ifname)
+				log.MaestroInfof("NetworkManager: DHCP worker for if %s got shutdown\n", ifname)
 				break DhcpLoop
 			}
 
 		case <-time.After(timeout):
 			if nextstate != nil {
 				debugging.DEBUG_OUT("DHCP worker *timeout* for if %s - nextstate %+v\n", ifname, nextstate)
-				log.MaestroWarnf("NetworkManager: DHCP worker *timeout* for if %s - nextstate %+v", ifname, nextstate)
+				log.MaestroWarnf("NetworkManager: DHCP worker *timeout* for if %s - nextstate %+v\n", ifname, nextstate)
 				ifdata.dhcpWorkerControl <- *nextstate
 				nextstate = nil
 			}
@@ -1346,13 +1346,12 @@ DhcpLoop:
 func (mgr *networkManagerInstance) finalizePrimaryRoutes() {
 	ok, ifpref, r := mgr.primaryTable.findPreferredRoute()
 	if ok {
-		log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v", ifpref, r)
+		log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
 		err := mgr.primaryTable.setPreferredRoute(!mgr.networkConfig.DontOverrideDefaultRoute)
 		if err == nil {
-			log.MaestroInfof("NetworkManager: set default route to %s %+v", ifpref, r)
+			log.MaestroInfof("NetworkManager: set default route to %s %+v\n", ifpref, r)
 		} else {
-			log.MaestroErrorf("NetworkManager: error setting preferred route: %s", err.Error())
-
+			log.MaestroErrorf("NetworkManager: error setting preferred route: %s\n", err.Error())
 		}
 	}
 }
@@ -1390,7 +1389,7 @@ Outer:
 				pdata, ok := mgr.byInterfaceName.GetStringKey(work.ifname)
 				if ok {
 					if pdata == nil {
-						nmLogErrorf("watchInterfaces() - got nil on lookup of <%s>", work.ifname)
+						nmLogErrorf("watchInterfaces() - got nil on lookup of <%s>\n", work.ifname)
 					} else {
 						ifdata := (*NetworkInterfaceData)(pdata)
 						if ifdata.interfaceChange == nil {
@@ -1398,23 +1397,23 @@ Outer:
 							ifdata.interfaceChange = make(chan networkThreadMessage)
 							err := netlink.LinkSubscribe(ch, ifdata.stopInterfaceMonitor)
 							if err != nil {
-								nmLogErrorf("Error watching interface %s - details: %s", work.ifname, err.Error())
+								nmLogErrorf("Error watching interface %s - details: %s\n", work.ifname, err.Error())
 							} else {
-								nmLogSuccessf("watching interface %s", work.ifname)
+								nmLogSuccessf("watching interface %s\n", work.ifname)
 							}
 						} else {
 							nmLogWarnf("watchInterfaces() - interface link %s appear to already be watched", work.ifname)
 						}
 					}
 				} else {
-					nmLogErrorf("watchInterfaces() - no interface in table named <%s>", work.ifname)
+					nmLogErrorf("watchInterfaces() - no interface in table named <%s>\n", work.ifname)
 				}
 			}
 			if work.cmd == stop_watch_interface {
 				pdata, ok := mgr.byInterfaceName.GetStringKey(work.ifname)
 				if ok {
 					if pdata == nil {
-						nmLogErrorf("watchInterfaces() (stop_watch_interface) - got nil on lookup of <%s>", work.ifname)
+						nmLogErrorf("watchInterfaces() (stop_watch_interface) - got nil on lookup of <%s>\n", work.ifname)
 					} else {
 						ifdata := (*NetworkInterfaceData)(pdata)
 						if ifdata.stopInterfaceMonitor != nil {
@@ -1422,15 +1421,15 @@ Outer:
 							ifdata.stopInterfaceMonitor = nil
 							ifdata.interfaceChange = nil
 						} else {
-							nmLogWarnf("watchInterfaces() (stop_watch_interface) - interface link %s appears to not be watched", work.ifname)
+							nmLogWarnf("watchInterfaces() (stop_watch_interface) - interface link %s appears to not be watched\n", work.ifname)
 						}
 					}
 				} else {
-					nmLogErrorf("watchInterfaces() (stop_watch_interface) - no interface in table named <%s>", work.ifname)
+					nmLogErrorf("watchInterfaces() (stop_watch_interface) - no interface in table named <%s>\n", work.ifname)
 				}
 			}
 		case update := <-ch:
-			nmLogDebugf("link state change for if <%s>: %+v", update.Attrs().Name, update)
+			nmLogDebugf("link state change for if <%s>: %+v\n", update.Attrs().Name, update)
 			debugging.DEBUG_OUT("NetworkManager>>> saw link update: %+v\n", update)
 			ifname := update.Attrs().Name
 			ifdata := mgr.getInterfaceData(ifname)
@@ -1445,7 +1444,7 @@ Outer:
 					// was the interface previously down?
 					up, err := mgr.primaryTable.isIfUp(ifname)
 					if err != nil {
-						nmLogErrorf("internal route table does not have if %s - %s", ifname, err.Error())
+						nmLogErrorf("internal route table does not have if %s - %s\n", ifname, err.Error())
 					}
 					if !up {
 						// ok this is a change. The interface was down, is now up
@@ -1454,7 +1453,7 @@ Outer:
 						// mark as up, and check for preferred default route
 						err := netlink.LinkSetUp(update.Link)
 						if err != nil {
-							nmLogErrorf("error brining up interface %s - details: %s", ifname, err.Error())
+							nmLogErrorf("error brining up interface %s - details: %s\n", ifname, err.Error())
 						}
 						mgr.primaryTable.markIfAsUp(ifname)
 						mgr.finalizePrimaryRoutes()
@@ -1471,10 +1470,10 @@ Outer:
 								ifname: ifname,
 							}:
 							default:
-								nmLogWarnf("if %s state_LOWER_UP event dropped", ifname)
+								nmLogWarnf("if %s state_LOWER_UP event dropped\n", ifname)
 							}
 						} else {
-							nmLogErrorf("if %s - saw state change but interfaceChange chan is nil!", ifname)
+							nmLogErrorf("if %s - saw state change but interfaceChange chan is nil!\n", ifname)
 						}
 						addrstring := ""
 						addr6string := ""
@@ -1495,21 +1494,21 @@ Outer:
 							},
 						})
 					} else {
-						nmLogDebugf("ignoring link change for if %s. already marked as up.", ifname)
+						nmLogDebugf("ignoring link change for if %s. already marked as up.\n", ifname)
 					}
 				} else {
 					// ok this is a change. The interface was up, is now down
 					if (update.IfInfomsg.Flags & unix.IFF_LOWER_UP) == 0 {
 						up, err := mgr.primaryTable.isIfUp(ifname)
 						if err != nil {
-							nmLogErrorf("internal route table does not have if %s - %s", ifname, err.Error())
+							nmLogErrorf("internal route table does not have if %s - %s\n", ifname, err.Error())
 						}
 						if up {
 							nmLogWarnf("interface %s now DOWN - (LOWER_UP false)\n", ifname)
 							debugging.DEBUG_OUT("NetworkManager>>> Interface %s is now DOWN (LOWER_UP off)\n", ifname)
 							err := netlink.LinkSetDown(update.Link)
 							if err != nil {
-								nmLogErrorf("error bringing down interface %s - details: %s", ifname, err.Error())
+								nmLogErrorf("error bringing down interface %s - details: %s\n", ifname, err.Error())
 							}
 							// mark as down, and check for new preferred default route
 							mgr.primaryTable.markIfAsDown(ifname)
@@ -1523,13 +1522,13 @@ Outer:
 							// apparently we don't get updates without this?
 							err = netlink.LinkSetUp(update.Link)
 							if err != nil {
-								nmLogErrorf("error bringing up interface (2) %s - details: %s", ifname, err.Error())
+								nmLogErrorf("error bringing up interface (2) %s - details: %s\n", ifname, err.Error())
 							}
 							err = netlink.LinkSubscribe(ch, ifdata.stopInterfaceMonitor)
 							if err != nil {
-								nmLogErrorf("Error watching interface %s - details: %s", ifname, err.Error())
+								nmLogErrorf("Error watching interface %s - details: %s\n", ifname, err.Error())
 							} else {
-								nmLogSuccessf("watching interface %s", ifname)
+								nmLogSuccessf("watching interface %s\n", ifname)
 							}
 
 							if ifdata.interfaceChange != nil {
@@ -1539,10 +1538,10 @@ Outer:
 									ifname: ifname,
 								}:
 								default:
-									nmLogWarnf("if %s state_LOWER_UP event dropped", ifname)
+									nmLogWarnf("if %s state_LOWER_UP event dropped\n", ifname)
 								}
 							} else {
-								nmLogErrorf("if %s - saw state change but interfaceChange chan is nil!", ifname)
+								nmLogErrorf("if %s - saw state change but interfaceChange chan is nil!\n", ifname)
 							}
 							submitNetEventData(&netevents.NetEventData{
 								Type: netevents.InterfaceStateDown,
@@ -1553,14 +1552,14 @@ Outer:
 								},
 							})
 						} else {
-							nmLogDebugf("ignoring link change for if %s. already marked as down.", ifname)
+							nmLogDebugf("ignoring link change for if %s. already marked as down.\n", ifname)
 						}
 					}
 				}
 				// update the flags
 				ifdata.lastFlags = update.IfInfomsg.Flags
 			} else {
-				nmLogDebugf("interface state change %s - ignoring. Not managed", ifname)
+				nmLogDebugf("interface state change %s - ignoring. Not managed\n", ifname)
 				debugging.DEBUG_OUT("NetworkManager>>> ignoring interface %s\n", ifname)
 			}
 
@@ -1587,9 +1586,9 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 				// OP_ADD_ADDRESS and OP_REMOVE_ADDRESS need to update the interface's RunningIfconfig
 				// on completion
 				case maestroSpecs.OP_ADD_ADDRESS:
-					log.MaestroWarnf("NetworkManager: OP_ADD_ADDRESS not implemented yet")
+					log.MaestroWarnf("NetworkManager: OP_ADD_ADDRESS not implemented yet\n")
 				case maestroSpecs.OP_REMOVE_ADDRESS:
-					log.MaestroWarnf("NetworkManager: network manager>> OP_REMOVE_ADDRESS not implemented yet")
+					log.MaestroWarnf("NetworkManager: network manager>> OP_REMOVE_ADDRESS not implemented yet\n")
 					// remove address
 				case maestroSpecs.OP_UPDATE_ADDRESS:
 					// TODO !! - need to validate config
@@ -1602,7 +1601,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 					ifdata.StoredIfconfig = ifconfig
 					err = mgr.commitInterfaceData(ifconfig.IfName)
 					if err != nil {
-						log.MaestroErrorf("NetworkManager: Problem storing interface [%s] data in DB: %s. Skipping config.", ifconfig.IfName, err.Error())
+						log.MaestroErrorf("NetworkManager: Problem storing interface [%s] data in DB: %s. Skipping config.\n", ifconfig.IfName, err.Error())
 						errout = err
 						return
 					}
@@ -1618,28 +1617,28 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 						if len(ifconfig.HwAddr) > 0 {
 							currentHwAddr := link.Attrs().HardwareAddr
 							if len(currentHwAddr) < 1 || (currentHwAddr.String() != ifconfig.HwAddr) {
-								log.MaestroDebugf("NetworkManager: looks like mac address for if %s is new or different than set. changing.", ifname)
+								log.MaestroDebugf("NetworkManager: looks like mac address for if %s is new or different than set. changing.\n", ifname)
 								newHwAddr, err2 := net.ParseMAC(ifconfig.HwAddr)
 								if err2 == nil {
 									// ok - need to bring interface down to set Mac
-									log.MaestroInfof("NetworkManager: brining if %s down", ifname)
+									log.MaestroInfof("NetworkManager: brining if %s down\n", ifname)
 									err2 = netlink.LinkSetDown(link)
 									if err2 != nil {
-										log.MaestroErrorf("NetworkManager: failed to bring if %s down - %s", ifname, err2.Error())
+										log.MaestroErrorf("NetworkManager: failed to bring if %s down - %s\n", ifname, err2.Error())
 									}
-									log.MaestroInfof("NetworkManager: setting if %s MAC address to %s", ifname, ifconfig.HwAddr)
+									log.MaestroInfof("NetworkManager: setting if %s MAC address to %s\n", ifname, ifconfig.HwAddr)
 									err2 = netlink.LinkSetHardwareAddr(link, newHwAddr)
 									if err2 != nil {
-										log.MaestroErrorf("NetworkManager: failed to set MAC address on if %s - %s", ifname, err2.Error())
+										log.MaestroErrorf("NetworkManager: failed to set MAC address on if %s - %s\n", ifname, err2.Error())
 									}
 									err2 = netlink.LinkSetUp(link)
 									if err2 != nil {
-										log.MaestroErrorf("NetworkManager: failed to bring if %s up - %s", ifname, err2.Error())
+										log.MaestroErrorf("NetworkManager: failed to bring if %s up - %s\n", ifname, err2.Error())
 									} else {
-										log.MaestroInfof("NetworkManager:  if %s is up", ifname)
+										log.MaestroInfof("NetworkManager:  if %s is up\n", ifname)
 									}
 								} else {
-									log.MaestroErrorf("NetworkManager: Failed to parse MAC address \"%s\" for interface %s (%d). Skipping other setup.", ifconfig.HwAddr, ifname, ifindex)
+									log.MaestroErrorf("NetworkManager: Failed to parse MAC address \"%s\" for interface %s (%d). Skipping other setup.\n", ifconfig.HwAddr, ifname, ifindex)
 									errout = err2
 									return
 								}
@@ -1683,10 +1682,10 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 							results, err := SetupStaticInterfaces(confs)
 							if err != nil {
 								errout = err
-								log.MaestroErrorf("NetworkManager: Failed to setup static address on interface %s - %s", ifname, err.Error())
+								log.MaestroErrorf("NetworkManager: Failed to setup static address on interface %s - %s\n", ifname, err.Error())
 								debugging.DEBUG_OUT("NetworkManager: Failed to setup static address on interface %s - %s\n", ifname, err.Error())
 							} else {
-								log.MaestroSuccessf("Network Manager: Static address set on %s of %s", ifname, confs[0].IPv4Addr)
+								log.MaestroSuccessf("Network Manager: Static address set on %s of %s\n", ifname, confs[0].IPv4Addr)
 								_, err = addDefaultRoutesToPrimaryTable(mgr, confs)
 								if ifdata != nil {
 									ifdata.CurrentIPv4Addr = results[0].ipv4
@@ -1698,12 +1697,12 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 										IP:        results[0].ipv4,
 									})
 									if arperr != nil {
-										nmLogErrorf("Erroring sending gratuitous ARP: %s", arperr.Error())
+										nmLogErrorf("Erroring sending gratuitous ARP: %s\n", arperr.Error())
 									} else {
-										nmLogDebugf("Gratuitous ARP sent for IP %s", results[0].IPV4)
+										nmLogDebugf("Gratuitous ARP sent for IP %s\n", results[0].IPV4)
 									}
 								} else {
-									nmLogErrorf("SetupStaticInterfaces() has invalid results array or no address for if %s", ifname)
+									nmLogErrorf("SetupStaticInterfaces() has invalid results array or no address for if %s\n", ifname)
 								}
 							}
 						}
@@ -1738,7 +1737,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 					// ifdata.StoredIfconfig = ifconfig
 					// err = mgr.commitInterfaceData(ifconfig.IfName)
 					// if err != nil {
-					// 	log.MaestroErrorf("network manager: Problem storing interface [%s] data in DB: %s. Skipping config.", ifconfig.IfName, err.Error())
+					// 	log.MaestroErrorf("network manager: Problem storing interface [%s] data in DB: %s. Skipping config.\n", ifconfig.IfName, err.Error())
 					// 	errout = err
 					// 	return
 					// }
@@ -1821,7 +1820,7 @@ func InitNetworkManager() (err error) {
 	// make the global events channel. 'false' - not a persistent event (won't use storage)
 	// _, netEventsName, err = events.MakeEventChannel("netevents", false, false)
 	// if err != nil {
-	// 	log.MaestroErrorf("NetworkManager: CRITICAL - error creating global channel \"events\" %s", err.Error())
+	// 	log.MaestroErrorf("NetworkManager: CRITICAL - error creating global channel \"events\" %s\n", err.Error())
 	// }
 	return
 }

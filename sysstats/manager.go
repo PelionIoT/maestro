@@ -93,7 +93,7 @@ func SubscribeToEvents() (ret events.EventSubscription, err error) {
 
 func (stat *statConfig) Validate() (ok bool, err error) {
 	ok = true
-	debugging.DEBUG_OUT("ParseDuration:<%s>", stat.Every)
+	debugging.DEBUG_OUT("ParseDuration:<%s>\n", stat.Every)
 	if len(stat.Every) < 1 {
 		ok = false
 		stat.Disable = true
@@ -172,7 +172,7 @@ func continueCheckContext(ctx context.Context) (keepgoing bool, err error) {
 	case <-ctx.Done():
 		err = ctx.Err()
 		keepgoing = false
-		log.MaestroInfof("Stats: ctx.Done")
+		log.MaestroInfo("Stats: ctx.Done")
 	default:
 	}
 	return
@@ -244,7 +244,7 @@ func (mgr *SysStats) periodicRunner() {
 		name, ok2 := key.(string)
 		rstat, ok := stat.(RunnableStat)
 		if ok && ok2 {
-			log.MaestroDebugf(logPx+"running stat %s", name)
+			log.MaestroDebugf(logPx+"running stat %s\n", name)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Millisecond)
 			defer cancel()
 			data, err := rstat.RunStat(ctx, configChanged)
@@ -256,10 +256,10 @@ func (mgr *SysStats) periodicRunner() {
 					ev := &events.MaestroEvent{Data: data}
 					events.SubmitEvent([]string{statEventsChannel}, ev)
 				} else {
-					log.MaestroErrorf(logPx+"Error running stat \"%s\" - data nil!", name)
+					log.MaestroErrorf(logPx+"Error running stat \"%s\" - data nil!\n", name)
 				}
 			} else {
-				log.MaestroErrorf(logPx+"Error running stat \"%s - %s", name, err.Error())
+				log.MaestroErrorf(logPx+"Error running stat \"%s - %s\n", name, err.Error())
 			}
 		}
 		return true
@@ -289,9 +289,9 @@ mainloop:
 		case <-pacer.C:
 			mgr.counter++
 
-			log.MaestroDebugf(logPx + "Running all stats.")
+			log.MaestroDebug(logPx + "Running all stats.")
 			mgr.statCallers.Range(_callStat)
-			log.MaestroDebugf(logPx + "stat runs complete.")
+			log.MaestroDebug(logPx + "stat runs complete.")
 		}
 		// right now we don't support changing the stats configs on the fly.
 		// so just call them with configChanged == true, only the first time.
@@ -357,7 +357,7 @@ func (mgr *SysStats) ReadConfig(config *StatsConfig) (ok bool, err error) {
 		debugging.DEBUG_OUT("sysstats - DiskStats out: %+v\n", config.DiskStats)
 		if err != nil {
 			ok = false
-			log.MaestroErrorf(logPx+"disk stats are misconfigured: %s", err.Error())
+			log.MaestroErrorf(logPx+"disk stats are misconfigured: %s\n", err.Error())
 		} else {
 			if ok {
 				ok = statok
@@ -371,7 +371,7 @@ func (mgr *SysStats) ReadConfig(config *StatsConfig) (ok bool, err error) {
 		debugging.DEBUG_OUT("sysstats - VMStats out: %+v\n", config.VMStats)
 		if err != nil {
 			ok = false
-			log.MaestroErrorf(logPx+"VM stats are misconfigured: %s", err.Error())
+			log.MaestroErrorf(logPx+"VM stats are misconfigured: %s\n", err.Error())
 		} else {
 			if ok {
 				ok = statok
