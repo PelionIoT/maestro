@@ -130,7 +130,7 @@ func get_eeprom(prop eeprom_anatomy, log maestroSpecs.Logger) (eeData, error) {
 
 	if prop.name == "ETHERNET_MAC" {
 		if len(dataStr) < 12 {
-			log.Errorf("property ETHERNET_MAC looks corrupt. skipping.")
+			log.Error("property ETHERNET_MAC looks corrupt. skipping.")
 		} else {
 			dataStr = dataStr[:2] + ":" + dataStr[2:4] + ":" +
 				dataStr[4:6] + ":" + dataStr[6:8] + ":" +
@@ -153,7 +153,7 @@ func get_eeprom(prop eeprom_anatomy, log maestroSpecs.Logger) (eeData, error) {
 	//remove "https://"
 	if prop.name == "CLOUD_DDB_URL_RES" {
 		if len(dataStr) < 8 {
-			log.Errorf("property CLOUD_DDB_URL_RES looks corrupt. skipping.")
+			log.Error("property CLOUD_DDB_URL_RES looks corrupt. skipping.")
 		} else {
 			dataStr = dataStr[8:len(dataStr)]
 		}
@@ -165,7 +165,7 @@ func get_eeprom(prop eeprom_anatomy, log maestroSpecs.Logger) (eeData, error) {
 
 	if prop.name == "RELAY_SERVICES_HOST_RES" {
 		if len(dataStr) < 8 {
-			log.Errorf("property RELAY_SERVICES_HOST_RES looks corrupt. skipping.")
+			log.Error("property RELAY_SERVICES_HOST_RES looks corrupt. skipping.")
 		} else {
 			dataStr = strings.Replace(dataStr, ".wigwag.io", "-relays.wigwag.io", 17)
 			dataStr = dataStr[8:len(dataStr)]
@@ -241,7 +241,7 @@ func GetPlatformVars(dict *templates.TemplateVarDictionary, log maestroSpecs.Log
 	if strings.Contains(cloudurl, "mbed") {
 		err = archiver.TarGz.Open(mcc_config, "/userdata/mbed/")
 		if err != nil {
-			log.Errorf("Failed to untar mcc_config- %s", err)
+			log.Errorf("Failed to untar mcc_config- %s\n", err)
 		}
 	}
 

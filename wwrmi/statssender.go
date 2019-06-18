@@ -351,7 +351,7 @@ func (sndr *statSender) postStats() (err error) {
 	if resp != nil {
 		defer resp.Body.Close()
 	}
-	debugging.DEBUG_OUT("RMI --> response +%v", resp)
+	debugging.DEBUG_OUT("RMI --> response +%v\n", resp)
 	if resp != nil && resp.StatusCode != 200 {
 		bodystring, _ := utils.StringifyReaderWithLimit(resp.Body, 300)
 		log.MaestroErrorf("RMI: Error on POST request for stats: Response was %d (Body <%s>)", resp.StatusCode, bodystring)

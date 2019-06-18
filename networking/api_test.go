@@ -144,7 +144,7 @@ func TestDhcpRequest(t *testing.T) {
 	}
 
 	if newleaseinfo != &leaseinfo {
-		log.Fatalf("Passed in a valid DhcpLeaseInfo pointer pointing to a struct but failed. %+v", err)
+		log.Fatalf("Passed in a valid DhcpLeaseInfo pointer pointing to a struct but failed. %+v\n", err)
 	}
 
 	if err != nil {
@@ -172,16 +172,16 @@ func TestDhcpRequest(t *testing.T) {
 func TestGetAndSetInterfaceMacAddress(t *testing.T) {
 	mac, index, err := GetInterfaceMacAddress("eth2")
 	if err != nil {
-		log.Fatalf("Failed to GetInterfaceMacAddress - %s", err.Error())
+		log.Fatalf("Failed to GetInterfaceMacAddress - %s\n", err.Error())
 	} else {
 		if index < 1 {
-			log.Fatalf("index is not sane.")
+			log.Fatal("index is not sane.")
 			return
 		}
 		macstring := mac.String()
 		err = SetInterfaceMacAddress("eth2", 0, macstring)
 		if err != nil {
-			log.Fatalf("Failed to SetInterfaceMacAddress - %s", err.Error())
+			log.Fatalf("Failed to SetInterfaceMacAddress - %s\n", err.Error())
 		} else {
 			fmt.Printf("get and set interface to %s\n", macstring)
 		}
@@ -285,7 +285,7 @@ func testInitNetworkManager(config *maestroSpecs.NetworkConfigPayload, storage *
 	// make the global events channel. 'false' - not a persisten event (won't use storage)
 	_, _, err = events.MakeEventChannel("events", false, false)
 	if err != nil {
-		log.Fatalf("NetworkManager: CRITICAL - error creating global channel \"events\" %s", err.Error())
+		log.Fatalf("NetworkManager: CRITICAL - error creating global channel \"events\" %s\n", err.Error())
 	}
 	return
 }
@@ -348,7 +348,7 @@ func TestNetworkManagerDhcpLoop(t *testing.T) {
 	err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v\n", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12
@@ -393,7 +393,7 @@ func TestNetworkManagerNewDbDhcp(t *testing.T) {
 	err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v\n", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12
@@ -481,7 +481,7 @@ func TestRestartWithConfigOverride(t *testing.T) {
 	// err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v\n", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12
@@ -552,7 +552,7 @@ func TestRestartWithConfigOverride2(t *testing.T) {
 	// err := manager.SubmitTask(task)
 
 	if err != nil {
-		log.Fatalf("Error on Network manager SubmitTask() %s %+v", err.Error(), err)
+		log.Fatalf("Error on Network manager SubmitTask() %s %+v\n", err.Error(), err)
 	}
 
 	timeout := 60 * 60 * 12

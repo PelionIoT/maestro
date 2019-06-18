@@ -474,7 +474,7 @@ func (ysc *YAMLMaestroConfig) LoadFromFile(file string) error {
 	}
 
 	if ysc.ConfigEnd != true {
-		golog.Errorf("Did not see a \"config_end: true\" statement at end. Possible bad parse??")
+		golog.Error("Did not see a \"config_end: true\" statement at end. Possible bad parse??")
 		//    	return &ConfigError{1,"Did not see a \"config_end: true\" statement at end. Bad parse."}
 	}
 

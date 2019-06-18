@@ -109,7 +109,7 @@ func loadAndInitPlugin(opts *maestroSpecs.PluginOpts, logger maestroSpecs.Logger
 	if len(path) > 0 {
 		ret, err = plugin.Open(path)
 		if err != nil {
-			log.MaestroErrorf("Failed to load plugin: %s - %s", path, err.Error())
+			log.MaestroErrorf("Failed to load plugin: %s - %s\n", path, err.Error())
 			return
 		}
 
@@ -120,7 +120,7 @@ func loadAndInitPlugin(opts *maestroSpecs.PluginOpts, logger maestroSpecs.Logger
 		// TODO - populate API
 		initSym, err = ret.Lookup("InitMaestroPlugin")
 		if err != nil {
-			log.MaestroErrorf("Does not look like a maestro plugin - can't find InitMaestroPlug(): %s - %s", path, err.Error())
+			log.MaestroErrorf("Does not look like a maestro plugin - can't find InitMaestroPlug(): %s - %s\n", path, err.Error())
 			return
 		}
 		initFunc, ok := initSym.(func(opts *maestroSpecs.PluginOpts, api *maestroSpecs.API, log maestroSpecs.Logger) error)
@@ -129,7 +129,7 @@ func loadAndInitPlugin(opts *maestroSpecs.PluginOpts, logger maestroSpecs.Logger
 			api := new(maestroSpecs.API)
 			err = initFunc(opts, api, logger)
 			if err == nil {
-				log.MaestroSuccessf("plugin %s - Loaded and initialized ok.", path)
+				log.MaestroSuccessf("plugin %s - Loaded and initialized ok.\n", path)
 
 				var conf *periodicPluginConfig
 				conf, err = validatePeriodicOpts(opts, path, ret)
@@ -143,10 +143,10 @@ func loadAndInitPlugin(opts *maestroSpecs.PluginOpts, logger maestroSpecs.Logger
 					token.lock.Unlock()
 				}
 			} else {
-				log.MaestroErrorf("Platform Plugin %s failed to init!", path)
+				log.MaestroErrorf("Platform Plugin %s failed to init!\n", path)
 			}
 		} else {
-			log.MaestroErrorf("Platform plugin %s - failed to cast 'InitMaestroPlugin' symbol. Failing", path)
+			log.MaestroErrorf("Platform plugin %s - failed to cast 'InitMaestroPlugin' symbol. Failing\n", path)
 			err = errors.New("bad plugin")
 		}
 	} else {

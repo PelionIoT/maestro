@@ -846,11 +846,11 @@ func (client *Client) postLogs() (err error) {
 		return
 	}
 
-	debugging.DEBUG_OUT("RMI --> response +%v", resp)
+	debugging.DEBUG_OUT("RMI --> response +%v\n", resp)
 	if resp != nil && resp.StatusCode != 200 {
 		debugging.DEBUG_OUT("RMI bad response - creating error object\n")
 		bodystring, _ := utils.StringifyReaderWithLimit(resp.Body, 300)
-		log.MaestroErrorf("RMI: Error on POST request for logs: Response was %d (Body <%s>)", resp.StatusCode, bodystring)
+		log.MaestroErrorf("RMI: Error on POST request for logs: Response was %d (Body <%s>)\n", resp.StatusCode, bodystring)
 		err = newClientError(resp)
 		return
 	}

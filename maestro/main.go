@@ -110,7 +110,7 @@ func main() {
 	err := config.LoadFromFile(*configFlag)
 
 	if err != nil {
-		log.Errorf("Critical error. Config file parse failed --> %s", err.Error())
+		log.Errorf("Critical error. Config file parse failed --> %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -232,7 +232,7 @@ func main() {
 	greasego.SetupStandardTags()
 
 	if config.LinuxKernelLog && config.LinuxKernelLogLegacy {
-		log.Errorf("Invalid Config: You can't have both linuxKernelLog: true AND linuxKernelLogLegacy: true. Choose one.")
+		log.Error("Invalid Config: You can't have both linuxKernelLog: true AND linuxKernelLogLegacy: true. Choose one")
 		os.Exit(1)
 	}
 	if config.LinuxKernelLog {
@@ -286,11 +286,11 @@ func main() {
 		sysStatMgr := sysstats.GetManager()
 		ok, err := sysStatMgr.ReadConfig(config.SysStats)
 		if ok {
-			Log.MaestroDebugf("sysstats read config ok. Starting...")
+			Log.MaestroDebug("sysstats read config ok. Starting...")
 			sysStatMgr.Start()
 		} else {
-			Log.MaestroErrorf("sysstats - error reading config: %s", err.Error())
-			log.Errorf("sysstats - error reading config: %s", err.Error())
+			Log.MaestroErrorf("sysstats - error reading config: %s\n", err.Error())
+			log.Errorf("sysstats - error reading config: %s\n", err.Error())
 		}
 	}
 
@@ -334,7 +334,7 @@ func main() {
 			if config.Symphony != nil && symphony_client != nil && symphony_err == nil {
 				opts.TargetCB = wwrmi.TargetCB
 			} else {
-				log.Errorf("Log: 'toCloud' target is enabled, but Symphony API is not configured. Will not work.\n")
+				log.Error("Log: 'toCloud' target is enabled, but Symphony API is not configured. Will not work.")
 				// skip this target
 				continue
 			}
@@ -396,8 +396,8 @@ func main() {
 			log.Errorf("Symphony / RMI client is not configured correctly or has failed: %s\n", symphony_err.Error())
 		} else {
 			symphony_client.StartWorkers()
-			Log.MaestroSuccessf("Maestro RMI workers started\n")
-			log.Infof("Symphony / RMI client workers started.")
+			Log.MaestroSuccess("Maestro RMI workers started")
+			log.Info("Symphony / RMI client workers started.")
 		}
 	}
 
@@ -463,8 +463,8 @@ func main() {
 		// wait a few seconds to start interface bring up. we want the logging to be working, and
 		// other serivces ready.
 		time.Sleep(time.Second * 2)
-		Log.MaestroInfof("Maestro startup: Bringing up existing network interfaces.")
-		log.Infof("Maestro startup: Bringing up existing network interfaces.")
+		Log.MaestroInfo("Maestro startup: Bringing up existing network interfaces.")
+		log.Info("Maestro startup: Bringing up existing network interfaces.")
 		networking.GetInstance().SetupExistingInterfaces(config.Network)
 
 		/*********************************************/
@@ -473,13 +473,13 @@ func main() {
 		// many things break if the time is not set correctly
 		// getting the time is dependant on the network
 		if config.TimeServer != nil {
-			log.Infof("Maestro startup: getting time from server.")
+			log.Info("Maestro startup: getting time from server.")
 			ok, timeclient, err := maestroTime.NewClient(config.TimeServer)
 			if ok {
 				// wait for time to be set, and then
 				// do certain things after the time is set.
 				go func() {
-					log.Infof("top of time go routine")
+					log.Info("top of time go routine")
 
 					errors := 0
 					for {
@@ -488,25 +488,25 @@ func main() {
 							code := <-ch
 							switch code {
 							case maestroTime.SetTimeOk:
-								log.Infof("time set ok.")
+								log.Info("time set ok.")
 								// TODO: do things when time set
 								return
 							case maestroTime.TimedOut:
-								log.Errorf("time server error. Timed out.")
+								log.Error("time server error. Timed out.")
 								errors++
 							case maestroTime.BadResponse:
-								log.Errorf("time server error. Bad Response")
+								log.Error("time server error. Bad Response")
 								errors++
 							default:
-								log.Errorf("time server error. %d", code)
+								log.Errorf("time server error. %d\n", code)
 								errors++
 							}
 							if errors > 50 {
-								log.Errorf("Time server is failing. Maestro will start services that needed time verification anyway.")
+								log.Error("Time server is failing. Maestro will start services that needed time verification anyway.")
 								break
 							}
 						} else {
-							log.Warningf("Waiting for time subsytem status channel to come up. 2 seconds..")
+							log.Warning("Waiting for time subsytem status channel to come up. 2 seconds..")
 							time.Sleep(time.Second * 2)
 						}
 					}
@@ -516,13 +516,13 @@ func main() {
 
 				timeclient.Run()
 			} else {
-				log.Errorf("Maestro time server client failed to start.")
+				log.Error("Maestro time server client failed to start.")
 				if err != nil {
-					log.Errorf("Maestro time server client failure details: %s", err.Error())
+					log.Errorf("Maestro time server client failure details: %s\n", err.Error())
 				}
 			}
 		} else {
-			log.Infof("Maestro time server not set. Not setting system time.")
+			log.Info("Maestro time server not set. Not setting system time.")
 		}
 
 		/*********************************************/
@@ -537,14 +537,14 @@ func main() {
 						for n, err := range errs {
 							// if that published record had an error...
 							if err != nil {
-								Log.MaestroErrorf("MDNS config: static record in config file - record %d - error: %s", n, err.Error())
-								log.Errorf("MDNS config: static record in config file - record %d - error: %s", n, err.Error())
+								Log.MaestroErrorf("MDNS config: static record in config file - record %d - error: %s\n", n, err.Error())
+								log.Errorf("MDNS config: static record in config file - record %d - error: %s\n", n, err.Error())
 							}
 						}
 					}
 				}
 			} else {
-				Log.MaestroWarnf("MDNS server is disabled in config file. Skipping.")
+				Log.MaestroWarn("MDNS server is disabled in config file. Skipping.")
 			}
 		} else {
 			// default: Start service, but publish nothing.
@@ -620,7 +620,7 @@ func main() {
 	unixEndpoint := new(UnixHttpEndpoint)
 	err = unixEndpoint.Init(config.GetHttpUnixSocket())
 	if err != nil {
-		log.Error("Error on sink start:", err)
+		log.Error("Error on sink start: %s\n", err.Error())
 	} else {
 		defer unixEndpoint.Start(router, &waitGroup)
 		debugging.DEBUG_OUT("Started unix socket HTTP endpoint.")

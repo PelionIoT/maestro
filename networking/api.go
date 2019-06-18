@@ -101,23 +101,23 @@ func (this *DhcpLeaseInfo) parseRenewalTimes() (renewnow bool) {
 	var t2 int64
 	delta := time.Now().Unix() - this.LeaseAcquired // LeaseAcquired is in Unix Epoch seconds
 	if delta < 0 {
-		log.MaestroErrorf("DHCP: corruption in DB record or other error. Lease time info invalid.")
+		log.MaestroError("DHCP: corruption in DB record or other error. Lease time info invalid.")
 		renewnow = true
 		return
 	}
 	if len(this.parsedOptions[dhcp4.OptionIPAddressLeaseTime]) > 0 {
 		// do we have Option 51, this is the IP Address Lease time?
 		origleaselength := binary.BigEndian.Uint32(this.parsedOptions[dhcp4.OptionIPAddressLeaseTime])
-		log.MaestroDebugf("NetworkManager: DHCP: lease had lease time of %d seconds. Lease acquired %d", origleaselength, this.LeaseAcquired)
+		log.MaestroDebugf("NetworkManager: DHCP: lease had lease time of %d seconds. Lease acquired %d\n", origleaselength, this.LeaseAcquired)
 		leasetimesec = int64(origleaselength) - delta
 		if leasetimesec < 1 {
-			log.MaestroDebugf("NetworkManager: DHCP: lease is over. Need to renew.")
+			log.MaestroDebug("NetworkManager: DHCP: lease is over. Need to renew.")
 			// We are past the life of the lease
 			renewnow = true
 			return
 		}
 	} else {
-		log.MaestroWarnf("NetworkManager: DHCP: Unusual, We did not get an Option 51 lease time.")
+		log.MaestroWarn("NetworkManager: DHCP: Unusual, We did not get an Option 51 lease time.")
 	}
 	slice, ok := this.parsedOptions[dhcp4.OptionRenewalTimeValue]
 	if ok {
@@ -127,7 +127,7 @@ func (this *DhcpLeaseInfo) parseRenewalTimes() (renewnow bool) {
 			return
 		}
 		if t1 > leasetimesec && leasetimesec > 0 {
-			log.MaestroWarnf("NetworkManager: DHCP: Unusual, received T1 (option 58) time which is bigger than lease time. Using lease time.")
+			log.MaestroWarn("NetworkManager: DHCP: Unusual, received T1 (option 58) time which is bigger than lease time. Using lease time.")
 			this.renewalTime = this.LeaseAcquired + int64(leasetimesec) - 300 // 5 minutes before end
 		} else {
 			this.renewalTime = this.LeaseAcquired + int64(t1)
@@ -143,7 +143,7 @@ func (this *DhcpLeaseInfo) parseRenewalTimes() (renewnow bool) {
 			return
 		}
 		if t2 > leasetimesec && leasetimesec > 0 {
-			log.MaestroWarnf("NetworkManager: DHCP: Unusual, received T2 (option 58) time which is bigger than lease time. Using lease time.")
+			log.MaestroWarn("NetworkManager: DHCP: Unusual, received T2 (option 58) time which is bigger than lease time. Using lease time.")
 			this.rebindTime = this.LeaseAcquired + int64(leasetimesec) - 150 // 2.5 minutes before end
 		} else {
 			this.rebindTime = this.LeaseAcquired + int64(t2)
@@ -158,7 +158,7 @@ func (this *DhcpLeaseInfo) parseRenewalTimes() (renewnow bool) {
 		this.renewalTime = leasetimesec
 	}
 	if this.renewalTime == 0 {
-		log.MaestroWarnf("NetworkManager: DHCP: Could not determin a lease time. Need new lease.")
+		log.MaestroWarn("NetworkManager: DHCP: Could not determin a lease time. Need new lease.")
 		renewnow = true
 	}
 	return
@@ -168,7 +168,7 @@ func (this *DhcpLeaseInfo) parseRenewalTimes() (renewnow bool) {
 func (this *DhcpLeaseInfo) GetLeaseSubnetMask() net.IPMask {
 	slice, ok := this.parsedOptions[dhcp4.OptionSubnetMask]
 	if !ok {
-		log.MaestroWarnf("NetworkManager: DHCP: No subnet mask was provided, using a default.")
+		log.MaestroWarn("NetworkManager: DHCP: No subnet mask was provided, using a default.")
 		return this.CurrentIP.DefaultMask()
 	} else {
 		return net.IPv4Mask(slice[0], slice[1], slice[2], slice[3])
@@ -179,7 +179,7 @@ func (this *DhcpLeaseInfo) GetLeaseSubnetMask() net.IPMask {
 func (this *DhcpLeaseInfo) GetRouter() (ok bool, ret net.IP) {
 	slice, ok := this.parsedOptions[dhcp4.OptionRouter]
 	if !ok {
-		log.MaestroWarnf("NetworkManager: DHCP: No router IP was provided from DHCP server.")
+		log.MaestroWarn("NetworkManager: DHCP: No router IP was provided from DHCP server.")
 	} else {
 		ret = net.IP(slice)
 	}
@@ -189,13 +189,13 @@ func (this *DhcpLeaseInfo) GetRouter() (ok bool, ret net.IP) {
 func (this *DhcpLeaseInfo) GetDNS() (ok bool, ret []net.IP) {
 	slice, ok := this.parsedOptions[dhcp4.OptionDomainNameServer]
 	if !ok {
-		log.MaestroWarnf("NetworkManager: DHCP: No DNS was provided. Will use global settings or fallbacks")
+		log.MaestroWarn("NetworkManager: DHCP: No DNS was provided. Will use global settings or fallbacks")
 	} else {
 		l := len(slice)
 		// ok, so each IPv4 address is 4 bytes.
 		n := l / 4
 		if l%4 > 0 {
-			log.MaestroErrorf("DHCP: Option %d - DNS - field length was not a multiple of 4. Weird", dhcp4.OptionDomainNameServer)
+			log.MaestroErrorf("DHCP: Option %d - DNS - field length was not a multiple of 4. Weird\n", dhcp4.OptionDomainNameServer)
 		}
 		if n > 0 {
 			ret = make([]net.IP, n)
@@ -381,7 +381,7 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 	hwaddr, ifindex, err := GetInterfaceMacAddress(ifname)
 	var success bool
 	var acknowledgementpacket dhcp4.Packet
-	log.MaestroDebugf("NetworkManager: DHCP using interface index (renew) %d / %s has MAC %s", ifindex, ifname, hwaddr.String())
+	log.MaestroDebugf("NetworkManager: DHCP using interface index (renew) %d / %s has MAC %s\n", ifindex, ifname, hwaddr.String())
 	if err != nil {
 		return
 	}
@@ -412,7 +412,7 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 			dhcp4client.SetRemoteAddr(net.UDPAddr{IP: serveraddr, Port: 67}))
 
 		if err2 != nil {
-			log.MaestroErrorf("NetworkManager: DHCP Client Connection Generation - renew to server %s:%s", serveraddr.String(), err2.Error())
+			log.MaestroErrorf("NetworkManager: DHCP Client Connection Generation - renew to server %s:%s\n", serveraddr.String(), err2.Error())
 			iferr := &NetworkAPIError{
 				Code:       ERROR_SOCKET_ERROR,
 				Errstring:  fmt.Sprintf("Can't make Inet socket. If: %s", ifname),
@@ -428,7 +428,7 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 		err2 = conn.BindToInterface(ifname)
 
 		if err2 != nil {
-			log.MaestroErrorf("NetworkManager: DHCP client - inetsock - failed to bindToInterface() [ignoring failure] %s", err2.Error())
+			log.MaestroErrorf("NetworkManager: DHCP client - inetsock - failed to bindToInterface() [ignoring failure] %s\n", err2.Error())
 		}
 
 		defer conn.Close()
@@ -443,12 +443,12 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 
 		//        success, acknowledgementpacket, err2 = dhcpclient.Request(opts)
 
-		log.MaestroInfof("NetworkManager: DHCP Attempting to renew lease with server %s", serveraddr.String())
+		log.MaestroInfof("NetworkManager: DHCP Attempting to renew lease with server %s\n", serveraddr.String())
 		ackval, acknowledgementpacket, err = dhcpclient.Renew(leaseinfo.LastAckPacket, opts)
 		if err != nil {
 			networkError, ok := err.(*net.OpError)
 			if ok && networkError.Timeout() {
-				log.MaestroErrorf("NetworkManager: Renewal Failed! Because it didn't get a response from DHCP server %s", serveraddr.String())
+				log.MaestroErrorf("NetworkManager: Renewal Failed! Because it didn't get a response from DHCP server %s\n", serveraddr.String())
 				iferr := &NetworkAPIError{
 					Code:       ERROR_NO_RESPONSE_TIMEOUT,
 					Errstring:  fmt.Sprintf("Error on DHCP socket request (timeout): %s --> %s", ifname, err.Error()),
@@ -490,7 +490,7 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 		outleaseinfo.CurrentIP = acknowledgementpacket.YIAddr()
 		outleaseinfo.CurrentMask = outleaseinfo.GetLeaseSubnetMask()
 		if outleaseinfo.parseRenewalTimes() {
-			log.MaestroErrorf("NetworkManager: DHCP got extremely short or invalid lease time!")
+			log.MaestroError("NetworkManager: DHCP got extremely short or invalid lease time!")
 			iferr := &NetworkAPIError{
 				Code:      ERROR_DHCP_INVALID_LEASE,
 				Errstring: fmt.Sprintf("DHCP lease too short or invalid: %s", ifname),
@@ -536,10 +536,10 @@ func InitRebootDhcpLease(ifname string, currentIP net.IP, opts *dhcp4client.Dhcp
 	if err == nil {
 		err = netlink.LinkSetUp(link)
 		if err != nil {
-			log.MaestroErrorf("NetworkManager: DHCP - could not bring interface up: %s", err.Error())
+			log.MaestroErrorf("NetworkManager: DHCP - could not bring interface up: %s\n", err.Error())
 		}
 	} else {
-		log.MaestroErrorf("NetworkManager: DHCP - failure at GetInterfaceLink - unusual. %s", err.Error())
+		log.MaestroErrorf("NetworkManager: DHCP - failure at GetInterfaceLink - unusual. %s\n", err.Error())
 		return
 	}
 
@@ -569,10 +569,10 @@ func InitRebootDhcpLease(ifname string, currentIP net.IP, opts *dhcp4client.Dhcp
 	if err != nil {
 		networkError, ok := err.(*net.OpError)
 		if ok && networkError.Timeout() {
-			log.MaestroErrorf("NetworkManager: Renewal Failed! Because it didn't find the DHCP server very Strange")
-			log.MaestroErrorf("NetworkManager: Error" + err.Error())
+			log.MaestroError("NetworkManager: Renewal Failed! Because it didn't find the DHCP server very Strange")
+			log.MaestroError("NetworkManager: Error" + err.Error())
 		} else {
-			log.MaestroErrorf("NetworkManager: DHCP Renewal Failed. Details: %+v", err)
+			log.MaestroErrorf("NetworkManager: DHCP Renewal Failed. Details: %+v\n", err)
 		}
 		// test.Fatalf("Error:%v\n", err)
 	}
@@ -627,10 +627,10 @@ func GetFreshDhcpLease(ifname string, opts *dhcp4client.DhcpRequestOptions) (suc
 	if err == nil {
 		err = netlink.LinkSetUp(link)
 		if err != nil {
-			log.MaestroErrorf("NetworkManager: DHCP - could not bring interface up: %s", err.Error())
+			log.MaestroErrorf("NetworkManager: DHCP - could not bring interface up: %s\n", err.Error())
 		}
 	} else {
-		log.MaestroErrorf("NetworkManager: DHCP - failure at GetInterfaceLink - unusual. %s", err.Error())
+		log.MaestroErrorf("NetworkManager: DHCP - failure at GetInterfaceLink - unusual. %s\n", err.Error())
 		return
 	}
 
@@ -725,7 +725,7 @@ func GetFreshDhcpLease(ifname string, opts *dhcp4client.DhcpRequestOptions) (suc
 // @param {[type]} ifname string [description]
 func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.DhcpRequestOptions) (success int, outleaseinfo *DhcpLeaseInfo, err error) {
 	hwaddr, ifindex, err := GetInterfaceMacAddress(ifname)
-	log.MaestroDebugf("NetworkManager: DHCP (RequestOrRenew) using interface index %d / %s has MAC %s", ifindex, ifname, hwaddr.String())
+	log.MaestroDebugf("NetworkManager: DHCP (RequestOrRenew) using interface index %d / %s has MAC %s\n", ifindex, ifname, hwaddr.String())
 	if err != nil {
 		return
 	}
@@ -743,10 +743,10 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 	if err == nil {
 		err = netlink.LinkSetUp(link)
 		if err != nil {
-			log.MaestroErrorf("NetworkManager: DHCP - could not bring interface up: %s", err.Error())
+			log.MaestroErrorf("NetworkManager: DHCP - could not bring interface up: %s\n", err.Error())
 		}
 	} else {
-		log.MaestroErrorf("NetworkManager: DHCP - failure at GetInterfaceLink - unusual. %s", err.Error())
+		log.MaestroErrorf("NetworkManager: DHCP - failure at GetInterfaceLink - unusual. %s\n", err.Error())
 		return
 	}
 
@@ -812,22 +812,22 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 		}
 	} else {
 
-		log.MaestroInfof("NetworkManager: DHCP Renewing Lease (%s / %d)", ifname, ifindex)
+		log.MaestroInfof("NetworkManager: DHCP Renewing Lease (%s / %d)\n", ifname, ifindex)
 		success, acknowledgementpacket, err = dhcpclient.Renew(leaseinfo.LastAckPacket, opts)
 		if err != nil {
 			networkError, ok := err.(*net.OpError)
 			if ok && networkError.Timeout() {
-				log.MaestroErrorf("NetworkManager: Renewal Failed! Because it didn't find the DHCP server very Strange")
-				log.MaestroErrorf("NetworkManager: Error" + err.Error())
+				log.MaestroError("NetworkManager: Renewal Failed! Because it didn't find the DHCP server very Strange")
+				log.MaestroError("NetworkManager: Error" + err.Error())
 			} else {
-				log.MaestroErrorf("NetworkManager: DHCP Renewal Failed. Details: %+v", err)
+				log.MaestroErrorf("NetworkManager: DHCP Renewal Failed. Details: %+v\n", err)
 			}
 			// test.Fatalf("Error:%v\n", err)
 		}
 	}
 
 	// if !success {
-	//     log.MaestroErrorf("We didn't sucessfully Renew a DHCP Lease?")
+	//     log.MaestroError("We didn't sucessfully Renew a DHCP Lease?")
 	// } else {
 	//     log.MaestroSuccessf("IP Received:%v\n", acknowledgementpacket.YIAddr().String())
 	// }
@@ -839,7 +839,7 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 		outleaseinfo.CurrentIP = acknowledgementpacket.YIAddr()
 		outleaseinfo.CurrentMask = outleaseinfo.GetLeaseSubnetMask()
 		if outleaseinfo.parseRenewalTimes() {
-			log.MaestroErrorf("NetworkManager: DHCP got extremely short or invalid lease time!")
+			log.MaestroError("NetworkManager: DHCP got extremely short or invalid lease time!")
 			iferr := &NetworkAPIError{
 				Code:      ERROR_DHCP_INVALID_LEASE,
 				Errstring: fmt.Sprintf("DHCP lease too short or invalid: %s", ifname),
@@ -1110,25 +1110,25 @@ func setupDefaultRouteInPrimaryTable(inst *networkManagerInstance, ifconfig *mae
 				// Since this is an assumption, we will make this the lowest priority choice in the
 				// primaryTable.
 				prio = maestroSpecs.MaxRoutePriority // so make the prio - now - the "worst" priority
-				log.MaestroWarnf("NetworkManager: DHCP server had no router option. Looking for workarounds...")
+				log.MaestroWarn("NetworkManager: DHCP server had no router option. Looking for workarounds...")
 				// So will mark DHCP server itself as router, but with weaker prio.
 
 				ok, ip = leaseinfo.GetDHCPServer()
 				if ok {
-					log.MaestroWarnf("NetworkManager: Workaround - will put DHCP Server addr %s as router, but at lowest prio.", ip.String())
+					log.MaestroWarnf("NetworkManager: Workaround - will put DHCP Server addr %s as router, but at lowest prio.\n", ip.String())
 				} else {
-					log.MaestroWarnf("NetworkManager: Workaround - no DHCP Server option. OK, GIADDR?")
+					log.MaestroWarn("NetworkManager: Workaround - no DHCP Server option. OK, GIADDR?")
 					ok, ip = leaseinfo.GetGIADDR()
 					if ok && !ip.Equal(net.IPv4(0, 0, 0, 0)) {
-						log.MaestroWarnf("NetworkManager: Workaround - will put GIADDR field %s as router, but at lowest prio.", ip.String())
+						log.MaestroWarnf("NetworkManager: Workaround - will put GIADDR field %s as router, but at lowest prio.\n", ip.String())
 					} else {
-						log.MaestroWarnf("NetworkManager: Workaround - GIADDR is empty. OK, SIADDR?")
+						log.MaestroWarn("NetworkManager: Workaround - GIADDR is empty. OK, SIADDR?")
 						ok, ip = leaseinfo.GetSIADDR()
 						if ok && !ip.Equal(net.IPv4(0, 0, 0, 0)) {
-							log.MaestroWarnf("NetworkManager: Workaround - will put SIADDR field %s as router, but at lowest prio.", ip.String())
+							log.MaestroWarnf("NetworkManager: Workaround - will put SIADDR field %s as router, but at lowest prio.\n", ip.String())
 						} else {
 							ok = false
-							log.MaestroErrorf("NetworkManager: DHCP server is broken. No workaround available. No route to Internet.")
+							log.MaestroError("NetworkManager: DHCP server is broken. No workaround available. No route to Internet.")
 							err = &NetworkAPIError{
 								Code:       ERROR_DHCP_INVALID_LEASE,
 								Errstring:  fmt.Sprintf("DHCP: can't determine router: %s", ifconfig.IfName),
@@ -1164,7 +1164,7 @@ func SetupDefaultRouteFromLease(ifconfig *maestroSpecs.NetIfConfigPayload, lease
 	if leaseinfo != nil && leaseinfo.defaultRoute != nil {
 		err2 := netlink.RouteDel(leaseinfo.defaultRoute)
 		if err2 != nil {
-			log.MaestroErrorf("NetworkManager: Could not remove old DHCP lease route: %s", err2.Error())
+			log.MaestroErrorf("NetworkManager: Could not remove old DHCP lease route: %s\n", err2.Error())
 		} else {
 			leaseinfo.defaultRoute = nil
 		}
@@ -1494,7 +1494,7 @@ func SetupStaticInterfaces(ifs []*maestroSpecs.NetIfConfigPayload) (results []In
 					}
 					err2 := netlink.AddrReplace(links[n], addr)
 					if err2 != nil {
-						log.MaestroErrorf("NetworkManager: Failed to setup interface %s - %s", configif.IfName, err2.Error())
+						log.MaestroErrorf("NetworkManager: Failed to setup interface %s - %s\n", configif.IfName, err2.Error())
 						results[n].Err = err2
 					} else {
 						results[n].ipv4 = ip

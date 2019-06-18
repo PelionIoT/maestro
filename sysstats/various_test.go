@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 func TestDiskStatGopsutils(t *testing.T) {
 	parts, err := disk.Partitions(false)
 	if err != nil {
-		log.Fatalf("Partitions() error %s", err.Error())
+		log.Fatal("Partitions() error: ", err.Error())
 	} else {
 		fmt.Printf("Partitions() = %+v\n", parts)
 	}
@@ -41,7 +41,7 @@ func TestDiskStatGopsutils(t *testing.T) {
 	for _, part := range parts {
 		amap, err2 := disk.IOCounters(part.Device)
 		if err2 != nil {
-			log.Fatalf("Partitions() error %s", err2.Error())
+			log.Fatal("Partitions() error: ", err2.Error())
 		} else {
 			fmt.Printf("[%s] IOCounters = %+v\n", part.Device, amap)
 		}

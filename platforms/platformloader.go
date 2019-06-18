@@ -47,15 +47,15 @@ func SetPlatformReaderOpts(platformOpts map[string]interface{}, path string, opt
 				var ok bool
 				setOpts, ok = setOptsSym.(func(opts map[string]interface{}) error)
 				if ok {
-					log.MaestroSuccessf("Platform plugin %s - cached / load successfully.", path)
+					log.MaestroSuccessf("Platform plugin %s - cached / load successfully.\n", path)
 					// logger := maestroPlugins.NewPluginLogger(path)
 					err = setOpts(platformOpts)
 				} else {
-					log.MaestroErrorf("Platform plugin %s - failed to cast 'SetOptsPlatform' symbol. Failing", path)
+					log.MaestroErrorf("Platform plugin %s - failed to cast 'SetOptsPlatform' symbol. Failing\n", path)
 					err = errors.New("bad platform plugin")
 				}
 			} else {
-				log.MaestroErrorf("Platform plugin %s - has no 'SetOptsPlatform' symbol. Failing", path)
+				log.MaestroErrorf("Platform plugin %s - has no 'SetOptsPlatform' symbol. Failing\n", path)
 				err = errors.New("Not implemented")
 			}
 		}
@@ -98,15 +98,15 @@ func ReadWithPlatformReader(dict *templates.TemplateVarDictionary, path string, 
 				var ok bool
 				reader, ok = readerSym.(func(dict *templates.TemplateVarDictionary, log maestroSpecs.Logger) error)
 				if ok {
-					log.MaestroSuccessf("Platform plugin %s - cached / load successfully.", path)
+					log.MaestroSuccessf("Platform plugin %s - cached / load successfully.\n", path)
 					// logger := maestroPlugins.NewPluginLogger(path)
 					err = reader(dict, logger)
 				} else {
-					log.MaestroErrorf("Platform plugin %s - failed to cast 'GetPlatformVars' symbol. Failing", path)
+					log.MaestroErrorf("Platform plugin %s - failed to cast 'GetPlatformVars' symbol. Failing\n", path)
 					err = errors.New("bad platform plugin")
 				}
 			} else {
-				log.MaestroErrorf("Platform plugin %s - has no 'GetPlatformVars' symbol. Failing", path)
+				log.MaestroErrorf("Platform plugin %s - has no 'GetPlatformVars' symbol. Failing\n", path)
 				err = errors.New("Not implemented")
 			}
 		}
@@ -149,16 +149,16 @@ func GeneratePlatformKeys(dict *templates.TemplateVarDictionary, deviceid string
 				// activeWDp, ok = wdSym.(*maestroSpecs.Watchdog)
 				writer, ok = sym.(func(dict *templates.TemplateVarDictionary, devid string, aid string, log maestroSpecs.Logger) (string, string, error))
 				if ok {
-					log.MaestroSuccessf("Platform plugin %s - load successfully.", path)
+					log.MaestroSuccessf("Platform plugin %s - load successfully.\n", path)
 					logger := maestroPlugins.NewPluginLogger(path)
 					outkey, outcert, err = writer(dict, deviceid, accountid, logger)
 				} else {
-					log.MaestroErrorf("Platform plugin %s - failed to cast 'GeneratePlatformDeviceKeyNCert' symbol. Failing", path)
+					log.MaestroErrorf("Platform plugin %s - failed to cast 'GeneratePlatformDeviceKeyNCert' symbol. Failing\n", path)
 					err = errors.New("bad platform plugin")
 				}
 			} else {
 				err = errors.New("Not implemented")
-				log.MaestroErrorf("Platform plugin %s - has no 'GeneratePlatformDeviceKeyNCert' symbol. Failing", path)
+				log.MaestroErrorf("Platform plugin %s - has no 'GeneratePlatformDeviceKeyNCert' symbol. Failing\n", path)
 			}
 		}
 	} else {
@@ -199,16 +199,16 @@ func WritePlatformKeys(dict *templates.TemplateVarDictionary, key string, cert s
 				// activeWDp, ok = wdSym.(*maestroSpecs.Watchdog)
 				writer, ok = readerSym.(func(dict *templates.TemplateVarDictionary, key string, cert string, log maestroSpecs.Logger) error)
 				if ok {
-					log.MaestroSuccessf("Platform plugin %s - load successfully.", path)
+					log.MaestroSuccessf("Platform plugin %s - load successfully.\n", path)
 					logger := maestroPlugins.NewPluginLogger(path)
 					err = writer(dict, key, cert, logger)
 				} else {
-					log.MaestroErrorf("Platform plugin %s - failed to cast 'WritePlatformDeviceKeyNCert' symbol. Failing", path)
+					log.MaestroErrorf("Platform plugin %s - failed to cast 'WritePlatformDeviceKeyNCert' symbol. Failing\n", path)
 					err = errors.New("bad platform plugin")
 				}
 			} else {
 				err = errors.New("Not implemented")
-				log.MaestroErrorf("Platform plugin %s - has no 'WritePlatformDeviceKeyNCert' symbol. Failing", path)
+				log.MaestroErrorf("Platform plugin %s - has no 'WritePlatformDeviceKeyNCert' symbol. Failing\n", path)
 			}
 		}
 	} else {

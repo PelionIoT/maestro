@@ -91,11 +91,11 @@ func periodicRunner(r *periodicPluginRoutine) {
 	for {
 		r.mut.Lock()
 		if r.stop {
-			log.MaestroInfof("Plugin %s - periodic func %s has stopped", r.owner.path, r.name)
+			log.MaestroInfof("Plugin %s - periodic func %s has stopped\n", r.owner.path, r.name)
 			break
 		}
 		r.mut.Unlock()
-		log.MaestroDebugf("Plugin %s periodic func %s - calling %d time", r.owner.path, r.name, r.num)
+		log.MaestroDebugf("Plugin %s periodic func %s - calling %d time\n", r.owner.path, r.name, r.num)
 		r.owner.param.Mut.Lock()
 		c, e := r.callee(r.num, r.owner.param)
 		if r.owner.callback != nil {
@@ -104,11 +104,11 @@ func periodicRunner(r *periodicPluginRoutine) {
 		r.owner.param.Mut.Unlock()
 		r.stop = !c
 		if e != nil {
-			log.MaestroErrorf("Error in plugin %s - periodic func %s - %s", r.owner.path, r.name, e.Error())
+			log.MaestroErrorf("Error in plugin %s - periodic func %s - %s\n", r.owner.path, r.name, e.Error())
 		}
 		r.mut.Lock()
 		if r.stop {
-			log.MaestroInfof("Plugin %s - periodic func %s has stopped", r.owner.path, r.name)
+			log.MaestroInfof("Plugin %s - periodic func %s has stopped\n", r.owner.path, r.name)
 			break
 		}
 		r.mut.Unlock()

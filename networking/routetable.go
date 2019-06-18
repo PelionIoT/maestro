@@ -70,7 +70,7 @@ func (table *routingTable) addDefaultRouteForInterface(ifname string, prio int, 
 			active: false,
 		})
 	} else {
-		log.MaestroErrorf("NetworkManager: an attempt to play a nil route in table occurred")
+		log.MaestroError("NetworkManager: an attempt to play a nil route in table occurred")
 	}
 	return
 }
