@@ -721,14 +721,7 @@ func init() {
 		fmt.Printf("ERROR - could not get maestro executable folder. {{thisdir}} macro will fail.")
 	}
 	updateMacroVars()
-	// NEVER_RAN = iota
-	// RUNNING = iota
-	// STOPPED = iota
-	// WAITING_FOR_DEPS = iota
-	// STARTING = iota
-	// STOPPING = iota
-	// RESTARTING = iota
-	// FAILED = iota
+
 	stringOfStatus = map[int]string{
 		NEVER_RAN:        "NEVER_RAN",
 		RUNNING:          "RUNNING",
@@ -1049,28 +1042,6 @@ eventLoop:
 	for true {
 		debugging.DEBUG_OUT("************************************* maestro processEventsWorker() ********************************\n")
 		select {
-		// MOVED TO sysstats package
-		// case <-internalTicker.C:
-		// 	counter++
-		// 	debugging.DEBUG_OUT("COUNTER ---------------------------> : %d\n",counter)
-		// 	// check intervals
-		// 	//
-		// 	if statsConfig != nil {
-		// 		pace, ok := statsConfig.GetConfig_CheckMem()
-		// 		if ok && (counter % pace == 0) {
-		// 			debugging.DEBUG_OUT("   **** Check mem stats\n")
-
-		// 			stats, err := mem.VirtualMemory()
-		// 			var ev *MemStatEvent
-		// 			if err == nil {
-		// 				ev = NewVirtualMemEvent(stats)
-		// 			} else {
-		// 				ev = NewVirtualMemEvent(nil)
-		// 			}
-		// 			SubmitEvent(*ev)
-		// 		}
-
-		// 	}
 		case ev := <-controlChan:
 			debugging.DEBUG_OUT("************************>>>>>>>>>> Got internal event: %+v\n", ev)
 			if ev.code == internalEvent_shutdown {
@@ -1764,16 +1735,6 @@ type JobStatusData interface {
 
 func (data *_jobStatusData) MarshalJSON() (outjson []byte, err error) {
 	buffer := bytes.NewBufferString("{")
-
-	// loop through all entries.
-	// output format is:
-	// {
-	//    "someJobName" : {
-	//    {
-	//	     // all the job data fields here...
-	//    },
-	//    // each job...
-	// }
 	n := 0
 	for job := range data.jobsByName.Iter() {
 		val := job.Value
@@ -1809,11 +1770,7 @@ func (data *_jobStatusData) MarshalJSON() (outjson []byte, err error) {
 				if len(j.compositeContainerTemplate) > 0 {
 					buffer.WriteString(fmt.Sprintf("\"compositeContainerTemplate\":\"%s\",", j.compositeContainerTemplate))
 				}
-
 				buffer.WriteString(fmt.Sprintf("\"execPath\":\"%s\"", j.execPath))
-				// if(j.status == WAITING_FOR_DEPS) {
-
-				// }
 				buffer.WriteString("}")
 			}
 		}
