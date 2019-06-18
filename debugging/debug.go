@@ -41,12 +41,12 @@ type LocalMemStats struct {
 
 const DebugEnabled = true
 
-func DEBUG_OUT(args ...interface{}) {
-	fmt.Println(args...)
+func DEBUG_OUT(format string, args ...interface{}) {
+	fmt.Printf(format, args...)
 }
 
-func DEBUG_OUT2(args ...interface{}) {
-	fmt.Println(args...)
+func DEBUG_OUT2(format string, args ...interface{}) {
+	fmt.Printf(format, args...)
 }
 
 func DumpMemStats() {
