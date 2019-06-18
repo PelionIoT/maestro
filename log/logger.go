@@ -74,7 +74,7 @@ func MaestroInfof(format string, a ...interface{}) {
 		greasego.LogInfof(format, a...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[INFO]  %s\n", s)
+		fmt.Printf("[INFO]  %s", s)
 	}
 }
 
@@ -92,7 +92,7 @@ func MaestroSuccessf(format string, a ...interface{}) {
 		greasego.LogSuccessf(format, a...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[OK]    %s\n", s)
+		fmt.Printf("[OK]    %s", s)
 	}
 }
 
@@ -110,7 +110,7 @@ func MaestroWarnf(format string, a ...interface{}) {
 		greasego.LogWarningf(format, a...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[WARN]  %s\n", s)
+		fmt.Printf("[WARN]  %s", s)
 	}
 }
 
@@ -128,7 +128,7 @@ func MaestroErrorf(format string, a ...interface{}) {
 		greasego.LogErrorf(format, a...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[ERROR] %s\n", s)
+		fmt.Printf("[ERROR] %s", s)
 	}
 }
 
@@ -146,7 +146,7 @@ func MaestroDebugf(format string, a ...interface{}) {
 		greasego.LogDebugf(format, a...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[debug] %s\n", s)
+		fmt.Printf("[debug] %s", s)
 	}
 }
 
@@ -171,7 +171,7 @@ func (this *PrefixedLogger) Infof(format string, a ...interface{}) {
 		greasego.LogInfof("%s "+format, a2)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[INFO] %s %s\n", this.prefix, s)
+		fmt.Printf("[INFO] %s %s", this.prefix, s)
 	}
 }
 
@@ -191,7 +191,7 @@ func (this *PrefixedLogger) Successf(format string, a ...interface{}) {
 		greasego.LogSuccessf("%s "+format, a2...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[OK]   %s %s\n", this.prefix, s)
+		fmt.Printf("[OK]   %s %s", this.prefix, s)
 	}
 }
 
@@ -211,7 +211,7 @@ func (this *PrefixedLogger) Warnf(format string, a ...interface{}) {
 		greasego.LogWarningf("%s "+format, a2...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[WARN] %s %s\n", this.prefix, s)
+		fmt.Printf("[WARN] %s %s", this.prefix, s)
 	}
 }
 
@@ -231,7 +231,7 @@ func (this *PrefixedLogger) Errorf(format string, a ...interface{}) {
 		greasego.LogErrorf("%s "+format, a2...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[ERROR] %s %s\n", this.prefix, s)
+		fmt.Printf("[ERROR] %s %s", this.prefix, s)
 	}
 }
 
@@ -251,7 +251,7 @@ func (this *PrefixedLogger) Debugf(format string, a ...interface{}) {
 		greasego.LogDebugf("%s "+format, a2...)
 	} else {
 		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[debug] %s %s\n", this.prefix, s)
+		fmt.Printf("[debug] %s %s", this.prefix, s)
 	}
 }
 
