@@ -22,6 +22,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -31,7 +32,16 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+//We use lot of parallel testing in the below tests and running parallel tests requires multiple GOMAXPROCS.
+//As of now, based on how tests are written , we need atleast GOMAXPROCS>=2
+const MIN_PROCS_NEEDED int = 2
+
 func TestMain(m *testing.M) {
+	num_max_cores := runtime.GOMAXPROCS(0)
+	fmt.Printf("Events test: Max number of available cores %d\n", num_max_cores)
+	if(num_max_cores < MIN_PROCS_NEEDED) {
+		log.Fatalf("Unable to run tests, GOMAXPROCS less than (MIN_PROCS_NEEDED=%d)\n", MIN_PROCS_NEEDED)
+	}
 	m.Run()
 }
 
@@ -985,6 +995,9 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 
 // This version lets events drop
 func TestFanout2Multi(t *testing.T) {
+
+	//In this test we post 3 events to a fanout enabled event channel
+	//And we then let 2 listeners to read from it and make sure they receive it	
 	_, id, err := MakeEventChannel("stuff2", true, false)
 	if err != nil {
 		log.Fatalf("Error making event channel: %+v\n", err)
@@ -1005,26 +1018,73 @@ func TestFanout2Multi(t *testing.T) {
 		t.FailNow()
 	}
 	sub2.ReleaseChannel()
-	// listen := func() {
-	// }
+	
+	hook := newLatch(3)
+		
+	//Run emitter in main goroutine which post 3 events to channels
+	d := &dat{
+		x: 1,
+	}
+	names := []string{"stuff2"}
+	fmt.Println("@SubmitEvent 1")
+	dropped, err2 := SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped\n")
+		t.FailNow()
+	}
 
-	fmt.Printf("Starting listener...\n")
+	d = &dat{
+		x: 2,
+	}
+	
+	fmt.Println("@SubmitEvent 2")
+	dropped, err2 = SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped\n")
+		t.FailNow()
+	}
 
-	hook := newLatch(1)
-	hook2 := newLatch(1)
+	d = &dat{
+		x: stop_value,
+	}
+	
+	fmt.Println("@SubmitEvent end")
+	dropped, err2 = SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped\n")
+		t.FailNow()
+	}
 
+	fmt.Printf("Starting listeners...\n")
+
+	//Now start the listeners
 	t.Run("listener", func(t *testing.T) {
-		t.Parallel()
 		x := 0
-		latchon(hook)
+		
 	listenLoop:
 		for {
 			fmt.Println("listener() at top of loop.")
 			ok, subchan := sub.GetChannel()
+			fmt.Println("listener() got chan.")
 			if ok {
+				fmt.Println("listener() bf select.")	
 				select {
 				case ev := <-subchan:
+					fmt.Println("listener() bf ev.Data.")	
 					sdata, ok := ev.Data.(*dat)
+					latchon(hook)
 					if ok {
 						fmt.Printf("listener: Got event %d\n", sdata.x)
 						if sdata.x == stop_value {
@@ -1038,7 +1098,9 @@ func TestFanout2Multi(t *testing.T) {
 					} else {
 						log.Fatalf("Failed type assertion\n")
 					}
-					latchon(hook)
+				case <- time.After(time.Second * 5):
+					fmt.Println("timeout 1")
+					time.Sleep(1000000)
 					// default:
 					//     latchon(hook)
 				}
@@ -1049,10 +1111,14 @@ func TestFanout2Multi(t *testing.T) {
 		}
 	})
 
+	fmt.Println("@Wait for event 1,3,end to be received by listener")
+	needlatch(hook)
+	needlatch(hook)
+	needlatch(hook)
+
 	t.Run("listener2", func(t *testing.T) {
-		t.Parallel()
 		x := 0
-		latchon(hook2)
+		
 	listenLoop:
 		for {
 			fmt.Println("listener2() at top of loop.")
@@ -1061,6 +1127,7 @@ func TestFanout2Multi(t *testing.T) {
 				select {
 				case ev := <-subchan:
 					sdata, ok := ev.Data.(*dat)
+					latchon(hook)
 					if ok {
 						fmt.Printf("listener: Got event %d\n", sdata.x)
 						if sdata.x == stop_value {
@@ -1074,7 +1141,9 @@ func TestFanout2Multi(t *testing.T) {
 					} else {
 						log.Fatalf("Failed type assertion\n")
 					}
-					latchon(hook2)
+				case <- time.After(time.Second * 5):
+					fmt.Println("timeout")
+					time.Sleep(1000000)
 					// default:
 					//     latchon(hook)
 				}
@@ -1085,60 +1154,12 @@ func TestFanout2Multi(t *testing.T) {
 		}
 	})
 
-	t.Run("emitter", func(t *testing.T) {
-		t.Parallel()
-		d := &dat{
-			x: 1,
-		}
-		names := []string{"stuff2"}
-		fmt.Println("@SubmitEvent 1")
-		needlatch(hook)
-		needlatch(hook2)
-		dropped, err2 := SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped\n")
-			t.FailNow()
-		}
-
-		d = &dat{
-			x: 2,
-		}
-		needlatch(hook)
-		needlatch(hook2)
-
-		fmt.Println("@SubmitEvent 2")
-		dropped, err2 = SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped\n")
-			t.FailNow()
-		}
-
-		d = &dat{
-			x: stop_value,
-		}
-		needlatch(hook)
-		needlatch(hook2)
-		fmt.Println("@SubmitEvent end")
-		dropped, err2 = SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped\n")
-			t.FailNow()
-		}
-
-	})
-
+	fmt.Println("@Wait for event 1,3,end to be received by listener 2")
+	needlatch(hook)
+	needlatch(hook)
+	needlatch(hook)
+	close(hook)
+	
 }
 
 func TestNofanout1(t *testing.T) {
@@ -1276,8 +1297,11 @@ func TestNofanout2Multi(t *testing.T) {
 
 	fmt.Printf("Starting listener...\n")
 
-	t.Run("listener", func(t *testing.T) {
-		t.Parallel()
+	//Use go routines instead of Parallel tests here, since parallel tests do not let you run
+	//more parallel tests than cores/procs available. So use, goroutines here.
+	//In this case, 2 listeners are started as goroutines on the channel and 
+	//we post events to that channel without fanout enabled.
+	go func(t *testing.T) {
 		x := 0
 	listenLoop:
 		for {
@@ -1312,10 +1336,9 @@ func TestNofanout2Multi(t *testing.T) {
 			}
 			sub.ReleaseChannel()
 		}
-	})
+	}(t)
 
-	t.Run("listener2", func(t *testing.T) {
-		t.Parallel()
+	go func(t *testing.T) {
 		x := 0
 	listenLoop:
 		for {
@@ -1326,7 +1349,7 @@ func TestNofanout2Multi(t *testing.T) {
 				case ev := <-subchan:
 					sdata, ok := ev.Data.(*dat)
 					if ok {
-						fmt.Printf("listener: Got event %d\n", sdata.x)
+						fmt.Printf("listener2: Got event %d\n", sdata.x)
 						if sdata.x == stop_value {
 							break listenLoop
 						} else {
@@ -1351,89 +1374,91 @@ func TestNofanout2Multi(t *testing.T) {
 			}
 			sub2.ReleaseChannel()
 		}
-	})
+	}(t)
 
-	t.Run("emitter", func(t *testing.T) {
-		t.Parallel()
-		d := &dat{
-			x: 1,
-		}
-		names := []string{chan_name}
-		fmt.Println("@SubmitEvent 1")
-		//        needlatch(hook)
-		dropped, err2 := SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped\n")
-			t.FailNow()
-		}
+	time.Sleep(time.Millisecond * 1)
+	d := &dat{
+		x: 1,
+	}
+	names := []string{chan_name}
+	fmt.Println("@SubmitEvent 1")
+	//        needlatch(hook)
+	dropped, err2 := SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped")
+		t.FailNow()
+	}
 
-		d = &dat{
-			x: 2,
-		}
-		//        needlatch(hook)
-		fmt.Println("@SubmitEvent 2")
-		dropped, err2 = SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped")
-			t.FailNow()
-		}
+	time.Sleep(time.Millisecond * 1)
+	d = &dat{
+		x: 2,
+	}
+	//        needlatch(hook)
+	fmt.Println("@SubmitEvent 2")
+	dropped, err2 = SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped\n")
+		t.FailNow()
+	}
 
-		d = &dat{
-			x: 3,
-		}
-		//        needlatch(hook)
-		fmt.Println("@SubmitEvent 2")
-		dropped, err2 = SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped")
-			t.FailNow()
-		}
+	time.Sleep(time.Millisecond * 1)
+	d = &dat{
+		x: 3,
+	}
+	//        needlatch(hook)
+	fmt.Println("@SubmitEvent 3")
+	dropped, err2 = SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped\n")
+		t.FailNow()
+	}
 
-		d = &dat{
-			x: 4,
-		}
-		//        needlatch(hook)
-		fmt.Println("@SubmitEvent 2")
-		dropped, err2 = SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped")
-			t.FailNow()
-		}
+	time.Sleep(time.Millisecond * 1)
+	d = &dat{
+		x: 4,
+	}
+	//        needlatch(hook)
+	fmt.Println("@SubmitEvent 4")
+	dropped, err2 = SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped\n")
+		t.FailNow()
+	}
 
-		d = &dat{
-			x: stop_value,
-		}
-		// needlatch(hook)
-		// needlatch(hook2)
-		fmt.Println("@SubmitEvent end")
-		dropped, err2 = SubmitEvent(names, d)
-		if err2 != nil {
-			log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
-			t.FailNow()
-		}
-		if dropped {
-			log.Fatalf("Wrong - should not have dropped")
-			t.FailNow()
-		}
-		close(hook)
-
-	})
+	time.Sleep(time.Millisecond * 1)
+	d = &dat{
+		x: stop_value,
+	}
+	// needlatch(hook)
+	// needlatch(hook2)
+	fmt.Println("@SubmitEvent end")
+	dropped, err2 = SubmitEvent(names, d)
+	if err2 != nil {
+		log.Fatalf("Error on SubmitEvent channel: %+v\n", err)
+		t.FailNow()
+	}
+	if dropped {
+		log.Fatalf("Wrong - should not have dropped\n")
+		t.FailNow()
+	}
+	close(hook)
+	time.Sleep(time.Second * 2)
 
 }
 
