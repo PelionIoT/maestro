@@ -888,6 +888,7 @@ void GreaseLogger::_doLibCallback(GreaseLogger::logTarget::writeCBData &data) {
 		buf->_id = (int) data.t->myId;
 		buf->_shadow = data.b; // hide the original object here in void *
 		data.t->logCallback(NULL,buf,data.t->myId);
+		//LFREE(buf);
 
 // Below replaced, see returnBufferToTarget() above
 //		data.t->finalizeV8Callback(data.b);
@@ -906,7 +907,7 @@ void GreaseLogger::_doLibCallback(GreaseLogger::logTarget::writeCBData &data) {
 //			} else {
 //				ERROR_OUT("Memory: Could not convert for log target's callback (2)");
 //			}
-//			LFREE(d);
+			LFREE(buf);
 		} else {
 			ERROR_OUT("Error on LMALLOC. alloc was %d bytes.\n",l);
 		}
@@ -988,6 +989,7 @@ NAN_METHOD(GreaseLogger::AddTagLabel) {
 		Nan::Utf8String v8str(info[1]->ToString());
 		logLabel *label = logLabel::fromUTF8(v8str.operator *(),v8str.length());
 		l->tagLabels.addReplace(info[0]->Uint32Value(),label);
+		free(label);
 	} else {
 		return Nan::ThrowTypeError("addTagLabel: bad parameters");
 	}
@@ -1009,6 +1011,7 @@ NAN_METHOD(GreaseLogger::AddOriginLabel) {
 		Nan::Utf8String v8str(info[1]->ToString());
 		logLabel *label = logLabel::fromUTF8(v8str.operator *(),v8str.length());
 		l->originLabels.addReplace(info[0]->Uint32Value(),label);
+		free(label);
 	} else {
 		return Nan::ThrowTypeError("addOriginLabel: bad parameters");
 	}
@@ -1029,6 +1032,7 @@ NAN_METHOD(GreaseLogger::AddLevelLabel) {
 		logLabel *label = logLabel::fromUTF8(v8str.operator *(),v8str.length());
 		uint32_t v = info[0]->Uint32Value();
 		l->levelLabels.addReplace(v,label);
+		free(label);
 	} else {
 		return Nan::ThrowTypeError("addLevelLabel: bad parameters");
 	}
