@@ -518,6 +518,8 @@ public:
 		logLabel() : buf() {}
 		bool empty() { return buf.empty(); }
 		void setUTF8(const char *s, int len) {
+			buf.malloc(len+1);
+			memset(buf.handle.base,0,(size_t) len+1);
 			buf.memcpy(s,(size_t) len);
 		}
 		logLabel& operator=(logLabel &o) {
@@ -553,9 +555,11 @@ public:
 			  delim_output(std::move(o.delim_output)) {}
 
 		void setDelim(char *s,int l) {
+			delim.malloc(l);
 			delim.memcpy(s,l);
 		}
 		void setOutputDelim(char *s,int l) {
+			delim_output.malloc(l);
 			delim_output.memcpy(s,l);
 		}
 		delim_data duplicate() {
@@ -1754,7 +1758,6 @@ protected:
 				close(sink->wakeup_pipe[1]);
 				sink->ready = false;
 				sink->valid = false;
-				free(temp_buffer_entry);
 				return;
 			}
 
