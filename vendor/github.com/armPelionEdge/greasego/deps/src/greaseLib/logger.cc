@@ -988,6 +988,7 @@ NAN_METHOD(GreaseLogger::AddTagLabel) {
 		Nan::Utf8String v8str(info[1]->ToString());
 		logLabel *label = logLabel::fromUTF8(v8str.operator *(),v8str.length());
 		l->tagLabels.addReplace(info[0]->Uint32Value(),label);
+		free(label);
 	} else {
 		return Nan::ThrowTypeError("addTagLabel: bad parameters");
 	}
@@ -1009,6 +1010,7 @@ NAN_METHOD(GreaseLogger::AddOriginLabel) {
 		Nan::Utf8String v8str(info[1]->ToString());
 		logLabel *label = logLabel::fromUTF8(v8str.operator *(),v8str.length());
 		l->originLabels.addReplace(info[0]->Uint32Value(),label);
+		free(label);
 	} else {
 		return Nan::ThrowTypeError("addOriginLabel: bad parameters");
 	}
@@ -1029,6 +1031,7 @@ NAN_METHOD(GreaseLogger::AddLevelLabel) {
 		logLabel *label = logLabel::fromUTF8(v8str.operator *(),v8str.length());
 		uint32_t v = info[0]->Uint32Value();
 		l->levelLabels.addReplace(v,label);
+		free(label);
 	} else {
 		return Nan::ThrowTypeError("addLevelLabel: bad parameters");
 	}
