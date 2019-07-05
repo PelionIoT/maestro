@@ -198,10 +198,12 @@ public:
 		if(remain() < 1)
 			return;
 
+		sema.lockSemaOnly();
 		_reverse = !(_reverse);
 		int t = nextOut;
 		nextOut = nextIn;
 		nextIn = t;
+		sema.releaseSemaLock();
 	}
 
 };

@@ -142,7 +142,8 @@ namespace _errcmn {
 			}
 			if(in) {
 				in->_errno = this->_errno;
-				::strncpy(in->errstr,this->errstr,GREASE_LIB_MAX_ERR_STRING);
+				::strncpy(in->errstr, this->errstr, GREASE_LIB_MAX_ERR_STRING-1);
+				in->errstr[GREASE_LIB_MAX_ERR_STRING-1] = '\0';
 			}
 			return in;
 		}

@@ -459,7 +459,6 @@ void GreaseLogger::mainThread(void *p) {
 }
 
 int GreaseLogger::log(const logMeta &f, const char *s, int len) { // does the work of logging
-//	FilterList *list = NULL;
 	if(len > GREASE_MAX_MESSAGE_SIZE)
 		return GREASE_OVERFLOW;
 	logMeta m = f;
@@ -470,14 +469,9 @@ int GreaseLogger::log(const logMeta &f, const char *s, int len) { // does the wo
 }
 
 int GreaseLogger::logP(logMeta *f, const char *s, int len) { // does the work of logging
-//	FilterList *list = NULL;
 
 	if(len > GREASE_MAX_MESSAGE_SIZE)
 		return GREASE_OVERFLOW;
-//	logMeta m = *f;
-//
-//	DBG_OUT("  log() have origin %d\n",f->origin);
-//
 	if(sift(*f)) {
 		return _log((*f),s,len);
 	} else
@@ -643,7 +637,9 @@ void GreaseLogger::targetReady(bool ready, _errcmn::err_ev &err, logTarget *t) {
 			info->cb(t->owner,err,info);
 		}
 		// TODO shutdown?
+		if(t->myId == DEFAULT_TARGET && info) delete info;
 		delete t;
+		return;
 	}
 	if(t->myId == DEFAULT_TARGET && info) delete info;
 }
@@ -1904,7 +1900,7 @@ bool GreaseLogger::parse_single_klog_to_singleLog(char *start, int &remain, klog
 		begin_state = LEVEL_BEGIN; // on the next call, move to next log entry
 		entry->meta.m.tag = GREASE_TAG_KERNEL;
 		entry->meta.m.origin = 0;
-		if((look - cap) > 0) {
+		if((look - cap) > 0 && cap) {
 			// actually log stuff with some length
 			if((look - cap - 1) > entry->buf.handle.len) {
 				// its too big... (should probably never happen)
@@ -1924,7 +1920,6 @@ bool GreaseLogger::parse_single_klog_to_singleLog(char *start, int &remain, klog
 		begin_state = state;
 		return false;
 	}
-
 }
 
 int fast_ascii_to_int(char *s, int n) {
@@ -2084,7 +2079,7 @@ bool GreaseLogger::parse_single_devklog_to_singleLog(char *start, int &remain, k
                             else if (*cap == '1')
                                 klog_level = *(cap+1) - '0' + 10;
                             else
-                                klog_level = 20;
+                                klog_level = 19;  // Max log level can be 19
 
                             if (klog_level < 20 && klog_level >= 0) {
                                 // valid level
@@ -2170,6 +2165,7 @@ int GreaseLogger::_grabInLogBuffer(singleLog* &buf) {
 int GreaseLogger::_returnBuffer(singleLog *buf) {
 	buf->clear();
 	masterBufferAvail.add(buf);
+    return GREASE_OK;
 }
 
 int GreaseLogger::_submitBuffer(singleLog *buf) {

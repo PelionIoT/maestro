@@ -66,7 +66,6 @@ void *printWork(void *d) {
 		} else {
 			printf("OOOPS. Overflow on test output. size was %lu %d\n",buf->size, buf->_id);
 		}
-	//	sleep(1);
 		GreaseLib_cleanup_GreaseLibBuf(buf);  // comment out to test overrun if Buffers are not being taken
 	}
 	return NULL;
@@ -81,15 +80,15 @@ void targetCallback(GreaseLibError *err, void *d, uint32_t targetId) {
 		printf("OOPS - ran out of room in queue to printout\n");
 	}
 
-//	GreaseLibBuf *buf = (GreaseLibBuf *)d;
-//	if(buf->size < 5127) {
-//		memcpy(output_buf,buf->data,buf->size);
-//		*(buf->data+buf->size+1) = '\0';
-//		printf("CALLBACK TARGET>>>>>>>>>%s<<<<<<<<<<<<<<<<\n",output_buf);
-//	} else {
-//		printf("OOOPS. Overflow on test output. size was %lu\n",buf->size);
-//	}
-//	GreaseLib_cleanup_GreaseLibBuf(buf);
+	//	GreaseLibBuf *buf = (GreaseLibBuf *)d;
+	//	if(buf->size < 5127) {
+	//		memcpy(output_buf,buf->data,buf->size);
+	//		*(buf->data+buf->size+1) = '\0';
+	//		printf("CALLBACK TARGET>>>>>>>>>%s<<<<<<<<<<<<<<<<\n",output_buf);
+	//	} else {
+	//		printf("OOOPS. Overflow on test output. size was %lu\n",buf->size);
+	//	}
+	//	GreaseLib_cleanup_GreaseLibBuf(buf);
 }
 
 #define FILE_TARG_OPTID 98
@@ -167,99 +166,92 @@ void childClosedFDCallback (GreaseLibError *err, int stream_type, int fd) {
 }
 
 int createChild(const char* szCommand, char* const aArguments[], char* const aEnvironment[], const char* szMessage) {
-  int aStdinPipe[2];
-  int aStdoutPipe[2];
-  int nChild;
-  char nChar;
-  int nResult;
+	int aStdinPipe[2];
+	int aStdoutPipe[2];
+	int nChild;
+	char nChar;
+	int nResult;
 
-  if (pipe(aStdinPipe) < 0) {
-    perror("allocating pipe for child input redirect");
-    return -1;
-  }
-  if (pipe(aStdoutPipe) < 0) {
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdinPipe[PIPE_WRITE]);
-    perror("allocating pipe for child output redirect");
-    return -1;
-  }
+	if (pipe(aStdinPipe) < 0) {
+		perror("allocating pipe for child input redirect");
+		return -1;
+	}
+	if (pipe(aStdoutPipe) < 0) {
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdinPipe[PIPE_WRITE]);
+		perror("allocating pipe for child output redirect");
+		return -1;
+	}
 
-  GreaseLib_addOriginLabel( childStartingOriginID, szCommand, strlen(szCommand) );
-  GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
-  childStartingOriginID++;
-
-
-  nChild = fork();
-  if (0 == nChild) {
-    // child continues here
-
-    // redirect stdin
-
-//    if (dup2(aStdinPipe[PIPE_READ], STDIN_FILENO) == -1) {
-//      perror("redirecting stdin");
-//      return -1;
-//    }
-
-    // redirect stdout
-    if (dup2(aStdoutPipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
-      perror("redirecting stdout");
-      return -1;
-    }
-
-    // redirect stderr
-    if (dup2(aStdoutPipe[PIPE_WRITE], STDERR_FILENO) == -1) {
-      perror("redirecting stderr");
-      return -1;
-    }
-
-    // all these are for use by parent only
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdinPipe[PIPE_WRITE]);
-    close(aStdoutPipe[PIPE_READ]);
-    close(aStdoutPipe[PIPE_WRITE]);
-
-    // run child process image
-    // replace this with any exec* function find easier to use ("man exec")
-    nResult = execve(szCommand, aArguments, aEnvironment);
-
-    // if we get here at all, an error occurred, but we are in the child
-    // process, so just exit
-    perror("exec of the child process");
-    exit(nResult);
-  } else if (nChild > 0) {
-    // parent continues here
-
-    // close unused file descriptors, these are for child only
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdoutPipe[PIPE_WRITE]);
-
-    // we aren't going to send stdin to it, so...
-    close(aStdinPipe[PIPE_WRITE]);
+	GreaseLib_addOriginLabel( childStartingOriginID, szCommand, strlen(szCommand) );
+	GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
+	childStartingOriginID++;
 
 
+	nChild = fork();
+	if (0 == nChild) {
+		// child continues here
 
-    // Include error check here
-//    if (NULL != szMessage) {
-//      write(aStdinPipe[PIPE_WRITE], szMessage, strlen(szMessage));
-//    }
+		// all these are for use by parent only
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdinPipe[PIPE_WRITE]);
+		close(aStdoutPipe[PIPE_READ]);
 
-    // Just a char by char read here, you can change it accordingly
-//    while (read(aStdoutPipe[PIPE_READ], &nChar, 1) == 1) {
-//      write(STDOUT_FILENO, &nChar, 1);
-//    }
-//
-//    // done with these in this example program, you would normally keep these
-//    // open of course as long as you want to talk to the child
-//    close(aStdinPipe[PIPE_WRITE]);
-//    close(aStdoutPipe[PIPE_READ]);
-  } else {
-    // failed to create child
-    close(aStdinPipe[PIPE_READ]);
-    close(aStdinPipe[PIPE_WRITE]);
-    close(aStdoutPipe[PIPE_READ]);
-    close(aStdoutPipe[PIPE_WRITE]);
-  }
-  return nChild;
+		// redirect stdout
+		if (dup2(aStdoutPipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
+			perror("redirecting stdout");
+			close(aStdoutPipe[PIPE_WRITE]);
+			return -1;
+		}
+
+		// redirect stderr
+		if (dup2(aStdoutPipe[PIPE_WRITE], STDERR_FILENO) == -1) {
+			perror("redirecting stderr");
+			close(aStdoutPipe[PIPE_WRITE]);
+			return -1;
+		}
+		close(aStdoutPipe[PIPE_WRITE]);
+
+		// run child process image
+		// replace this with any exec* function find easier to use ("man exec")
+		nResult = execve(szCommand, aArguments, aEnvironment);
+
+		// if we get here at all, an error occurred, but we are in the child
+		// process, so just exit
+		perror("exec of the child process");
+		exit(nResult);
+	} else if (nChild > 0) {
+		// parent continues here
+
+		// close unused file descriptors, these are for child only
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdoutPipe[PIPE_WRITE]);
+
+		// we aren't going to send stdin to it, so...
+		close(aStdinPipe[PIPE_WRITE]);
+
+		// Include error check here
+		//    if (NULL != szMessage) {
+		//      write(aStdinPipe[PIPE_WRITE], szMessage, strlen(szMessage));
+		//    }
+
+		// Just a char by char read here, you can change it accordingly
+		//    while (read(aStdoutPipe[PIPE_READ], &nChar, 1) == 1) {
+		//      write(STDOUT_FILENO, &nChar, 1);
+		//    }
+		//
+		//    // done with these in this example program, you would normally keep these
+		//    // open of course as long as you want to talk to the child
+		//    close(aStdinPipe[PIPE_WRITE]);
+		//    close(aStdoutPipe[PIPE_READ]);
+	} else {
+		// failed to create child
+		close(aStdinPipe[PIPE_READ]);
+		close(aStdinPipe[PIPE_WRITE]);
+		close(aStdoutPipe[PIPE_READ]);
+		close(aStdoutPipe[PIPE_WRITE]);
+	}
+	return nChild;
 }
 
 
@@ -274,12 +266,10 @@ int main() {
 	GreaseLib_setupStandardLevels();
 	GreaseLib_setupStandardTags();
 	// test setting up a sink
-
 	GreaseLibSink *sink = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_UNIXDGRAM,"/tmp/testsocket");
 	GreaseLibSink *klog_sink = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_KLOG2,NULL);
 
 	// setup a file destination
-
 	GreaseLibTargetOpts *target = GreaseLib_new_GreaseLibTargetOpts();
 
 	char outFile[] = "/tmp/output.log";
@@ -301,8 +291,6 @@ int main() {
 
 	// another target... will be ignored - since nothing if directed to it yet
 	GreaseLibTargetOpts *target2 = GreaseLib_new_GreaseLibTargetOpts();
-//	target2->file = outFile;
-//	target2->fileOpts = GreaseLib_new_GreaseLibTargetFileOpts();
 
 	target2->optsId = CALLBACK_TARG_OPTID;
 	target2->targetCB = targetCallback;
@@ -324,9 +312,11 @@ int main() {
 
 	if((ret = GreaseLib_addSink(sink)) != GREASE_LIB_OK) {
 		printf("ERROR on addSink(): %d",ret);
+		GreaseLib_cleanup_GreaseLibSink(sink);
 	}
 	if((ret = GreaseLib_addSink(klog_sink)) != GREASE_LIB_OK) {
 		printf("ERROR on addSink() - klog: %d",ret);
+		GreaseLib_cleanup_GreaseLibSink(klog_sink);
 	}
 	printf("after setup sink\n");
 
@@ -335,6 +325,7 @@ int main() {
 
 	if((ret = GreaseLib_addSink(sink2)) != GREASE_LIB_OK) {
 		printf("ERROR on addSink(): %d",ret);
+		GreaseLib_cleanup_GreaseLibSink(sink2);
 	}
 	printf("after setup sink\n");
 
@@ -343,8 +334,6 @@ int main() {
 	if(pthread_create(&printThreadId, NULL, printWork, NULL)) {
 		fprintf(stderr, "Error printWork thread\n");
 	}
-
-//	printf("Will shutdown in %d seconds\n",WAITSECS);
 
 	printf("Gonna exec a command in 5 seconds\n");
 	sleep(10);
@@ -358,18 +347,17 @@ int main() {
 
 	sleep(1);
 
+#if 0
 	args[0] = "/home/ed/work/gostuff/bin/devicedb";
 	args[1] = "start";
 	args[2] = "-conf=/home/ed/work/gostuff/config.yaml";//"test-re.cc";
 	args[3] = NULL;
 	createChild("/home/ed/work/gostuff/bin/devicedb",args,NULL,NULL);
-
+#endif
+	GreaseLib_cleanup_GreaseLibSink(sink);
+	GreaseLib_cleanup_GreaseLibSink(klog_sink);
+	GreaseLib_cleanup_GreaseLibSink(sink2);
+	printf("sleep over\n");
+	GreaseLib_shutdown(NULL);
 	GreaseLib_waitOnGreaseShutdown();
-	//	sleep(WAITSECS);
-//
-//	printf("sleep over\n");
-//
-//	GreaseLib_shutdown(NULL);
-
 }
-;

@@ -382,54 +382,40 @@ int grease_logToSink(logMeta *f, const char *s, RawLogLen len) {
 
 
 #ifndef GREASE_IS_LOCAL
-
-
 static int
 grease_plhdr_callback(struct dl_phdr_info *info, size_t size, void *data)
 {
     char *found = NULL;
     found = strstr(info->dlpi_name,GREASE_LOG_SO_NAME);
-//    printf("so: %s\n", info->dlpi_name);
     if(found) {
     	_GREASE_DBG_PRINTF("Found greaseLog.node in running process\n");
     	// we know the path of the grease node module .so file, so
     	// open it for our own use...
     	void *lib = dlopen(info->dlpi_name, RTLD_LAZY);
     	if(lib) {
-        	void *r = dlsym(lib,"grease_logLocal");
+            void *r = dlsym(lib,"grease_logLocal");
             if(r) {
             	_GREASE_DBG_PRINTF("Found symbol for grease_logLocal\n");
             	local_log = r;
             	found_module = 1;
             } else {
+            	dlclose(lib);
             	local_log = NULL;
             }
     	}
     }
-
-//    printf("name=%s (%d segments)\n", info->dlpi_name,
-//        info->dlpi_phnum);
-//
-//    for (j = 0; j < info->dlpi_phnum; j++)
-//         printf("\t\t header %2d: address=%10p\n", j,
-//             (void *) (info->dlpi_addr + info->dlpi_phdr[j].p_vaddr));
     return 0;
 }
-
-
 
 int check_grease_symbols() {
 	found_module = 0;
 	dl_iterate_phdr(grease_plhdr_callback, NULL);
 	return found_module;
 }
-
 #endif
 
 int ping_sink() {
 	char temp_buf[GREASE_CLIENT_PING_SIZE];
-
-
 	int sink_fd_client = socket(AF_UNIX, SOCK_DGRAM, 0);
 	if(sink_fd_client < 0) {
 		perror("UnixDgramSink: Failed to create SOCK_DGRAM socket (for ping).\n");
@@ -461,7 +447,6 @@ int ping_sink() {
 		unlink(clientpath); // get rid of it if it already exists
 		if(bind(sink_fd_client, (const struct sockaddr *) &client_dgram_addr, sizeof(client_dgram_addr)) < 0) {
 			perror("UnixDgramSink: Failed to bind() SOCK_DGRAM socket. (ping)\n");
-			close(sink_fd_client);
 			ret = 1;
 		}
 
@@ -494,14 +479,12 @@ int ping_sink() {
 			ret = 1;
 		}
 
-
-		unlink(clientpath); // get rid of it if it already exists
 		close(sink_fd_client);
 		rmdir(dir);
-
 		return ret;
 
 	} else {
+		 close(sink_fd_client);
 		_GREASE_ERROR_PRINTF("Grease: trouble creating temp dir.");
 		return 1;
 	}
@@ -532,6 +515,7 @@ int setup_sink_dgram_socket(const char *path, int opts) {
 		sink_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
 		if(sink_fd < 0) {
 			perror("UnixDgramSink: Failed to create SOCK_DGRAM socket.\n");
+			return 1;
 		} else {
 			memset(&sink_dgram_addr,0,sizeof(sink_dgram_addr));
 			sink_dgram_addr.sun_family = AF_UNIX;
@@ -542,11 +526,19 @@ int setup_sink_dgram_socket(const char *path, int opts) {
 		}
 
 		// discover socket max recieve size (this will be the max for a non-fragmented log message
-		setsockopt(sink_fd, SOL_SOCKET, SO_RCVBUF, &send_buf_size, sizeof(int));
+		if (setsockopt(sink_fd, SOL_SOCKET, SO_RCVBUF, &send_buf_size, sizeof(int)) < 0) {
+			close(sink_fd);
+			perror("UnixDgramSink: Failed to set socket options.\n");
+		}
 
-		getsockopt(sink_fd, SOL_SOCKET, SO_RCVBUF, &send_buf_size, &optsize);
+		if (getsockopt(sink_fd, SOL_SOCKET, SO_RCVBUF, &send_buf_size, &optsize) < 0) {
+			close(sink_fd);
+			perror("UnixDgramSink: Failed to get socket options.\n");
+		}
+
 		// http://stackoverflow.com/questions/10063497/why-changing-value-of-so-rcvbuf-doesnt-work
 		if(send_buf_size < 100) {
+			close(sink_fd);
 			_GREASE_ERROR_PRINTF("UnixDgramSink: Failed to start reader thread - SO_RCVBUF too small\n");
 			return 1;
 		} else {
@@ -570,7 +562,6 @@ int setup_sink_dgram_socket(const char *path, int opts) {
 
 			iov[2].iov_base = NULL;
 			iov[2].iov_len = 0;
-
 
 			// check for alive logger on socket...
 			if(opts & SINK_NO_PING) {
