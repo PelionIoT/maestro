@@ -253,7 +253,7 @@ LIB_METHOD_SYNC(enableTarget, TargetId id);
 LIB_METHOD_SYNC(flush, TargetId id);
 
 extern const TagId GREASE_SYSLOGFAC_TO_TAG_MAP[22];
-extern const LevelMask GREASE_KLOGLEVEL_TO_LEVEL_MAP[8];
+extern const LevelMask GREASE_KLOGLEVEL_TO_LEVEL_MAP[20];
 extern const LevelMask GREASE_KLOG_DEFAULT_LEVEL;
 
 

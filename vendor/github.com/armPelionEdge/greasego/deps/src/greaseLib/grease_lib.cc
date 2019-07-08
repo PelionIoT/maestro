@@ -370,11 +370,12 @@ LIB_METHOD(shutdown) {
 		uv_timer_stop(&idleTimer);
 		uv_loop_close(&libLoop);
 		uv_mutex_unlock(&runningLock);
-		//		uv_timer_stop(&libMainTimer);
 	}
 	return GREASE_LIB_OK;
 }
 
+// waitOn waits for mutex which is locked when library is initialized
+// and freed only when LIB_METHOD(shutdown) is called
 void GreaseLib_waitOnGreaseShutdown() {
 	uv_mutex_lock(&runningLock);
 	uv_mutex_unlock(&runningLock);

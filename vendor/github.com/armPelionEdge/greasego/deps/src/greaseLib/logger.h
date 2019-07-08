@@ -94,12 +94,7 @@ using namespace v8;
 
 #include <gperftools/tcmalloc.h>
 
-//#include <re2/re2.h>
 #include <string>
-//#define PCRE2_CODE_UNIT_WIDTH 8
-//#include <pcre2.h>
-
-
 
 #define LMALLOC tc_malloc_skip_new_handler
 #define LCALLOC tc_calloc
@@ -1209,9 +1204,13 @@ protected:
 
 			// discover socket max recieve size (this will be the max for a non-fragmented log message
 			int rcv_buf_size = 65536;
-			setsockopt(sink->socket_fd, SOL_SOCKET, SO_RCVBUF, &rcv_buf_size, (unsigned int) sizeof(int));
+			if (setsockopt(sink->socket_fd, SOL_SOCKET, SO_RCVBUF, &rcv_buf_size, (unsigned int) sizeof(int)) < 0) {
+				ERROR_PERROR("UnixDgramSink: Error setsockopt rcv_buf_size \n", errno);
+			}
 
-			getsockopt(sink->socket_fd, SOL_SOCKET, SO_RCVBUF, &rcv_buf_size, &optsize);
+			if (getsockopt(sink->socket_fd, SOL_SOCKET, SO_RCVBUF, &rcv_buf_size, &optsize) < 0) {
+				ERROR_PERROR("UnixDgramSink: Error getsockopt rcv_buf_size\n", errno);
+			}
 			// http://stackoverflow.com/questions/10063497/why-changing-value-of-so-rcvbuf-doesnt-work
 			if(rcv_buf_size < 100) {
 				ERROR_OUT("SyslogDgramSink: Failed to start reader thread - SO_RCVBUF too small\n");
@@ -1237,8 +1236,6 @@ protected:
 			int n = sink->socket_fd + 1;
 			if(sink->wakeup_pipe[PIPE_WAIT] > n)
 				n = sink->wakeup_pipe[PIPE_WAIT]+1;
-
-//			RE2 re_dissect_syslog(re_capture_syslog);
 
 			GreaseLogger *l = GreaseLogger::setupClass();
 			GreaseLogger::singleLog *entry = NULL;
@@ -1283,8 +1280,6 @@ protected:
 						// use setsockopt SO_PASSCRED to get the actual calling PID through a recvmsg() as an aux message
 						// This way you can determine the process ID which can be mapped to the origin label
 
-//						char header_temp[GREASE_CLIENT_HEADER_SIZE];
-//						int header_temp_walk = 0;
 						int temp_buffer_walk = 0;
 						int walk = 0;
 						int walk_buf = 0;
@@ -1302,46 +1297,12 @@ protected:
 							if(iov[iov_n].iov_len > 0) {
 
 #ifdef ERRCMN_DEBUG_BUILD
-								// if (!re_dissect_syslog.ok()) {
-								// 	DBG_OUT("OOPS!!!!!!! - regex is not compiling!");
-								// }
 								char *buf = (char *) malloc(iov[iov_n].iov_len+1);
 								::memcpy(buf,iov[iov_n].iov_base,iov[iov_n].iov_len);
 								*(buf+iov[iov_n].iov_len) = 0;
 								DBG_OUT("syslog in %d>> %s\n",iov_n, buf);
 								free(buf);
 #endif
-
-// 								tempPiece.set((char *) iov[iov_n].iov_base,iov[iov_n].iov_len);
-// 								if(RE2::FullMatch(tempPiece,re_dissect_syslog,&fac_pri,&cap_date,&cap_msg)) {
-// //									if(cap_date.length() > 3) {
-// //										// we figure out the log time here, via strptime() - but honestly, its gonna be when it was sent - so don't bother
-// //									}
-// 									pri = LOG_PRI(fac_pri);
-// 									if( pri < 8) {
-// 										meta_syslog.level = GREASE_SYSLOGPRI_TO_LEVEL_MAP[pri];
-// 									} else {
-// 										meta_syslog.level = GREASE_LEVEL_LOG;
-// 										DBG_OUT("out of bounds LOG_PRI ");
-// 									}
-// 									fac = LOG_FAC(fac_pri);
-// //									DBG_OUT("fac_pri %d  %d\n",fac_pri,fac);
-// 									if( fac < sizeof(GREASE_SYSLOGFAC_TO_TAG_MAP)) {
-// 										meta_syslog.tag = GREASE_SYSLOGFAC_TO_TAG_MAP[fac];
-// 									} else {
-// 										meta_syslog.tag = GREASE_TAG_SYSLOG;
-// 										DBG_OUT("out of bounds LOG_FAC %d",fac);
-// 									}
-
-
-// 									sink->owner->logP(&meta_syslog,cap_msg.c_str(),cap_msg.length());
-// 								} else {
-
-// 									DBG_OUT("NO MATCH @ RE2 for syslog input");
-// 									// regex did not match. - just log the whole message
-// 									sink->owner->logP(&meta_syslog,(char *) iov[iov_n].iov_base,iov[iov_n].iov_len);
-
-// 								}
 
 								int r = recv_cnt;
 								if(l->_grabInLogBuffer(entry) == GREASE_OK) {									
@@ -1725,14 +1686,8 @@ protected:
 
 		static void listener_work(void *self) {
 			KernelProcKmsgSink *sink = (KernelProcKmsgSink *) self;
-
 			fd_set readfds;
-
 			char dump[5];
-
-//			struct timeval timeout;
-//			timeout.tv_sec = 0;
-//			timeout.tv_usec = SINK_KLOG_TV_USEC_START; // 0.25 seconds
 			int buf_size = sink->kernbufsize;
 
 			if(!sink->valid) {
@@ -1740,32 +1695,44 @@ protected:
 				return;
 			}
 
-
-
+			// Allocate buffers
 			char *temp_buffer_entry = (char *) malloc(buf_size);
-			int remaining_to_parse = buf_size;
+			if (NULL == temp_buffer_entry) {
+				ERROR_OUT("KernelProcKmsg2Sink: malloc failed %s\n",KERNLOG_PATH);
+				// Cleaup for sink
+                                close(sink->wakeup_pipe[0]);
+                                close(sink->wakeup_pipe[1]);
+                                sink->ready = false;
+                                sink->valid = false;
+				return;
+			}
+
 			GreaseLogger::klog_parse_state parse_state = LEVEL_BEGIN;
-			char *buf_curpos = temp_buffer_entry;
 			FD_ZERO(&readfds);
 			FD_SET(sink->wakeup_pipe[PIPE_WAIT], &readfds);
+
 			int _errno = 0;
 			int kmsg_fd = open_kmsg(KERNLOG_PATH, _errno);
-			if(kmsg_fd > 0) {
-				FD_SET(kmsg_fd,&readfds);
-			} else {
+			if(kmsg_fd < 0) {
 				ERROR_OUT("KernelProcKmsg2Sink: FATAL for thread. Can't open %s\n",KERNLOG_PATH);
+				FD_CLR(sink->wakeup_pipe[PIPE_WAIT], &readfds);
 				close(sink->wakeup_pipe[0]);
 				close(sink->wakeup_pipe[1]);
 				sink->ready = false;
 				sink->valid = false;
+				free(temp_buffer_entry);
 				return;
+			} else {
+				FD_SET(kmsg_fd,&readfds);
 			}
+
+			int remaining_to_parse = buf_size;
+			char *buf_curpos = temp_buffer_entry;
 
 			int last_fd = kmsg_fd + 1;
 			if(sink->wakeup_pipe[PIPE_WAIT] > last_fd)
 				last_fd = sink->wakeup_pipe[PIPE_WAIT]+1;
 
-			//			FD_SET(sink->socket_fd, &readfds);
 			DECL_LOG_META(meta_klog, GREASE_TAG_KERNEL, GREASE_LEVEL_LOG, 0 ); // static meta struct we will use
 			int Z = 0;
 			int reads = 0;
@@ -1904,7 +1871,13 @@ protected:
 //					}
 //				}
 //			}
-
+                        FD_CLR(sink->wakeup_pipe[PIPE_WAIT], &readfds);
+                        FD_CLR(kmsg_fd, &readfds);
+                        close(sink->wakeup_pipe[0]);
+                        close(sink->wakeup_pipe[1]);
+                        close(kmsg_fd);
+                        sink->ready = false;
+                        sink->valid = false;
 			free(temp_buffer_entry);
 		}
 
@@ -3874,6 +3847,12 @@ protected:
 			post_cstor(buffer_size, id, o, flags, mode, path, readydata, cb);
 		}
 
+		~fileTarget() {
+			if (myPath) {
+				free(myPath);
+			}
+		}
+
 
 	};
 
@@ -3901,7 +3880,7 @@ protected:
 		}; // flush buffer 'n'. This is ansynchronous
 		void writeAsyncOverflow(overflowWriteOut *b,bool nocallbacks) override {
 			int n = 0;
-			if(b->N < 1) {
+			if(b && b->N < 1) {
 				delete b;
 				return;
 			}
