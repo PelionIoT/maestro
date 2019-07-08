@@ -657,8 +657,8 @@ func (client *Client) clientLogWorker() {
 
 commandLoop:
 	for {
-		debugging.DEBUG_OUT("RMI clientLogWorker top of for{} (%d)\n", int(timeout))
 		start = time.Now()
+		debugging.DEBUG_OUT("RMI clientLogWorker top of for{} %d\n", timeout)
 		select {
 		case <-time.After(timeout):
 			debugging.DEBUG_OUT("RMI triggered - timeout after %d\n", timeout)
