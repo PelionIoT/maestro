@@ -273,7 +273,7 @@ sndrLoop:
 				break sndrLoop
 			}
 		}
-	
+
 		if timedout {
 			if sndr.backingOff {
 				timeout = sndr.backoff
@@ -307,14 +307,15 @@ func (sndr *statSender) postStats() (err error) {
 		return
 	}
 	resp, err = sndr.client.client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
 		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
 		return
 	}
-	if resp != nil {
-		defer resp.Body.Close()
-	}
+
 	debugging.DEBUG_OUT("RMI --> response +%v\n", resp)
 	if resp != nil && resp.StatusCode != 200 {
 		bodystring, _ := utils.StringifyReaderWithLimit(resp.Body, 300)
