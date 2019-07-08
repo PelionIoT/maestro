@@ -146,7 +146,6 @@ int createChild(char* szCommand,
 		childOpts *opts,
 		execErr *err) {
 
-
 	int aStdinPipe[2];
 	int aStdoutPipe[2];
 	int aStderrPipe[2];
@@ -243,6 +242,12 @@ int createChild(char* szCommand,
 	if (0 == nChild) {
 		// child continues here
 
+		// all these are for use by parent only
+		close(aStdinPipe[PIPE_WRITE]);
+		close(aStdoutPipe[PIPE_READ]);
+		close(aStderrPipe[PIPE_READ]);
+		close(aErrorPipe[PIPE_READ]);
+
 		// check for die_on_parent_sig
 		if (opts->die_on_parent_sig) {
 			DBG_MAESTRO("createChild - see die_on_parent_sig");
@@ -257,31 +262,37 @@ int createChild(char* szCommand,
 		// redirect stdin
 		if (dup2(aStdinPipe[PIPE_READ], STDIN_FILENO) == -1) {
 			perror("redirecting stdin");
+			close(aErrorPipe[PIPE_WRITE]);
+			close(aStdinPipe[PIPE_READ]);
+			close(aStdoutPipe[PIPE_WRITE]);
+			close(aStderrPipe[PIPE_WRITE]);
 			return -1;
 		}
 
 		// redirect stdout
 		if (dup2(aStdoutPipe[PIPE_WRITE], STDOUT_FILENO) == -1) {
 			perror("redirecting stdout");
+			close(aErrorPipe[PIPE_WRITE]);
+			close(aStdinPipe[PIPE_READ]);
+			close(aStdoutPipe[PIPE_WRITE]);
+			close(aStderrPipe[PIPE_WRITE]);
 			return -1;
 		}
 
 		// redirect stderr
 		if (dup2(aStderrPipe[PIPE_WRITE], STDERR_FILENO) == -1) {
 			perror("redirecting stderr");
+			close(aErrorPipe[PIPE_WRITE]);
+			close(aStdinPipe[PIPE_READ]);
+			close(aStdoutPipe[PIPE_WRITE]);
+			close(aStderrPipe[PIPE_WRITE]);
 			return -1;
 		}
 
 		// tell the kernel to close this FD if execve kicks off correctly
 		fcntl(aErrorPipe[PIPE_WRITE], F_SETFD, FD_CLOEXEC);
-		close(aErrorPipe[PIPE_READ]);
-
-		// all these are for use by parent only
 		close(aStdinPipe[PIPE_READ]);
-		close(aStdinPipe[PIPE_WRITE]);
-		close(aStdoutPipe[PIPE_READ]);
 		close(aStdoutPipe[PIPE_WRITE]);
-
 
 		if(!opts) {
 			// Default:
@@ -298,7 +309,6 @@ int createChild(char* szCommand,
 				}
 			}
 		}
-
 
 		DBG_MAESTRO("createChild about to execvpe()\n");
 		// run child process image
@@ -334,7 +344,6 @@ int createChild(char* szCommand,
 		close(aStdoutPipe[PIPE_WRITE]);
 		close(aStderrPipe[PIPE_WRITE]);
 		close(aErrorPipe[PIPE_WRITE]);
-
 
 		int _errno = 0;
 
@@ -380,9 +389,8 @@ int createChild(char* szCommand,
 		close(aStdoutPipe[PIPE_WRITE]);
 		close(aStderrPipe[PIPE_READ]);
 		close(aStderrPipe[PIPE_WRITE]);
-
-
+		close(aErrorPipe[PIPE_READ]);
+		close(aErrorPipe[PIPE_WRITE]);
 	}
 	return nChild;
-
 }
