@@ -273,41 +273,7 @@ sndrLoop:
 				break sndrLoop
 			}
 		}
-
-		// set up the next timeout.
-		// elapsed = time.Since(start)
-		// timeout = timeout - elapsed
-		// if timeout < 10000 {
-		// 	timeout = 10000
-		// }
-
-		sndr.locker.Lock()
-		// if sndr.backingOff {
-		// 	// elapsed = time.Since(startBackoff)
-		// 	// timeout = timeout - elapsed
-		// 	// if timeout < 10000 {
-		// 	// 	timeout = 10000
-		// 	// 	sndr.locker.Unlock()
-		// 	// }
-		// 	// if timedout {
-		// 	// if sndr.backoff < 2 {
-		// 	// 	sndr.backoff = time.Duration(sndr.sendTimeThreshold) * time.Millisecond
-		// 	// } else {
-		// 	// 	sndr.backoff = sndr.backoff * 2
-		// 	// }
-		// 	// if sndr.backoff > maxBackoff {
-		// 	// 	sndr.backoff = time.Duration(sndr.sendTimeThreshold) * time.Millisecond
-		// 	// }
-		// 	timeout = sndr.backoff
-		// 	// } else {
-		// 	// 	elapsed = time.Since(start)
-		// 	// 	timeout = timeout - elapsed
-		// 	// 	if timeout < 10000 {
-		// 	// 		timeout = 10000
-		// 	// 	}
-		// 	// }
-		// 	debugging.DEBUG_OUT("RMI (statsender) send stats is backing off %d ns\n", timeout)
-		// } else {
+	
 		if timedout {
 			if sndr.backingOff {
 				timeout = sndr.backoff
@@ -334,8 +300,6 @@ func (sndr *statSender) postStats() (err error) {
 	var req *http.Request
 	var resp *http.Response
 	debugging.DEBUG_OUT("RMI POST %s >>>\n", sndr.client.postStatsUrl)
-	// Client implements io.Reader's Read(), so we do this
-	//client.sentBytes = 0
 	req, err = http.NewRequest("POST", sndr.client.postStatsUrl, sndr)
 	if err != nil {
 		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
