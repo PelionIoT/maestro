@@ -1,0 +1,22 @@
+db: /tmp/db123
+port: 9090
+syncSessionLimit: 2
+syncSessionPeriod: 1000
+syncPushBroadcastLimit: 0
+gcInterval: 300000
+gcPurgeAge: 600000
+merkleDepth: 19
+logLevel: debug
+history:
+    purgeOnForward: true
+cloud:
+    noValidate: true
+    host: devicedb.laptop
+    port: 8443
+peers:
+tls:
+    clientCertificate: ../test_certs/WWRL000000.client.cert.pem
+    clientKey: ../test_certs/WWRL000000.client.key.pem
+    serverCertificate: ../test_certs/WWRL000000.server.cert.pem
+    serverKey: ../test_certs/WWRL000000.server.key.pem
+    rootCA: ../test_certs/ca-chain.cert.pem

@@ -1,0 +1,20 @@
+db: /tmp/db1
+port: 9191
+syncSessionLimit: 2
+syncSessionPeriod: 10000
+syncPushBroadcastLimit: 0
+gcInterval: 300000
+gcPurgeAge: 600000
+merkleDepth: 19
+logLevel: debug
+peers:
+alerts:
+    forwardInterval: 1000
+history:
+    forwardInterval: 1000
+tls:
+    clientCertificate: ../test_certs/WWRL000001.client.cert.pem
+    clientKey: ../test_certs/WWRL000001.client.key.pem
+    serverCertificate: ../test_certs/WWRL000001.server.cert.pem
+    serverKey: ../test_certs/WWRL000001.server.key.pem
+    rootCA: ../test_certs/ca-chain.cert.pem
