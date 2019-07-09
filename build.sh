@@ -35,10 +35,18 @@ pushd "${THIS_DIR}"
 GOTAGS=""
 if [[ -n "${DEBUG:-}" ]] || [[ -n "${DEBUG2:-}" ]]; then
   echo "DEBUG ON"
-  GOTAGS="-tags debug"
   make native.a-debug
 else
   make native.a
+fi
+
+if [[ -n "${DEBUG:-}" ]]; then
+  GOTAGS="-tags debug"
+fi
+
+if [[ -n "${DEBUG:-}" ]] && [[ -n "${DEBUG2:-}" ]]; then
+  echo "DEBUG2 ON"	
+  GOTAGS+=" -tags debug2"
 fi
 
 popd
@@ -61,6 +69,7 @@ fi
 if [[ "${1:-}" != "preprocess_only" ]]; then
   mkdir -p $GOBIN
   pushd $GOBIN
+  echo ${GOTAGS}
   if [[ -n "${TIGHT:-}" ]]; then
     go build ${GOTAGS} -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
   else
