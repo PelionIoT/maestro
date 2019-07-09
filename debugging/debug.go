@@ -45,8 +45,10 @@ func DEBUG_OUT(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
+// DEBUG_OUT2 is not enabled as default, uncomment the
+// function body if debug lebvel 2 prints are needed
 func DEBUG_OUT2(format string, args ...interface{}) {
-	fmt.Printf(format, args...)
+//	fmt.Printf(format, args...)
 }
 
 func DumpMemStats() {
