@@ -69,7 +69,6 @@ fi
 if [[ "${1:-}" != "preprocess_only" ]]; then
   mkdir -p $GOBIN
   pushd $GOBIN
-  echo ${GOTAGS}
   if [[ -n "${TIGHT:-}" ]]; then
     go build ${GOTAGS} -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
   else
