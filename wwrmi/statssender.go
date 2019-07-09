@@ -273,7 +273,7 @@ sndrLoop:
 				break sndrLoop
 			}
 		}
-
+        sndr.locker.Lock()
 		if timedout {
 			if sndr.backingOff {
 				timeout = sndr.backoff
@@ -288,7 +288,6 @@ sndrLoop:
 				timeout = 10000
 			}
 		}
-		// }
 		sndr.locker.Unlock()
 		timedout = false
 	}
