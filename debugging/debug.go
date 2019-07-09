@@ -45,7 +45,6 @@ func DEBUG_OUT(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
-//func DEBUG_OUT2(args ...interface{})  {}
 
 func DumpMemStats() {
 	var stats runtime.MemStats
