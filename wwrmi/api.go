@@ -409,31 +409,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 }
 
 func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byte) (err error) {
-	// client.buflocker.Lock()
-	// if client.activeBuffer == nil {
-	// 	err = errors.New("no-buffers")
-	// 	client.buflocker.Unlock()
-	// 	return
-	// }
-	// lenactive := len(client.activeBuffer.data)
-	// capactive := cap(client.activeBuffer.data)
-	// if (capactive-lenactive) < len(godata) {
-	// 	// we don't have enough room in the active buffer
-	// 	// so let's close out this buffer
-	// 	client.activeBuffer.closeout()
-	// 	client.willSendFifo.Push(client.activeBuffer)
-	// 	client.activeBuffer = nil
-	// 	client.buflocker.Unlock()
-	// 	buf := client.availableFifo.PopOrWait()
-	// 	lenactive = buf.clear()
-	// 	if buf == nil {
-	// 		err = errors.New("no-buffers-2")
-	// 		return
-	// 	} else {
-	// 		client.activeBuffer = buf
-	// 	}
-	// }
-
+	
 	// copy(client.activeBuffer.data[lenactive:],godata)
 	// return
 	buflen := len(godata)
@@ -613,11 +589,7 @@ func (client *Client) Read(p []byte) (copied int, err error) {
 // the client worker goroutine
 // does the sending of data to the server
 func (client *Client) clientLogWorker() {
-	// closeit := func(r *http.Response, buf *logBuffer) {
-	// 	r.Body.Close()
-	// 	greasego.RetireCallbackData(buf.data)
-	// 	debugging.DEBUG_OUT("  OKOKOKOKOKOKOKOKOK -----> retired callback data\n\n")
-	// }
+
 	var timeout time.Duration
 	client.locker.Lock()
 	if client.logWorkerRunning {
@@ -683,23 +655,10 @@ func (client *Client) clientLogWorker() {
 	var start time.Time
 	var elapsed time.Duration
 
-	// var statsChannel chan *events.MaestroEvent
-
-	// if client.sysStatsEventSubscription == nil {
-	// 	statsChannel = events.GetDummyEventChannel()
-	// } else {
-	// 	var ok bool
-	// 	ok, statsChannel = client.sysStatsEventSubscription.GetChannel()
-	// 	if !ok {
-	// 		log.MaestroErrorf("RMI - could not get the events channel for sysstats. Will not report.")
-	// 		statsChannel = events.GetDummyEventChannel()
-	// 	}
-	// }
-
 commandLoop:
 	for {
-		debugging.DEBUG_OUT("RMI clientLogWorker top of for{} (%d)\n", int(timeout))
 		start = time.Now()
+		debugging.DEBUG_OUT("RMI clientLogWorker top of for{} %d\n", timeout)
 		select {
 		case <-time.After(timeout):
 			debugging.DEBUG_OUT("RMI triggered - timeout after %d\n", timeout)
@@ -758,61 +717,6 @@ commandLoop:
 		}
 		client.locker.Unlock()
 	}
-
-	// for true {
-	// 	next = client.willSendFifo.PopOrWait()
-	// 	if next == nil {
-	// 		if client.fifo.IsShutdown() {
-	// 			debugging.DEBUG_OUT("clientWorker @shutdown - via FIFO")
-	// 			break
-	// 		} else {
-	// 			// was woken, but no new data
-	// 			continue
-	// 		}
-	// 	}
-	// 	// send data to server0
-	// 	//		req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.data.GetBufferAsSlice()))
-	// 	// req, err := http.NewRequest("POST", client.url, bytes.NewReader(next.godata))
-	// 	//	    req.Header.Set("X-Custom-Header", "myvalue")
-	// 	// req.Header.Set("Content-Type", "application/json")
-	// 	// req.Header.Add("X-Symphony-ClientId", client.clientId)
-
-	// 	// resp, err := client.httpClient.Do(req)
-	// 	// if err != nil {
-	// 	// 	debugging.DEBUG_OUT("XXXXXXXXXXXXXXXXXXXXXXX error on sending request %+v\n", err)
-	// 	// 	greasego.RetireCallbackData(next.data)
-	// 	// } else {
-	// 	// 	fmt.Println("response Status:", resp.Status)
-	// 	// 	fmt.Println("response Headers:", resp.Header)
-	// 	// 	body, _ := ioutil.ReadAll(resp.Body)
-	// 	// 	fmt.Println("response Body:", string(body))
-
-	// 	// 	debugging.DEBUG_OUT("CALLING closeit()\n")
-	// 	// 	closeit(resp, next)
-	// 	// }
-
-	// 	err := client.postLogs(next.data.GetBufferAsSlice())
-	// 	if err != nil {
-	// 		debugging.DEBUG_OUT("RMI API error - could not push logs: %s\n", err.Error())
-	// 		if next.tries < maxLogTries {
-	// 			next.tries++
-	// 			drop, dropped := client.fifo.Push(next)
-	// 			if drop {
-	// 				debugging.DEBUG_OUT("Causing us to drop a log entry!!\n")
-	// 				log.MaestroErrorf("RMI - log entries dropped.")
-	// 				if dropped != nil {
-	// 					greasego.RetireCallbackData(dropped.data)
-	// 				}
-	// 			}
-	// 		} else {
-	// 			log.MaestroErrorf("RMI - failed to send logs. past max retry. dropping some logs.")
-	// 			greasego.RetireCallbackData(next.data)
-	// 		}
-	// 	} else {
-	// 		debugging.DEBUG_OUT("RMI --> Pushed log entry.\n")
-	// 		greasego.RetireCallbackData(next.data)
-	// 	}
-	// }
 
 	client.locker.Lock()
 	client.logWorkerRunning = false
