@@ -101,6 +101,12 @@ stats:
     interval: 5 # frequency in seconds - default 300
     check_mem: true # default true
     check_mem_pace: 1  # means check every interval (default is 1 - every interval)
+devicedb_conn_config:
+    devicedb_uri: "https://WWRL000000:9090" #default test uri
+    devicedb_prefix: "wigwag.configs.relay" #default prefix
+    devicedb_bucket: "local" #default bucket
+    relay_id: "WWRL000000" #default test relay id
+    ca_chain: "ca-chain.cert.pem" #default chain cert file name     
 targets:
    - file: "{{TMP_DIR}}/maestro.log"
      rotate:
