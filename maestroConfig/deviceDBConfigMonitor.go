@@ -72,8 +72,14 @@ func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonito
 	return
 }
 
-func (ddbMonitor *DDBMonitor) MonitorConfig(config interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer) (err error) {
+func (ddbMonitor *DDBMonitor) AddMonitorConfig(config interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer) (err error) {
 	go configMonitor(config, configName, configAnalyzer, ddbMonitor.DDBConfigClient)
+	return
+}
+
+func (ddbMonitor *DDBMonitor) RemoveMonitorConfig(configName string) (err error) {
+	configWatcher := ddbMonitor.DDBConfigClient.Config(configName).Watch()
+	configWatcher.Stop()
 	return
 }
 
@@ -86,8 +92,8 @@ func configMonitor(config interface{}, configName string, configAnalyzer *maestr
 		exists := configWatcher.Next(&updatedConfig)
 
 		if !exists {
-			fmt.Printf("Configuration %s was deleted\n", configName)
-			continue
+			fmt.Printf("Configuration %s no longer exists or not be watched, no need to listen anymore\n", configName)
+			break
 		}
 
 		fmt.Printf("\n[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
@@ -126,6 +132,9 @@ receive the updates about the config and parse it as expected format
 type Watcher interface {
 	// Run would start the go routine that handles the updates about the monitoring config
 	Run()
+
+	// Stop would stop the go routine that handles the updates about the monitoring config
+	Stop()
 
 	// Next would parse the config as the given interface and return true when the
 	// configuration with given key still exists, otherwise it will return false
@@ -263,6 +272,7 @@ func (ddbConfig *DDBConfig) Put(t interface{}) error {
 func (ddbConfig *DDBConfig) Watch() Watcher {
 	return &DDBWatcher{
 		Updates: make(chan string),
+		handleWatcherControl: make(chan string),
 		Config:  ddbConfig,
 	}
 }
@@ -272,6 +282,7 @@ func (ddbConfig *DDBConfig) Watch() Watcher {
 type DDBWatcher struct {
 	Updates chan string
 	Config  *DDBConfig
+	handleWatcherControl chan string
 }
 
 // Run will start the go routine that handle the updates from
@@ -280,12 +291,24 @@ func (watcher *DDBWatcher) Run() {
 	go watcher.handleWatcher()
 }
 
+// Stop will stop the handleWatched go routine in preparation for
+// removing this watcher
+func (watcher *DDBWatcher) Stop() {
+	close(watcher.handleWatcherControl)
+	close(watcher.Updates)
+}
+
 // Next would parse the config as the given interface and return true when the
 // configuration with given key still exists, otherwise it will return false
 func (watcher *DDBWatcher) Next(t interface{}) bool {
 	for {
 		// receive the updated config from the update channel of the Watcher
-		u := <-watcher.Updates
+		u, ok := <-watcher.Updates
+
+		if !ok {
+			log.MaestroWarnf("DDBConfig.Next() Updates channel closed, no need to listen anymore")
+			break
+		}
 
 		if u == "" {
 			log.MaestroWarnf("DDBWatcher.Next() found that the key has been deleted")
@@ -297,12 +320,13 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 		err := json.Unmarshal([]byte(u), &t)
 		if err != nil {
 			log.MaestroErrorf("DDBWatcher.Next() failed to parse the update into expected format. Error: %v", err)
-
 			continue
 		}
 
 		return true
 	}
+
+	return false
 }
 
 // handleWatcher will monitor two channels: updates and errors.
@@ -365,6 +389,12 @@ func (watcher *DDBWatcher) handleWatcher() {
 			}
 
 			log.MaestroErrorf("DDBConfig.handleWatcher() receive an error from the watcher. Error: %v", err)
+
+		case _, ok := <-watcher.handleWatcherControl:
+			if !ok {
+				log.MaestroWarnf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore")
+				break
+			}
 		}
 	}
 }
