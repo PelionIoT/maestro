@@ -90,6 +90,10 @@
 			"Rev": "78d055b6305c685b497944a859f0a7d14483269f"
 		},
 		{
+			"ImportPath": "github.com/armPelionEdge/devicedb",
+			"Rev": "bb5337257135b552f01f87ac998d7b277f18daf4"
+		},
+		{
 			"ImportPath": "github.com/boltdb/bolt",
 			"Comment": "v1.3.1-5-gfd01fc7",
 			"Rev": "fd01fc79c553a8e99d512a07e8e0c63d4a3ccfc5"
