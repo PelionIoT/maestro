@@ -237,9 +237,8 @@ func (ddbConfig *DDBConfig) Get(t interface{}) error {
 }
 
 //
-func (ddbConfig *DDBConfig) Put(t interface{}) error {
+func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 	//Ensure t is not nil
-	var err error = nil
 	if(t != nil) {
 		bodyJSON, err := json.Marshal(&t)
 		if(err == nil) {
@@ -257,6 +256,10 @@ func (ddbConfig *DDBConfig) Put(t interface{}) error {
 				devicedbClientBatch = client.NewBatch()
 				devicedbClientBatch.Put(ddbConfig.Key,string([]byte(bodyJSON)),"")
 				err = ddbConfig.ConfigClient.Client.Batch(ctx, "local", *devicedbClientBatch)
+				if(err != nil) {
+					log.MaestroErrorf("DDBConfig.Put(): %v", err)
+					return err
+				}
 			}
 		}
 	} else {

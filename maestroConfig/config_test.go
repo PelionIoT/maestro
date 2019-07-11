@@ -20,6 +20,9 @@ import (
 	"log"
 	"strings"
 	"testing"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 )
 
 func TestMain(m *testing.M) {
@@ -50,6 +53,78 @@ func TestConfigVarRead(t *testing.T) {
 		} else {
 			fmt.Printf("clientId from config = %+v\n", config_loader.ClientId)
 		}
+	}
+}
+
+type ConfigChangeHook struct{
+	//struct implementing ConfigChangeHook intf
+}
+
+type MyConfig struct {
+	Property1 int    `json:"property1" configGroup:"property"`
+	Property2 string `json:"property2" configGroup:"property"`
+	Property3 bool   `json:"property3" configGroup:"property"`
+}
+
+// ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
+// if there is at least one change to report
+func (cfgHook ConfigChangeHook) ChangesStart(configgroup string) {
+	fmt.Printf("\nConfigChangeHook:ChangesStart: %s\n", configgroup)
+}
+
+// SawChange is called whenever a field changes. It will be called only once for each field which is changed.
+// It will always be called after ChangesStart is called
+// If SawChange return true, then the value of futvalue will replace the value of current value
+func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}) (acceptchange bool) {
+	fmt.Printf("\nConfigChangeHook:SawChange: %s:%s old:%s new:%s\n", configgroup, fieldchanged, curvalue, futvalue)
+	return true;
+}
+
+// ChangesComplete is called when all changes for a specific configgroup tagname
+// If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
+func (cfgHook ConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
+	fmt.Printf("\nConfigChangeHook:ChangesComplete: %s\n", configgroup)
+	return true;
+}
+
+
+func TestConfigMonitorSimple(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "myConfig" //The name of the configuration object that should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	
+	var config MyConfig
+	config.Property1 = 100
+	config.Property2 = "asdf"
+	config.Property3 = false
+	fmt.Printf("\nPutting config: %v\n", config)
+	err = configClient.Config(configName).Put(&config)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
 	}
 }
 
