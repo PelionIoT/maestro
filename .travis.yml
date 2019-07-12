@@ -38,10 +38,7 @@ script:
   # Run devicedb in docker
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      git clone https://github.com/armPelionEdge/devicedb
-      cd devicedb
-      docker build -t devicedb_test_local -f Dockerfile.test_local .
-      docker run -p 127.0.0.1:9090:9090/tcp -it devicedb_test_local
+      docker run --rm -d -p 127.0.0.1:9090:9090/tcp senramakri/test_images:devicedb_nocluster
       sleep 10
     fi
 

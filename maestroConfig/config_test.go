@@ -23,6 +23,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
+	"sync"
+	"time"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 func TestMain(m *testing.M) {
@@ -64,6 +67,7 @@ type MyConfig struct {
 	Property1 int    `json:"property1" configGroup:"property"`
 	Property2 string `json:"property2" configGroup:"property"`
 	Property3 bool   `json:"property3" configGroup:"property"`
+	Property4 [5]int `json:"property4" configGroup:"property"`
 }
 
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
@@ -83,13 +87,16 @@ func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged strin
 // ChangesComplete is called when all changes for a specific configgroup tagname
 // If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
 func (cfgHook ConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
-	fmt.Printf("\nConfigChangeHook:ChangesComplete: %s\n", configgroup)
+	sawChangeCount++
+	fmt.Printf("\nConfigChangeHook:ChangesComplete: %s Change count=%d\n", configgroup, sawChangeCount)
 	return true;
 }
 
-
+//Global wait group
+var wg sync.WaitGroup
+var sawChangeCount int = 0
 func TestConfigMonitorSimple(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
 	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
 	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
@@ -116,16 +123,100 @@ func TestConfigMonitorSimple(t *testing.T) {
 
 	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
 	
-	var config MyConfig
-	config.Property1 = 100
-	config.Property2 = "asdf"
-	config.Property3 = false
-	fmt.Printf("\nPutting config: %v\n", config)
-	err = configClient.Config(configName).Put(&config)
+	var config, updatedConfig MyConfig
+	updatedConfig.Property1 = 100
+	updatedConfig.Property2 = "asdf"
+	updatedConfig.Property3 = false
+	updatedConfig.Property4 = [...]int{1,2,3,4,5}
+	fmt.Printf("\nPutting config: %v\n", updatedConfig)
+	err = configClient.Config(configName).Put(updatedConfig)
 	if err != nil {
 		fmt.Printf("\nUnable to put config: %v\n", err)
 		t.FailNow()
 	}
+
+	//Create a DDB connection config
+	ddbConnConfig := new(DeviceDBConnConfig)
+	ddbConnConfig.DeviceDBUri = devicedbUri
+	ddbConnConfig.DeviceDBPrefix = devicedbPrefix
+	ddbConnConfig.DeviceDBBucket = devicedbBucket
+	ddbConnConfig.RelayId = relay
+	ddbConnConfig.CaChainCert = relayCaChainFile
+
+	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
+	if(err != nil) {
+		fmt.Printf("\nUnable to create config monitor: %v\n", err)
+		t.FailNow()
+	}
+
+	//Add a config change monitor
+	configAna := maestroSpecs.NewConfigAnalyzer("configGroup")
+	if configAna == nil {
+		fmt.Printf("Failed to create config analyzer object")
+		t.FailNow()
+	}
+
+	var configChangeHook ConfigChangeHook
+	configAna.AddHook("property", &configChangeHook)
+
+	//Set the change cnt to 0 before adding monitor
+	sawChangeCount = 0
+
+	//Add monitor for this config
+	ddbConfigMon.AddMonitorConfig(&config, &updatedConfig, configName, configAna)
+	//Wait for couple of seconds before starting the updater
+	time.Sleep(time.Second * 2)
+	wg.Add(1)
+	go ConfigUpdater(configClient)
+	if( true == waitTimeout(&wg, time.Second * 60)) {
+		//Timeout waiting for loop to exit, so fail
+		t.FailNow()
+	}
+
+	if(sawChangeCount < 6) {
+		fmt.Printf("Didn't see all the changes, test failed")
+		t.FailNow()
+	}
+	//Remove monitor for this config
+	ddbConfigMon.RemoveMonitorConfig(configName)
+}
+
+func ConfigUpdater(ddbClient *DDBRelayConfigClient) {
+	var updateIntVal int = 0
+	var configName string = "myConfig"
+	
+	defer wg.Done()
+
+	for i := 0; i < 5; i++ {
+		var newConfig MyConfig
+		updateIntVal++
+		newConfig.Property1 = updateIntVal
+		newConfig.Property2 = "xyz"
+		newConfig.Property4[0] = updateIntVal * 1
+		newConfig.Property4[1] = updateIntVal * 2
+		newConfig.Property4[2] = updateIntVal * 3
+		err := ddbClient.Config(configName).Put(&newConfig)
+		if(err != nil) {
+			fmt.Printf("\nUpdating(Put) config failed: %v %v", newConfig, err)
+		}
+		time.Sleep(time.Second * 4)
+	}
+}
+
+// waitTimeout waits for the waitgroup for the specified max timeout.
+// Returns true if waiting timed out.
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+    c := make(chan struct{})
+    go func() {
+        defer close(c)
+        wg.Wait()
+    }()
+    select {
+    case <-c:
+        return false // completed normally
+    case <-time.After(timeout):
+        return true // timed out
+    }
 }
 
 // package main

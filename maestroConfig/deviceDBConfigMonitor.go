@@ -72,8 +72,8 @@ func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonito
 	return
 }
 
-func (ddbMonitor *DDBMonitor) AddMonitorConfig(config interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer) (err error) {
-	go configMonitor(config, configName, configAnalyzer, ddbMonitor.DDBConfigClient)
+func (ddbMonitor *DDBMonitor) AddMonitorConfig(config interface{}, updatedConfig interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer) (err error) {
+	go configMonitor(config, updatedConfig, configName, configAnalyzer, ddbMonitor.DDBConfigClient)
 	return
 }
 
@@ -83,13 +83,14 @@ func (ddbMonitor *DDBMonitor) RemoveMonitorConfig(configName string) (err error)
 	return
 }
 
-func configMonitor(config interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer, configClient *DDBRelayConfigClient) {
-	var updatedConfig interface{}
+func configMonitor(config interface{}, updatedConfig interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer, configClient *DDBRelayConfigClient) {
 	configWatcher := configClient.Config(configName).Watch()
 	configWatcher.Run()
 	
+	//Make a copy of original config
+	prevconfig := config
 	for {
-		exists := configWatcher.Next(&updatedConfig)
+		exists := configWatcher.Next(updatedConfig)
 
 		if !exists {
 			fmt.Printf("Configuration %s no longer exists or not be watched, no need to listen anymore\n", configName)
@@ -97,13 +98,16 @@ func configMonitor(config interface{}, configName string, configAnalyzer *maestr
 		}
 
 		fmt.Printf("\n[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
-		same, noaction, err := configAnalyzer.CallChanges(&config, &updatedConfig)
+		same, noaction, err := configAnalyzer.CallChanges(prevconfig, updatedConfig)
 		if err != nil {
 			fmt.Printf("\nError from CallChanges: %s\n", err.Error())
 		} else {
 			fmt.Printf("\nCallChanges ret same=%+v noaction=%+v\n", same, noaction)
 		}
-		config = updatedConfig
+		//Make a copy of previous config
+		prevconfig := updatedConfig
+		//The below statement is just to avoid compiler erroring about prevconfig not used
+		_ = prevconfig
 	}
 }
 
