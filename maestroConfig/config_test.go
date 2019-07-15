@@ -23,6 +23,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
+	"reflect"
 	"sync"
 	"time"
 	"github.com/armPelionEdge/maestroSpecs"
@@ -70,6 +71,18 @@ type MyConfig struct {
 	Property4 [5]int `json:"property4" configGroup:"property"`
 }
 
+type NestedConfigType struct {
+	NestedProperty1 int    `json:"property1" configGroup:"diffproperty"`
+	NestedProperty2 string `json:"property2" configGroup:"diffproperty"`
+	NestedProperty3 bool   `json:"property3" configGroup:"diffproperty"`
+	NestedProperty4 [5]int `json:"property4" configGroup:"diffproperty"`
+}
+
+type MyDiffConfig struct {
+	Name string `json:"property1" configGroup:"diffproperty"`
+	NestedStruct NestedConfigType `json:"property2" configGroup:"diffproperty"`
+}
+
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
 // if there is at least one change to report
 func (cfgHook ConfigChangeHook) ChangesStart(configgroup string) {
@@ -80,7 +93,17 @@ func (cfgHook ConfigChangeHook) ChangesStart(configgroup string) {
 // It will always be called after ChangesStart is called
 // If SawChange return true, then the value of futvalue will replace the value of current value
 func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}) (acceptchange bool) {
-	fmt.Printf("\nConfigChangeHook:SawChange: %s:%s old:%s new:%s\n", configgroup, fieldchanged, curvalue, futvalue)
+	fmt.Printf("\nConfigChangeHook:SawChange: %s:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
+	if(configgroup == "property") {
+		reflect.ValueOf(&myConfigUpdateFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
+	}
+	if(configgroup == "diffproperty") {
+		if(strings.HasPrefix(fieldchanged, "Nested")) {
+			reflect.ValueOf(&myDiffConfigUpdateFromHook.NestedStruct).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))	
+		} else {
+			reflect.ValueOf(&myDiffConfigUpdateFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
+		}
+	}
 	return true;
 }
 
@@ -92,10 +115,233 @@ func (cfgHook ConfigChangeHook) ChangesComplete(configgroup string) (acceptallch
 	return true;
 }
 
+var myConfigUpdateFromHook MyConfig;
+var myDiffConfigUpdateFromHook MyDiffConfig;
+func TestConfigMonitorSimple(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "myConfig" //The name of the configuration object that should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	
+	var config, updatedConfig MyConfig
+	config.Property1 = 1
+	config.Property2 = "a"
+	config.Property3 = true
+	config.Property4 = [...]int{0,0,0,0,0}
+	err = configClient.Config(configName).Put(config)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
+	}
+
+	//Create a DDB connection config
+	ddbConnConfig := new(DeviceDBConnConfig)
+	ddbConnConfig.DeviceDBUri = devicedbUri
+	ddbConnConfig.DeviceDBPrefix = devicedbPrefix
+	ddbConnConfig.DeviceDBBucket = devicedbBucket
+	ddbConnConfig.RelayId = relay
+	ddbConnConfig.CaChainCert = relayCaChainFile
+
+	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
+	if(err != nil) {
+		fmt.Printf("\nUnable to create config monitor: %v\n", err)
+		t.FailNow()
+	}
+
+	//Add a config change monitor
+	configAna := maestroSpecs.NewConfigAnalyzer("configGroup")
+	if configAna == nil {
+		fmt.Printf("Failed to create config analyzer object")
+		t.FailNow()
+	}
+
+	var configChangeHook ConfigChangeHook
+	configAna.AddHook("property", &configChangeHook)
+
+	//Add monitor for this config
+	ddbConfigMon.AddMonitorConfig(&config, &updatedConfig, configName, configAna)
+
+	updatedConfig.Property1 = 100
+	updatedConfig.Property2 = "asdf"
+	updatedConfig.Property3 = false
+	updatedConfig.Property4 = [...]int{1,2,3,4,5}
+	fmt.Printf("\nPutting updated config: %v\n", config)
+	err = configClient.Config(configName).Put(updatedConfig)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
+	}	
+
+	//Wait for few seconds for the callbacks to complete
+	time.Sleep(time.Second * 3)
+	
+	//Now verify if the changes are updated
+	if ( myConfigUpdateFromHook.Property1 != updatedConfig.Property1) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property2 != updatedConfig.Property2) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property3 != updatedConfig.Property3) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property4 != updatedConfig.Property4) { t.FailNow() }
+
+	//Remove monitor for this config
+	ddbConfigMon.RemoveMonitorConfig(configName)
+}
+
+func TestConfigMonitorMultipleStructs(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "myConfig" //The name of the configuration object that should be monitored
+	var diffConfigName string = "myDiffConfig" //The name of the configuration object that should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	
+	var config, updatedConfig MyConfig
+	var diffConfig, diffUpdatedConfig MyDiffConfig
+	config.Property1 = 1
+	config.Property2 = "a"
+	config.Property3 = true
+	config.Property4 = [...]int{0,0,0,0,0}
+	err = configClient.Config(configName).Put(config)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
+	}
+	//Put diff config
+	diffConfig.Name = "unset"
+	diffConfig.NestedStruct = NestedConfigType{ -1, "--", false, [...]int{5,4,3,2,1} }
+	err = configClient.Config(diffConfigName).Put(diffConfig)
+	if err != nil {
+		fmt.Printf("\nUnable to put diffConfig: %v\n", err)
+		t.FailNow()
+	}
+
+	//Create a DDB connection config
+	ddbConnConfig := new(DeviceDBConnConfig)
+	ddbConnConfig.DeviceDBUri = devicedbUri
+	ddbConnConfig.DeviceDBPrefix = devicedbPrefix
+	ddbConnConfig.DeviceDBBucket = devicedbBucket
+	ddbConnConfig.RelayId = relay
+	ddbConnConfig.CaChainCert = relayCaChainFile
+
+	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
+	if(err != nil) {
+		fmt.Printf("\nUnable to create config monitor: %v\n", err)
+		t.FailNow()
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+	//Add a config change monitor for first struct
+	configAna := maestroSpecs.NewConfigAnalyzer("configGroup")
+	if configAna == nil {
+		fmt.Printf("Failed to create config analyzer object")
+		t.FailNow()
+	}
+
+	var configChangeHook ConfigChangeHook
+	configAna.AddHook("property", &configChangeHook)
+
+	//Add monitor for this config
+	ddbConfigMon.AddMonitorConfig(&config, &updatedConfig, configName, configAna)
+	////////////////////////////////////////////////////////////////////////////
+
+	//Add a config change monitor for second struct
+	configAna2 := maestroSpecs.NewConfigAnalyzer("configGroup")
+	if configAna2 == nil {
+		fmt.Printf("Failed to create config analyzer object(diffconfig)")
+		t.FailNow()
+	}
+
+	var configChangeHook2 ConfigChangeHook
+	configAna2.AddHook("diffproperty", &configChangeHook2)
+
+	//Add monitor for this config
+	ddbConfigMon.AddMonitorConfig(&diffConfig, &diffUpdatedConfig, diffConfigName, configAna2)
+	////////////////////////////////////////////////////////////////////////////
+	//Update MyConfig
+	updatedConfig.Property1 = 100
+	updatedConfig.Property2 = "asdf"
+	updatedConfig.Property3 = false
+	updatedConfig.Property4 = [...]int{1,2,3,4,5}
+	fmt.Printf("\nPutting updated config: %v\n", updatedConfig)
+	err = configClient.Config(configName).Put(updatedConfig)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
+	}
+	////////////////////////////////////////////////////////////////////////////
+	//Update DiffConfig
+	diffUpdatedConfig.Name = "diffconfig"
+	nestedStruct := NestedConfigType{ 1000, "xyz", false, [...]int{11,22,33,44,55} }
+	diffUpdatedConfig.NestedStruct = nestedStruct
+	fmt.Printf("\nPutting updated diff config: %v\n", diffUpdatedConfig)
+	err = configClient.Config(diffConfigName).Put(diffUpdatedConfig)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
+	}
+	/////////////////////////////////////////////////////////////////////////////
+
+	//Wait for few seconds for the callbacks to complete
+	time.Sleep(time.Second * 3)
+	
+	//Now verify if the changes are updated
+	if ( myConfigUpdateFromHook.Property1 != updatedConfig.Property1) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property2 != updatedConfig.Property2) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property3 != updatedConfig.Property3) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property4 != updatedConfig.Property4) { t.FailNow() }
+
+	if ( myDiffConfigUpdateFromHook.Name != diffUpdatedConfig.Name) { t.FailNow() }
+	if ( myDiffConfigUpdateFromHook.NestedStruct != nestedStruct) { t.FailNow() }
+	
+	//Remove monitor for this config
+	ddbConfigMon.RemoveMonitorConfig(configName)
+}
+
 //Global wait group
 var wg sync.WaitGroup
 var sawChangeCount int = 0
-func TestConfigMonitorSimple(t *testing.T) {
+func TestConfigMonitorMultipleUpdates(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
 	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
@@ -173,7 +419,7 @@ func TestConfigMonitorSimple(t *testing.T) {
 		t.FailNow()
 	}
 
-	if(sawChangeCount < 6) {
+	if(sawChangeCount < 5) {
 		fmt.Printf("Didn't see all the changes, test failed")
 		t.FailNow()
 	}
@@ -199,7 +445,7 @@ func ConfigUpdater(ddbClient *DDBRelayConfigClient) {
 		if(err != nil) {
 			fmt.Printf("\nUpdating(Put) config failed: %v %v", newConfig, err)
 		}
-		time.Sleep(time.Second * 4)
+		time.Sleep(time.Second * 3)
 	}
 }
 
