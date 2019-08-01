@@ -90,6 +90,18 @@ type MyConfigMultipleGroup struct {
 	Property4 int 	`json:"property4" configGroup:"anotherproperty"`
 }
 
+type NestedConfigSliceType struct {
+	NestedProperty1 int    `json:"property1" configGroup:"slicediffproperty"`
+	NestedProperty2 string `json:"property2" configGroup:"slicediffproperty"`
+	NestedProperty3 bool   `json:"property3" configGroup:"slicediffproperty"`
+	NestedProperty4 [5]int `json:"property4" configGroup:"slicediffproperty"`
+}
+
+type MyConfigSlice struct {
+	NestedConfigSliceProperty [5]NestedConfigSliceType   `json:"property1" configGroup:"sliceproperty"`
+	PtrToNestedConfigSliceProperty []*NestedConfigSliceType   `json:"property2" configGroup:"sliceproperty"`
+}
+
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
 // if there is at least one change to report
 func (cfgHook ConfigChangeHook) ChangesStart(configgroup string) {
@@ -99,8 +111,8 @@ func (cfgHook ConfigChangeHook) ChangesStart(configgroup string) {
 // SawChange is called whenever a field changes. It will be called only once for each field which is changed.
 // It will always be called after ChangesStart is called
 // If SawChange return true, then the value of futvalue will replace the value of current value
-func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}) (acceptchange bool) {
-	fmt.Printf("\nConfigChangeHook:SawChange: %s:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
+func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
+	fmt.Printf("\nConfigChangeHook:SawChange: %s:%s old:%v new:%v index: %d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 	if(configgroup == "property") {
 		reflect.ValueOf(&myConfigUpdateFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
 	}
@@ -114,7 +126,20 @@ func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged strin
 			reflect.ValueOf(&myDiffConfigUpdateFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
 		}
 	}
-	return true;
+	if(configgroup == "sliceproperty") {
+		reflect.ValueOf(&myConfigSliceFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
+	}
+	if(configgroup == "slicediffproperty") {
+		if(len(myConfigSliceFromHook.PtrToNestedConfigSliceProperty) < (index+1)) {
+			myConfigSliceFromHook.PtrToNestedConfigSliceProperty = append(myConfigSliceFromHook.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{0, "ptrslice", false, [...]int{0,0,0,0,0}})
+		}
+		if(strings.HasPrefix(fieldchanged, "Ptr")) {
+			reflect.ValueOf(myConfigSliceFromHook.PtrToNestedConfigSliceProperty[index]).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))	
+		} else {
+			reflect.ValueOf(&myConfigSliceFromHook.NestedConfigSliceProperty).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))	
+		}
+	}
+	return false;
 }
 
 // ChangesComplete is called when all changes for a specific configgroup tagname
@@ -122,12 +147,13 @@ func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged strin
 func (cfgHook ConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
 	sawChangeCount++
 	fmt.Printf("\nConfigChangeHook:ChangesComplete: %s Change count=%d\n", configgroup, sawChangeCount)
-	return true;
+	return false;
 }
 
 var myConfigUpdateFromHook MyConfig;
 var myDiffConfigUpdateFromHook MyDiffConfig;
 var myConfigMultipleGroup MyConfigMultipleGroup
+var myConfigSliceFromHook MyConfigSlice
 func TestConfigMonitorSimple(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
@@ -217,6 +243,99 @@ func TestConfigMonitorSimple(t *testing.T) {
 	//Remove monitor for this config
 	ddbConfigMon.RemoveMonitorConfig(configName)
 }
+
+func TestConfigMonitorSlice(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "mySliceConfig" //The name of the configuration object that should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	
+	var config, updatedConfig MyConfigSlice
+	config.NestedConfigSliceProperty[0] = NestedConfigSliceType{1, "", false, [...]int{1,1,1,1,1}}
+	config.NestedConfigSliceProperty[1] = NestedConfigSliceType{2, "", false, [...]int{2,2,2,2,2}}
+	config.PtrToNestedConfigSliceProperty = append(config.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{0, "ptrslice", false, [...]int{0,0,0,0,0}})
+	config.PtrToNestedConfigSliceProperty = append(config.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{1, "ptrslice", false, [...]int{0,0,0,0,0}})
+	err = configClient.Config(configName).Put(config)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
+	}
+
+	//Create a DDB connection config
+	ddbConnConfig := new(DeviceDBConnConfig)
+	ddbConnConfig.DeviceDBUri = devicedbUri
+	ddbConnConfig.DeviceDBPrefix = devicedbPrefix
+	ddbConnConfig.DeviceDBBucket = devicedbBucket
+	ddbConnConfig.RelayId = relay
+	ddbConnConfig.CaChainCert = relayCaChainFile
+
+	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
+	if(err != nil) {
+		fmt.Printf("\nUnable to create config monitor: %v\n", err)
+		t.FailNow()
+	}
+
+	//Add a config change monitor
+	configAna := maestroSpecs.NewConfigAnalyzer("configGroup")
+	if configAna == nil {
+		fmt.Printf("Failed to create config analyzer object")
+		t.FailNow()
+	}
+
+	var configChangeHook ConfigChangeHook
+	configAna.AddHook("sliceproperty", &configChangeHook)
+	configAna.AddHook("slicediffproperty", &configChangeHook)
+
+	//Add monitor for this config
+	ddbConfigMon.AddMonitorConfig(&config, &updatedConfig, configName, configAna)
+
+	updatedConfig.NestedConfigSliceProperty[0] = NestedConfigSliceType{100, "slice1", true, [...]int{1,2,3,4,5}}
+	updatedConfig.NestedConfigSliceProperty[1] = NestedConfigSliceType{200, "slice2", true, [...]int{11,22,33,44,55}}
+	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{22, "ptrslice1", true, [...]int{3,6,9,12,15}})
+	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{33, "ptrslice1", true, [...]int{33,66,99,120,150}})
+	
+	fmt.Printf("\nPutting updated config: %v\n", config)
+	err = configClient.Config(configName).Put(updatedConfig)
+	if err != nil {
+		fmt.Printf("\nUnable to put config: %v\n", err)
+		t.FailNow()
+	}	
+
+	//Wait for few seconds for the callbacks to complete
+	time.Sleep(time.Second * 2)
+
+	//Now verify if the changes are updated
+	if ( myConfigSliceFromHook.NestedConfigSliceProperty[0] != updatedConfig.NestedConfigSliceProperty[0]) { t.FailNow() }
+	if ( myConfigSliceFromHook.NestedConfigSliceProperty[1] != updatedConfig.NestedConfigSliceProperty[1]) { t.FailNow() }
+	if ( *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[0] != *updatedConfig.PtrToNestedConfigSliceProperty[0]) { t.FailNow() }
+	if ( *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[1] != *updatedConfig.PtrToNestedConfigSliceProperty[1]) { t.FailNow() }
+	
+	//Remove monitor for this config
+	ddbConfigMon.RemoveMonitorConfig(configName)
+}
+
 
 func TestConfigMonitorMultipleGroup(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e

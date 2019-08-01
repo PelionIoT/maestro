@@ -3,6 +3,7 @@ package maestroConfig
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -97,12 +98,12 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 			break
 		}
 
-		fmt.Printf("\n[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
+		//fmt.Printf("\n[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
 		same, noaction, err := configAnalyzer.CallChanges(prevconfig, updatedConfig)
 		if err != nil {
-			fmt.Printf("\nError from CallChanges: %s\n", err.Error())
+			log.MaestroErrorf("Error from CallChanges: %s\n", err.Error())
 		} else {
-			fmt.Printf("\nCallChanges ret same=%+v noaction=%+v\n", same, noaction)
+			log.MaestroInfof("CallChanges ret same=%+v noaction=%+v\n", same, noaction)
 		}
 		//Make a copy of previous config
 		prevconfig := updatedConfig
@@ -126,6 +127,7 @@ and also could watch the updates about the config.
 type Config interface {
 	Get(t interface{}) error
 	Put(t interface{}) error
+	Delete() error
 	Watch() Watcher
 }
 
@@ -200,44 +202,50 @@ type DDBConfig struct {
 // It will return nil error when there is no such config exists or the config value could be
 // parsed as the format that client specified, otherwise it will return false when the config
 // value could not be parsed as expecting format
-func (ddbConfig *DDBConfig) Get(t interface{}) error {
+func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{ddbConfig.Key})
-	if err != nil {
+	if (err != nil) {
 		log.MaestroErrorf("DDBConfig.Get(): Failed to get the matched config from the devicedb. Error: %v", err)
-
 		return err
 	}
 
-	// the length of configEntries will be the same as the length of keys string that provided in the above Get function.
-	// Since we only have one key for the Get function, we should have configEntries with length of 1. But the only entry
-	// of the configEntries could be a nil value since the key might not exist
-	if len(configEntries) > 0 && configEntries[0] != nil {
-		// the length of siblings might not be one since it might exist
-		// multiple same config entries in the devicedb server. In this case,
-		// we generally use the first one of the sorted siblings
-		sortableConfigs := sort.StringSlice(configEntries[0].Siblings)
-		sort.Sort(sortableConfigs)
+	if(configEntries == nil) {
+		err = errors.New(fmt.Sprintf("Object %s does not exist", ddbConfig.Key))
+	} else {
+		//fmt.Printf("\nDDBConfig: Object:%s is %v", ddbConfig.Key, configEntries)
+		// the length of configEntries will be the same as the length of keys string that provided in the above Get function.
+		// Since we only have one key for the Get function, we should have configEntries with length of 1. But the only entry
+		// of the configEntries could be a nil value since the key might not exist
+		if ((len(configEntries) > 0) && (configEntries[0] != nil) && (len(configEntries[0].Siblings) != 0)) {
+			// the length of siblings might not be one since it might exist
+			// multiple same config entries in the devicedb server. In this case,
+			// we generally use the first one of the sorted siblings
+			sortableConfigs := sort.StringSlice(configEntries[0].Siblings)
+			sort.Sort(sortableConfigs)
 
-		if len(sortableConfigs) > 0 {
-			// the config are stored as the storage.Configuration struct,
-			// and the config value that should be parsed as the expecting
-			// format should be the value of config.Body
+			if len(sortableConfigs) > 0 {
+				// the config are stored as the storage.Configuration struct,
+				// and the config value that should be parsed as the expecting
+				// format should be the value of config.Body
 
-			var config ConfigWrapper
-			_ = json.Unmarshal([]byte(sortableConfigs[0]), &config)
-			configJSON := fmt.Sprintf("%v", config.Body)
+				var config ConfigWrapper
+				_ = json.Unmarshal([]byte(sortableConfigs[0]), &config)
+				configJSON := fmt.Sprintf("%v", config.Body)
 
-			// parse the value of config.Body into the expecting format
-			err = json.Unmarshal([]byte(configJSON), &t)
-			if err != nil {
-				fmt.Printf("\nDDBConfig.Get() could not parse the configuration value into expected format. Error %v", err)
-				log.MaestroErrorf("DDBConfig.Get() could not parse the configuration value into expected format. Error %v", err)
-				return err
+				// parse the value of config.Body into the expecting format
+				err = json.Unmarshal([]byte(configJSON), &t)
+				if err != nil {
+					fmt.Printf("\nDDBConfig.Get() could not parse the configuration value into expected format. Error %v", err)
+					log.MaestroErrorf("DDBConfig.Get() could not parse the configuration value into expected format. Error %v", err)
+					return err
+				}
 			}
+		} else {
+			err = errors.New(fmt.Sprintf("Object %s is deleted", ddbConfig.Key))
 		}
 	}
 
-	return nil
+	return err
 }
 
 //
@@ -254,6 +262,7 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 			//Marshal the storage object to put into deviceDB
 			bodyJSON, err := json.Marshal(&config)
 			
+			//log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
 			if(err == nil) {
 				var devicedbClientBatch *client.Batch
 				ctx, _ := context.WithCancel(context.Background())
@@ -272,6 +281,21 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 		log.MaestroErrorf("DDBConfig.Put() Invalid argument. Error %v", err)
 	}
 	return err
+}
+
+//
+func (ddbConfig *DDBConfig) Delete() (err error) {
+	var devicedbClientBatch *client.Batch
+	ctx, _ := context.WithCancel(context.Background())
+	devicedbClientBatch = client.NewBatch()
+	devicedbClientBatch.Delete(ddbConfig.Key,"")
+	//log.MaestroErrorf("DDBConfig.Delete() Deleting key: %s", ddbConfig.Key)
+	err = ddbConfig.ConfigClient.Client.Batch(ctx, "local", *devicedbClientBatch)
+	if(err != nil) {
+		log.MaestroErrorf("DDBConfig.Delete(): %v", err)
+	}
+	
+	return
 }
 
 // Watch will register a watcher for the client to
@@ -322,6 +346,7 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 			return false
 		}
 
+		//log.MaestroInfof("DDBWatcher: Next: json:%s\n", []byte(u))
 		// if the updated config could not be parsed as expecting format,
 		// we will skip it util we could parse it successfully
 		err := json.Unmarshal([]byte(u), &t)
