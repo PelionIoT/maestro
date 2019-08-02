@@ -17,6 +17,7 @@ package networking
 
 import (
 	"reflect"
+	"strings"
 	"io/ioutil"
 	"github.com/armPelionEdge/maestro/log"
 )
@@ -31,6 +32,7 @@ type ConfigChangeInfo struct{
 	fieldchanged string
 	futvalue interface{}
 	curvalue interface{}
+	index int
 }
 
 var configChangeRequestChan chan ConfigChangeInfo = nil
@@ -42,33 +44,33 @@ func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
 		log.MaestroInfof("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
         switch(configChange.configgroup) {
 		case "dhcp":
-			instance.ProcessDhcpConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);
+			instance.ProcessDhcpConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);
 		case "if":
-			instance.ProcessIfConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessIfConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "ipv4":
-			instance.ProcessIpv4ConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessIpv4ConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "ipv6":
-			instance.ProcessIpv6ConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessIpv6ConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "mac":
-			instance.ProcessMacConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessMacConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "wifi":
-			instance.ProcessWifiConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessWifiConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "IEEE8021x":
-			instance.Process8021xConfigChange(configChange.fieldchanged,configChange. futvalue, configChange.curvalue);			
+			instance.Process8021xConfigChange(configChange.fieldchanged,configChange. futvalue, configChange.curvalue, configChange.index);			
 		case "route":
-			instance.ProcessRouteConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessRouteConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "http":
-			instance.ProcessHttpConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessHttpConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "nameserver":
-			instance.ProcessNameserverConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessNameserverConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "gateway":
-			instance.ProcessGatewayConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessGatewayConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "dns":
-			instance.ProcessDnsConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessDnsConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "config_netif":
-			instance.ProcessConfNetIfConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessConfNetIfConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		case "config_network":
-			instance.ProcessConfNetworkConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue);			
+			instance.ProcessConfNetworkConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);			
 		default:
 			log.MaestroWarnf("\nConfigChangeHook:Unknown field or group: %s:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
 		}
@@ -91,7 +93,8 @@ func (cfgHook NetworkConfigChangeHook) ChangesStart(configgroup string) {
 func (cfgHook NetworkConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
 	log.MaestroInfof("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 	if(configChangeRequestChan != nil) {
-		configChangeRequestChan <- ConfigChangeInfo{ configgroup, fieldchanged, futvalue, curvalue }
+		fieldnames := strings.Split(fieldchanged,".")
+		configChangeRequestChan <- ConfigChangeInfo{ configgroup, fieldnames[len(fieldnames)-1], futvalue, curvalue, index }
 	} else {
 		log.MaestroErrorf("ConfigChangeHook:Config change chan is nil, unable to process change")
 	}
@@ -107,52 +110,68 @@ func (cfgHook NetworkConfigChangeHook) ChangesComplete(configgroup string) (acce
 }
 
 //Function to process Dhcp config change
-func (inst *networkManagerInstance) ProcessDhcpConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessDhcpConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessDhcpConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process if config change
-func (inst *networkManagerInstance) ProcessIfConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
-	log.MaestroInfof("ProcessIfConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+func (inst *networkManagerInstance) ProcessIfConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("ProcessIfConfigChange: %s old:%v new:%v index:%d\n", fieldchanged, curvalue, futvalue, index)
+	switch(fieldchanged) {
+	case "IfName":
+		log.MaestroInfof("ProcessIfConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IfName, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].IfName = reflect.ValueOf(futvalue).String();
+		
+	default:
+		log.MaestroWarnf("\nProcessDnsConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process ipv4 config change
-func (inst *networkManagerInstance) ProcessIpv4ConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessIpv4ConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessIpv4ConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	switch(fieldchanged) {
+	case "IPv4Addr":
+		log.MaestroInfof("ProcessIpv4ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IPv4Addr, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].IPv4Addr = reflect.ValueOf(futvalue).String();
+		
+	default:
+		log.MaestroWarnf("\nProcessIpv4ConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process ipv6 config change
-func (inst *networkManagerInstance) ProcessIpv6ConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessIpv6ConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessIpv6ConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process Mac config change
-func (inst *networkManagerInstance) ProcessMacConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessMacConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessMacConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process Wifi config change
-func (inst *networkManagerInstance) ProcessWifiConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessWifiConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessWifiConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process IEEE8021x config change
-func (inst *networkManagerInstance) Process8021xConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) Process8021xConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("Process8021xConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process Route config change
-func (inst *networkManagerInstance) ProcessRouteConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessRouteConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessRouteConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process Http config change
-func (inst *networkManagerInstance) ProcessHttpConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessHttpConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessHttpConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process Nameserver config change
-func (inst *networkManagerInstance) ProcessNameserverConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessNameserverConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("\nProcessNameserverConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	switch(fieldchanged) {
 	case "AltResolvConf":
@@ -164,12 +183,12 @@ func (inst *networkManagerInstance) ProcessNameserverConfigChange(fieldchanged s
 }
 
 //Function to process Gateway config change
-func (inst *networkManagerInstance) ProcessGatewayConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessGatewayConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessGatewayConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //Function to process Dns config change
-func (inst *networkManagerInstance) ProcessDnsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessDnsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessDnsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	switch(fieldchanged) {
 	case "DnsIgnoreDhcp":
@@ -199,7 +218,7 @@ func (inst *networkManagerInstance) ProcessDnsConfigChange(fieldchanged string, 
 }
 
 //Function to process config_netif config change
-func (inst *networkManagerInstance) ProcessConfNetIfConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessConfNetIfConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessConfNetIfConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	for idx:=0; idx < len(inst.networkConfig.Interfaces); idx++ {
 		inst.networkConfig.Interfaces[idx].Existing = reflect.ValueOf(futvalue).String();
@@ -207,7 +226,7 @@ func (inst *networkManagerInstance) ProcessConfNetIfConfigChange(fieldchanged st
 }
 
 //Function to process config_network config change
-func (inst *networkManagerInstance) ProcessConfNetworkConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}) {
+func (inst *networkManagerInstance) ProcessConfNetworkConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessConfNetworkConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	inst.networkConfig.Existing = reflect.ValueOf(futvalue).String();
 }

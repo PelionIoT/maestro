@@ -949,5 +949,53 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 		t.FailNow()
 	}
 
+	//Add another set of changes
+	updatedConfig2 := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: true,
+	}
+
+	ifconfig5 := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth5",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "178.10.8.1",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+	ifconfig6 := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth6",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:03", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "178.10.8.2",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+	updatedConfig2.Interfaces = append(updatedConfig2.Interfaces, ifconfig5)
+	updatedConfig2.Interfaces = append(updatedConfig2.Interfaces, ifconfig6)
+	
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(&updatedConfig2)
+	if(err != nil) {
+		log.Fatalf("Unable to put updated config: %v\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nUpdated new network config in devicedb: %v:%v:%v\n", updatedConfig2, *updatedConfig2.Interfaces[0], *updatedConfig2.Interfaces[1])
+	}
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 2)
+
+	if(manager.networkConfig.Interfaces[0].IfName != "eth5") {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth5 actual:%v\n",manager.networkConfig.Interfaces[0].IfName)
+		t.FailNow()
+	}
+	if(manager.networkConfig.Interfaces[1].IfName != "eth6") {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth6 actual:%v\n",manager.networkConfig.Interfaces[1].IfName)
+		t.FailNow()
+	}
+
 	storage.shutdown(manager)
 }
