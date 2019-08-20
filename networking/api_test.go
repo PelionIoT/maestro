@@ -962,7 +962,7 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 		IPv4Addr:       "178.10.8.1",
 		IPv4Mask:       24,
 		IPv4BCast:      "192.168.78.255",
-		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.10", "178.255.255.255", "178.10.255.255"}},
+		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.10", "178.255.255.255", "178.10.255.255"}, {"178.10.11.10", "178.255.255.255", "178.10.255.255"}},
 		Existing:       "override",
 	}
 	ifconfig6 := &maestroSpecs.NetIfConfigPayload{
@@ -973,7 +973,7 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 		IPv4Addr:       "178.10.8.2",
 		IPv4Mask:       24,
 		IPv4BCast:      "192.168.78.255",
-		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.11", "178.255.255.255", "178.255.255.255"}},
+		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.11", "178.255.255.255", "178.255.255.255"}, {"178.10.11.11", "178.255.255.255", "178.10.255.255"}},
 		Existing:       "override",
 	}
 	updatedConfig2.Interfaces = append(updatedConfig2.Interfaces, ifconfig5)
