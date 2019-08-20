@@ -155,7 +155,7 @@ var myDiffConfigUpdateFromHook MyDiffConfig;
 var myConfigMultipleGroup MyConfigMultipleGroup
 var myConfigSliceFromHook MyConfigSlice
 func TestConfigMonitorSimple(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
 	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
 	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
@@ -245,7 +245,7 @@ func TestConfigMonitorSimple(t *testing.T) {
 }
 
 func TestConfigMonitorSlice(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
 	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
 	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
@@ -338,7 +338,7 @@ func TestConfigMonitorSlice(t *testing.T) {
 
 
 func TestConfigMonitorMultipleGroup(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
 	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
 	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
@@ -431,7 +431,7 @@ func TestConfigMonitorMultipleGroup(t *testing.T) {
 }
 
 func TestConfigMonitorMultipleStructs(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
 	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
 	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
@@ -565,7 +565,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 var wg sync.WaitGroup
 var sawChangeCount int = 0
 func TestConfigMonitorMultipleUpdates(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
 	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
 	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
