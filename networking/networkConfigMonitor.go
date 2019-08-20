@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"strings"
 	"io/ioutil"
+	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestro/log"
 )
 
@@ -30,6 +31,7 @@ type ConfigChangeInfo struct{
 	//struct capturing the job args to be carried out when a config change happens
 	configgroup string
 	fieldchanged string
+	canonicalfieldname string
 	futvalue interface{}
 	curvalue interface{}
 	index int
@@ -94,7 +96,8 @@ func (cfgHook NetworkConfigChangeHook) SawChange(configgroup string, fieldchange
 	log.MaestroInfof("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 	if(configChangeRequestChan != nil) {
 		fieldnames := strings.Split(fieldchanged,".")
-		configChangeRequestChan <- ConfigChangeInfo{ configgroup, fieldnames[len(fieldnames)-1], futvalue, curvalue, index }
+		log.MaestroInfof("ConfigChangeHook:fieldnames: %v\n", fieldnames)
+		configChangeRequestChan <- ConfigChangeInfo{ configgroup, fieldnames[len(fieldnames)-1], fieldchanged, futvalue, curvalue, index }
 	} else {
 		log.MaestroErrorf("ConfigChangeHook:Config change chan is nil, unable to process change")
 	}
@@ -109,9 +112,25 @@ func (cfgHook NetworkConfigChangeHook) ChangesComplete(configgroup string) (acce
 	return false; //return false as we would apply only those we successfully processed
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Functions to process the parameters which are changed
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 //Function to process Dhcp config change
 func (inst *networkManagerInstance) ProcessDhcpConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessDhcpConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	
+	switch(fieldchanged) {
+	case "DhcpDisableClearAddresses":
+		log.MaestroInfof("ProcessDhcpConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].DhcpDisableClearAddresses, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].DhcpDisableClearAddresses = reflect.ValueOf(futvalue).Bool();
+	case "DhcpStepTimeout":
+		log.MaestroInfof("ProcessDhcpConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].DhcpStepTimeout, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].DhcpStepTimeout = int(reflect.ValueOf(futvalue).Int());
+		
+	default:
+		log.MaestroWarnf("\nProcessDnsConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process if config change
@@ -121,6 +140,9 @@ func (inst *networkManagerInstance) ProcessIfConfigChange(fieldchanged string, f
 	case "IfName":
 		log.MaestroInfof("ProcessIfConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IfName, reflect.ValueOf(futvalue))
 		inst.networkConfig.Interfaces[index].IfName = reflect.ValueOf(futvalue).String();
+	case "IfIndex":
+		log.MaestroInfof("ProcessIfConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IfIndex, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].IfIndex = int(reflect.ValueOf(futvalue).Int());
 		
 	default:
 		log.MaestroWarnf("\nProcessDnsConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
@@ -134,30 +156,79 @@ func (inst *networkManagerInstance) ProcessIpv4ConfigChange(fieldchanged string,
 	case "IPv4Addr":
 		log.MaestroInfof("ProcessIpv4ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IPv4Addr, reflect.ValueOf(futvalue))
 		inst.networkConfig.Interfaces[index].IPv4Addr = reflect.ValueOf(futvalue).String();
-		
+	case "IPv4Mask":
+		log.MaestroInfof("ProcessIpv4ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IPv4Mask, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].IPv4Mask = int(reflect.ValueOf(futvalue).Int());
+	case "IPv4BCast":
+		log.MaestroInfof("ProcessIpv4ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IPv4BCast, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].IPv4BCast = reflect.ValueOf(futvalue).String();
+	case "DhcpV4Enabled":
+		log.MaestroInfof("ProcessIpv4ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].DhcpV4Enabled, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].DhcpV4Enabled = reflect.ValueOf(futvalue).Bool();
+	case "AliasAddrV4":
+		log.MaestroInfof("ProcessIpv4ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].AliasAddrV4, reflect.ValueOf(futvalue))
+		aliaslen := reflect.ValueOf(futvalue).Len()
+		if(len(inst.networkConfig.Interfaces[index].AliasAddrV4) < aliaslen) {
+			inst.networkConfig.Interfaces[index].AliasAddrV4 = make([]maestroSpecs.AliasAddressV4, aliaslen)
+		}
+		for idx := 0; idx < aliaslen; idx++ {
+			inst.networkConfig.Interfaces[index].AliasAddrV4[idx].IPv4Addr = reflect.ValueOf(futvalue).Index(idx).FieldByName("IPv4Addr").String()
+			inst.networkConfig.Interfaces[index].AliasAddrV4[idx].IPv4Mask = reflect.ValueOf(futvalue).Index(idx).FieldByName("IPv4Mask").String()
+			inst.networkConfig.Interfaces[index].AliasAddrV4[idx].IPv4BCast = reflect.ValueOf(futvalue).Index(idx).FieldByName("IPv4BCast").String()
+		}
+	case "TestICMPv4EchoOut":
+		log.MaestroInfof("ProcessIpv4ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].TestICMPv4EchoOut, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].TestICMPv4EchoOut = reflect.ValueOf(futvalue).String();
 	default:
-		log.MaestroWarnf("\nProcessIpv4ConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+		log.MaestroWarnf("ProcessIpv4ConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	}
 }
 
 //Function to process ipv6 config change
 func (inst *networkManagerInstance) ProcessIpv6ConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessIpv6ConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	switch(fieldchanged) {
+	case "IPv6Addr":
+		log.MaestroInfof("ProcessIpv6ConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IPv6Addr, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].IPv6Addr = reflect.ValueOf(futvalue).String();
+		
+	default:
+		log.MaestroWarnf("\nProcessIpv6ConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process Mac config change
 func (inst *networkManagerInstance) ProcessMacConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessMacConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	switch(fieldchanged) {
+	case "HwAddr":
+		log.MaestroInfof("ProcessMacConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].HwAddr, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].HwAddr = reflect.ValueOf(futvalue).String();
+	case "ReplaceAddress":
+		log.MaestroInfof("ProcessMacConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].ReplaceAddress, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].ReplaceAddress = reflect.ValueOf(futvalue).String();
+	case "ClearAddresses":
+		log.MaestroInfof("ProcessMacConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].ClearAddresses, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].ClearAddresses = reflect.ValueOf(futvalue).Bool();
+	case "Aux":
+		log.MaestroInfof("ProcessMacConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].Aux, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].Aux = reflect.ValueOf(futvalue).Bool();		
+		
+	default:
+		log.MaestroWarnf("\nProcessMacConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process Wifi config change
 func (inst *networkManagerInstance) ProcessWifiConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessWifiConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	//TODO: No WiFi supports exists as of now
 }
 
 //Function to process IEEE8021x config change
 func (inst *networkManagerInstance) Process8021xConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("Process8021xConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	//TODO: No 8021x supports exists as of now
 }
 
 //Function to process Route config change
