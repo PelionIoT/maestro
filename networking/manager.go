@@ -39,6 +39,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"syscall"
 	"sync"
 	"time"
 	"unsafe"
@@ -49,6 +50,7 @@ import (
 	"github.com/armPelionEdge/maestro/networking/arp"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestroSpecs/netevents"
@@ -774,15 +776,59 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 }
 
 func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
-	//TLS config to connect to devicedb
-	var tlsConfig *tls.Config
-
-	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.networkConfig, this.networkConfig.Interfaces)
+	//log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.networkConfig, this.networkConfig.Interfaces)
 	//Setup the intfs using initial boot config first
 	this.setupInterfaces();
 
+	//Try setup the device using DeviceDB config now
+	go this.initDeviceDBConfig()
+	
+	return
+}
+
+const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = 300 //5 mins
+const DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5 //5 secs
+const DEVICEDB_JOB_NAME string = "devicedb"
+func (this *networkManagerInstance) initDeviceDBConfig() {
+	log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb process/job\n")
+	var waitTime int = 0
+	var err error
+
+	for waitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+		//First wait for devicedb to start
+		devicedbrunning, pid := processes.IsJobActive(DEVICEDB_JOB_NAME)
+		log.MaestroWarnf("initDeviceDBConfig: devicedbrunning: %v, pid: %d\n", devicedbrunning, pid)
+		if(devicedbrunning) {
+			//Service is started, but wait for few seconds for the port to be up and running
+			time.Sleep(time.Second * 20)
+			log.MaestroWarnf("initDeviceDBConfig: connecting to devicedb\n")
+			err = this.SetupDeviceDBConfig()
+			if(err != nil) {
+				log.MaestroErrorf("initDeviceDBConfig: error setting up config using devicedb: %v", err)
+			} else {
+				log.MaestroWarnf("initDeviceDBConfig: successfully connected to devicedb\n")
+			}
+			break
+		} else {
+			time.Sleep(time.Second * time.Duration(DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS))
+			waitTime += DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
+		}
+	}
+
+	if((waitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS) || (err != nil)) {
+		log.MaestroErrorf("initDeviceDBConfig: devicedb is not running, cannot fetch config from devicedb")
+	}
+}
+
+func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
+	//TLS config to connect to devicedb
+	var tlsConfig *tls.Config
+	
 	if(this.ddbConnConfig != nil) {
 		log.MaestroInfof("NetworkManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb\n")
+		//Device DB config uses deviceid as the relay_id, so uset that toset the hostname
+		log.MaestroWarnf("NetworkManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
+		syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
 		var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
 		relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
 		if err != nil {
@@ -810,11 +856,11 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 			err_updated := errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
 			return err_updated
 		} else {
-			log.MaestroInfof("Create new devicedb relay client\n")
+			log.MaestroWarnf("Create new devicedb relay client\n")
 			configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
 			err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
 			if(err != nil) {
-				log.MaestroInfof("No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
+				log.MaestroWarnf("No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
 				err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
 				if err != nil {
 					log.MaestroErrorf("Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
@@ -823,17 +869,17 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 				}
 			} else {
 				//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
-				log.MaestroInfof("Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
+				log.MaestroWarnf("Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
 				identical, _, _, err := configAna.DiffChanges(this.networkConfig, ddbNetworkConfig)
 				if(!identical && (err == nil)) {
 					//The configs are different, lets go ahead reconfigure the intfs
-					log.MaestroInfof("New network config found from devicedb, reconfigure nework using new config\n")
+					log.MaestroWarnf("New network config found from devicedb, reconfigure nework using new config\n")
 					this.networkConfig = &ddbNetworkConfig
 					this.submitConfig(this.networkConfig)
 					//Setup the intfs using new config
 					this.setupInterfaces();
 				} else {
-					log.MaestroInfof("New network config found from devicedb, but its same as boot config, no need to re-configure\n")
+					log.MaestroWarnf("New network config found from devicedb, but its same as boot config, no need to re-configure\n")
 				}
 			}
 
@@ -865,6 +911,8 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 				//Provide a copy of current network config monitor to Config monitor, not the actual config we use, this would prevent config monitor
 				//directly updating the running config(this.networkConfig).
 				origNetworkConfig = *this.networkConfig
+
+				log.MaestroWarnf("Adding monitor config\n")
 				ddbConfigMon.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
 			}
 		}

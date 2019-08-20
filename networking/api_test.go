@@ -658,6 +658,7 @@ func TestNetworkConfigInDDB(t *testing.T) {
 
 	manager.enableThreadCount() // enable block on thread count
 	manager.SetupExistingInterfaces()
+	manager.SetupDeviceDBConfig()
 
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 2)
@@ -756,6 +757,7 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 
 	manager.enableThreadCount() // enable block on thread count
 	manager.SetupExistingInterfaces()
+	manager.SetupDeviceDBConfig()
 
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 3)
@@ -890,6 +892,7 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 
 	manager.enableThreadCount() // enable block on thread count
 	manager.SetupExistingInterfaces()
+	manager.SetupDeviceDBConfig()
 
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 3)

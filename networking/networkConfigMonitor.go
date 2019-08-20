@@ -43,7 +43,7 @@ func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
 	
 	instance = GetInstance();
 	for configChange := range jobConfigChangeChan {
-		log.MaestroInfof("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
+		log.MaestroWarnf("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
         switch(configChange.configgroup) {
 		case "dhcp":
 			instance.ProcessDhcpConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index);
@@ -93,7 +93,7 @@ func (cfgHook NetworkConfigChangeHook) ChangesStart(configgroup string) {
 // It will always be called after ChangesStart is called
 // If SawChange return true, then the value of futvalue will replace the value of current value
 func (cfgHook NetworkConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
-	log.MaestroInfof("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
+	log.MaestroWarnf("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 	if(configChangeRequestChan != nil) {
 		fieldnames := strings.Split(fieldchanged,".")
 		log.MaestroInfof("ConfigChangeHook:fieldnames: %v\n", fieldnames)
