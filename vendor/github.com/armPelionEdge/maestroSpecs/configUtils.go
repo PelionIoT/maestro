@@ -198,7 +198,6 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 			// deref pointers
 			if k == reflect.Ptr {
 				if fieldval.IsNil() {
-					//					fmt.Printf("saw nil ptr %s\n", prefix)
 					// can't fill in a struct which is nil
 					// if we have a nil PTR to a struct, let's create the struct
 					//					t := reflect.TypeOf().Elem()
@@ -216,7 +215,6 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 				k = fieldval.Kind()
 			}
 			if kf == reflect.Ptr {
-				//fmt.Printf("\nkf == Ptr")
 				futval = reflect.ValueOf(futval.Interface()).Elem()
 				kf = futval.Kind()
 			}
@@ -227,12 +225,13 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 			}
 
 			if k != kf {
-				fmt.Printf("\ndifferent types, ignore")
+				//fmt.Printf("\ndifferent types, ignore")
 				identical = false
 				continue
 			}
 			if k == reflect.Struct {
 				// it is crtical to pass in as an Interface which is an Address
+				//fmt.Printf("\ncompare again: fieldval.Addr().Interface():%v futval.Addr().Interface():%v", fieldval.Addr().Interface(), futval.Addr().Interface())
 				e := compareStruct(pre+field.Name, fieldval.Addr().Interface(), futval.Addr().Interface(), index)
 				if e != nil {
 					errinner = e
@@ -279,9 +278,12 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 					} else if typ == reflect.Struct {
 						if expand {
 							// we can't expand a slice of static structs can we?
+							//The new one version has a struct but the old version doesnt, so try to create a dummy struct for comparison
+							curindexval = reflect.New(indexval.Type())
+							//fmt.Printf("\ncurindexval = %v indexval = %v indexval.Type() = %v", curindexval, indexval, indexval.Type() )
 						}
-						//fmt.Printf("\nCalling compareStruct: %s for idx=%d\n", field.Name, i)
-						err2 := compareStruct(fmt.Sprintf("%s[%d]", pre+field.Name, i), curindexval.Addr().Interface(), indexval.Addr().Interface(), i)
+						//fmt.Printf("\nCalling compareStruct: %s for idx=%d curindexval=%v indexval=%v\n", field.Name, i, curindexval.Interface(), indexval.Addr().Interface())
+						err2 := compareStruct(fmt.Sprintf("%s[%d]", pre+field.Name, i), curindexval.Interface(), indexval.Addr().Interface(), i)
 						if err2 != nil {
 							fmt.Printf("Error on compareStruct: %s\n", err2.Error())
 						}

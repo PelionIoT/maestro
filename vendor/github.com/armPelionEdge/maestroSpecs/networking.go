@@ -27,11 +27,11 @@ type IEEE8021x struct {
 
 type AliasAddressV4 struct {
 	// IPv4 Address
-	IPv4Addr string `yaml:"ipv4_addr" json:"ipv4_addr" netgroup:"ipv4"`
+	IPv4Addr string `yaml:"ipv4_addr" json:"ipv4_addr"`
 	// IPv4 Subnet Mask
-	IPv4Mask string `yaml:"ipv4_mask" json:"ipv4_mask" netgroup:"ipv4"`
+	IPv4Mask string `yaml:"ipv4_mask" json:"ipv4_mask"`
 	// IPv4 Broadcast Addr. If empty, set automatically
-	IPv4BCast string `yaml:"ipv4_bcast" json:"ipv4_bcast" netgroup:"ipv4"`
+	IPv4BCast string `yaml:"ipv4_bcast" json:"ipv4_bcast"`
 }
 
 const (
