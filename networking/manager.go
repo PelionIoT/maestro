@@ -825,7 +825,8 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 	var tlsConfig *tls.Config
 	
 	if(this.ddbConnConfig != nil) {
-		log.MaestroInfof("NetworkManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb\n")
+		log.MaestroInfof("NetworkManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
+				this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket, this.ddbConnConfig.RelayId, this.ddbConnConfig.CaChainCert)
 		//Device DB config uses deviceid as the relay_id, so uset that toset the hostname
 		log.MaestroWarnf("NetworkManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
 		syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))

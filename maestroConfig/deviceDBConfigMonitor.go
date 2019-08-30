@@ -87,10 +87,13 @@ func (ddbMonitor *DDBMonitor) RemoveMonitorConfig(configName string) (err error)
 func configMonitor(config interface{}, updatedConfig interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer, configClient *DDBRelayConfigClient) {
 	configWatcher := configClient.Config(configName).Watch()
 	configWatcher.Run()
+
+	log.MaestroWarnf("configMonitor: configName:%s", configName)
 	
 	//Make a copy of original config
 	prevconfig := config
 	for {
+		log.MaestroWarnf("configMonitor: waiting on Next:%s", configName)
 		exists := configWatcher.Next(updatedConfig)
 
 		if !exists {
@@ -98,13 +101,14 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 			break
 		}
 
-		//fmt.Printf("\n[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
+		log.MaestroWarnf("\n[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
 		same, noaction, err := configAnalyzer.CallChanges(prevconfig, updatedConfig)
 		if err != nil {
 			log.MaestroErrorf("Error from CallChanges: %s\n", err.Error())
 		} else {
 			log.MaestroInfof("CallChanges ret same=%+v noaction=%+v\n", same, noaction)
 		}
+		
 		//Make a copy of previous config
 		prevconfig := updatedConfig
 		//The below statement is just to avoid compiler erroring about prevconfig not used
@@ -186,15 +190,17 @@ func (ddbClient *DDBRelayConfigClient) Config(name string) Config {
 	configName := fmt.Sprintf("%v.%v.%v", ddbClient.Prefix, ddbClient.Relay, name)
 
 	return &DDBConfig{
-		Key:          configName,
-		ConfigClient: ddbClient,
+		Key:			configName,
+		Bucket:			ddbClient.Bucket,
+		ConfigClient:	ddbClient,
 	}
 }
 
 // DDBConfig has the name of the config and also include the instance of DDBRelayConfigClient,
 // which is used by the implementation of the Config interface
 type DDBConfig struct {
-	Key          string
+	Key		string
+	Bucket	string	
 	ConfigClient *DDBRelayConfigClient
 }
 
@@ -268,7 +274,7 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 				ctx, _ := context.WithCancel(context.Background())
 				devicedbClientBatch = client.NewBatch()
 				devicedbClientBatch.Put(ddbConfig.Key,string([]byte(bodyJSON)),"")
-				err = ddbConfig.ConfigClient.Client.Batch(ctx, "local", *devicedbClientBatch)
+				err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
 				if(err != nil) {
 					log.MaestroErrorf("DDBConfig.Put(): %v", err)
 					return err
@@ -290,7 +296,7 @@ func (ddbConfig *DDBConfig) Delete() (err error) {
 	devicedbClientBatch = client.NewBatch()
 	devicedbClientBatch.Delete(ddbConfig.Key,"")
 	//log.MaestroErrorf("DDBConfig.Delete() Deleting key: %s", ddbConfig.Key)
-	err = ddbConfig.ConfigClient.Client.Batch(ctx, "local", *devicedbClientBatch)
+	err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
 	if(err != nil) {
 		log.MaestroErrorf("DDBConfig.Delete(): %v", err)
 	}
@@ -332,9 +338,12 @@ func (watcher *DDBWatcher) Stop() {
 // Next would parse the config as the given interface and return true when the
 // configuration with given key still exists, otherwise it will return false
 func (watcher *DDBWatcher) Next(t interface{}) bool {
+	log.MaestroWarnf("DDBConfig: Entering Next()")
 	for {
 		// receive the updated config from the update channel of the Watcher
 		u, ok := <-watcher.Updates
+
+		log.MaestroWarnf("DDBConfig.Next() Updates triggered")
 
 		if !ok {
 			log.MaestroWarnf("DDBConfig.Next() Updates channel closed, no need to listen anymore")
@@ -370,6 +379,7 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 
 // For the error channel, it will just simply print out the logs from the devicedb
 func (watcher *DDBWatcher) handleWatcher() {
+	log.MaestroWarnf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
 	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{watcher.Config.Key}, []string{}, 0)
 
 	// drain up the channel to avoid deadlock
@@ -389,12 +399,15 @@ func (watcher *DDBWatcher) handleWatcher() {
 	for {
 		select {
 		case update, ok := <-updates:
+
+			log.MaestroWarnf("DDBConfig.handleWatcher(): updates detected")
 			if !ok {
 				log.MaestroErrorf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher")
 				break
 			}
 
 			if update.IsEmpty() {
+				log.MaestroWarnf("DDBConfig.handleWatcher(): updated empty")
 				continue
 			}
 
@@ -403,6 +416,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 			var configLen int 	
 			configLen = len(sortableConfigs)
 			if configLen == 0 {
+				log.MaestroWarnf("DDBConfig.handleWatcher(): configLen == 0")
 				watcher.Updates <- ""
 				continue
 			}
@@ -411,18 +425,22 @@ func (watcher *DDBWatcher) handleWatcher() {
 			err := json.Unmarshal([]byte(sortableConfigs[0]), &config)
 			if err == nil {
 				bodyJSON := fmt.Sprintf("%v", config.Body)
+				log.MaestroWarnf("DDBConfig.handleWatcher(): writing json update")
 				watcher.Updates <- string(bodyJSON)
+			} else {
+				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v", err)
 			}
 
 		case err, ok := <-errors:
+			log.MaestroErrorf("DDBConfig.handleWatcher() received an error from the watcher. Error: %v", err)
 			if !ok {
 				log.MaestroWarnf("DDBConfig.handleWatcher() the DeviceDB monitor encounter a protocol error and have already cancelled the watcher")
 				break
 			}
 
-			log.MaestroErrorf("DDBConfig.handleWatcher() receive an error from the watcher. Error: %v", err)
-
+			
 		case _, ok := <-watcher.handleWatcherControl:
+			log.MaestroErrorf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered")
 			if !ok {
 				log.MaestroWarnf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore")
 				break
