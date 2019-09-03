@@ -43,7 +43,7 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-
+	
 	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
@@ -197,6 +197,17 @@ func init() {
 	arp.SetupLog(nmLogDebugf, nmLogErrorf, nmLogSuccessf)
 }
 
+type ConfigCommit struct {
+	// Set this flag to true for the changes to commit, if this flag is false
+	// the changes to configuration on these structs will not acted upon
+	// by network manager. For exmaple, this flag will be initially false
+	// so that user can change the config object in DeviceDB and verify that the
+	// intented changes are captured correctly. Once verified set this flag to true 
+	// so that the changes will be applied by maestro. Once maestro complete the
+	// changes the flag will be set to false by maestro.
+	ConfigCommitFlag bool `yaml:"config_commit" json:"config_commit" netgroup:"config_commit"`
+}
+
 // initialized in init()
 type networkManagerInstance struct {
 	// for persistence
@@ -216,9 +227,11 @@ type networkManagerInstance struct {
 	interfaceThreadCountMutex sync.Mutex
 	threadCountChan           chan networkThreadMessage
 	networkConfig             *maestroSpecs.NetworkConfigPayload
+	waitForDeviceDB			  bool
 
-	//Config to be used for connecting to devicedb
+	//Configs to be used for connecting to devicedb
 	ddbConnConfig *maestroConfig.DeviceDBConnConfig
+	configCommit		  	  ConfigCommit
 	
 	// DNS related
 	writeDNS bool // if true, then DNS will be written out once interfaces are processed
@@ -233,6 +246,7 @@ type networkManagerInstance struct {
 }
 
 const DDB_NETWORK_CONFIG_NAME string = "MAESTRO_NETWORK_CONFIG_ID"
+const DDB_NETWORK_CONFIG_COMMIT_FLAG string = "MAESTRO_NETWORK_CONFIG_COMMIT_FLAG"
 const DDB_NETWORK_CONFIG_CONFIG_GROUP_ID string = "netgroup"
 
 func (inst *networkManagerInstance) getNewDnsBufferForInterface(ifname string) (ret *dnsBuf) {
@@ -432,6 +446,7 @@ func newNetworkManagerInstance() (ret *networkManagerInstance) {
 	ret.indexToName = hashmap.New(10)
 	ret.watcherWorkChannel = make(chan networkThreadMessage, 10) // use a buffered channel
 	ret.threadCountChan = make(chan networkThreadMessage)
+	ret.waitForDeviceDB = true
 	// ret.resetDNSBuffer()
 	go ret.watchInterfaces()
 	return
@@ -776,7 +791,7 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 }
 
 func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
-	//log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.networkConfig, this.networkConfig.Interfaces)
+	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.networkConfig, this.networkConfig.Interfaces)
 	//Setup the intfs using initial boot config first
 	this.setupInterfaces();
 
@@ -790,33 +805,40 @@ const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = 300 //5 mins
 const DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5 //5 secs
 const DEVICEDB_JOB_NAME string = "devicedb"
 func (this *networkManagerInstance) initDeviceDBConfig() {
-	log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb process/job\n")
 	var waitTime int = 0
 	var err error
+	var pid int = -1
+	var devicedbrunning bool = false
 
-	for waitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-		//First wait for devicedb to start
-		devicedbrunning, pid := processes.IsJobActive(DEVICEDB_JOB_NAME)
-		log.MaestroWarnf("initDeviceDBConfig: devicedbrunning: %v, pid: %d\n", devicedbrunning, pid)
-		if(devicedbrunning) {
-			//Service is started, but wait for few seconds for the port to be up and running
-			time.Sleep(time.Second * 20)
-			log.MaestroWarnf("initDeviceDBConfig: connecting to devicedb\n")
-			err = this.SetupDeviceDBConfig()
-			if(err != nil) {
-				log.MaestroErrorf("initDeviceDBConfig: error setting up config using devicedb: %v", err)
+	if(this.waitForDeviceDB) {
+		log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb process/job\n")
+		for waitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+			//First wait for devicedb to start
+			devicedbrunning, pid = processes.IsJobActive(DEVICEDB_JOB_NAME)
+			log.MaestroWarnf("initDeviceDBConfig: devicedbrunning: %v, pid: %d\n", devicedbrunning, pid)
+			if(devicedbrunning) {
+				//Service is started, but wait for some seconds for the port to be up and running
+				time.Sleep(time.Second * 15)
+				break
 			} else {
-				log.MaestroWarnf("initDeviceDBConfig: successfully connected to devicedb\n")
+				time.Sleep(time.Second * time.Duration(DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS))
+				waitTime += DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 			}
-			break
-		} else {
-			time.Sleep(time.Second * time.Duration(DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS))
-			waitTime += DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
+		}
+
+		if(waitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS) {
+			log.MaestroErrorf("initDeviceDBConfig: devicedb is not running, cannot fetch config from devicedb")
 		}
 	}
 
-	if((waitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS) || (err != nil)) {
-		log.MaestroErrorf("initDeviceDBConfig: devicedb is not running, cannot fetch config from devicedb")
+	if((devicedbrunning && pid > 0) || (!this.waitForDeviceDB)) {
+		log.MaestroWarnf("initDeviceDBConfig: connecting to devicedb\n")
+		err = this.SetupDeviceDBConfig()
+		if(err != nil) {
+			log.MaestroErrorf("initDeviceDBConfig: error setting up config using devicedb: %v", err)
+		} else {
+			log.MaestroWarnf("initDeviceDBConfig: successfully connected to devicedb\n")
+		}
 	}
 }
 
@@ -883,6 +905,15 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 					log.MaestroWarnf("New network config found from devicedb, but its same as boot config, no need to re-configure\n")
 				}
 			}
+			//Since we are booting set the Network config commit flag to false
+			log.MaestroWarnf("Setting Network config commit flag to false\n")
+			this.configCommit.ConfigCommitFlag = false
+			err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.configCommit)
+			if err != nil {
+				log.MaestroErrorf("Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
+				err_updated := errors.New(fmt.Sprintf("\nUnable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
+				return err_updated
+			}
 
 			//Now start a monitor for the network config in devicedb
 			err, ddbConfigMon := maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
@@ -915,6 +946,22 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 
 				log.MaestroWarnf("Adding monitor config\n")
 				ddbConfigMon.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
+			}
+
+			//Now start a monitor for the network config commit flag in devicedb
+			err, ddbConfigCommitMon := maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
+			if(err != nil) {
+				log.MaestroErrorf("Unable to create config commit flag monitor: %v\n", err)
+			} else {
+				//Add config change hook for all property groups, we can use the same interface
+				var commitConfigChangeHook CommitConfigChangeHook
+
+				configAna.AddHook("config_commit", commitConfigChangeHook)
+								
+				//Add monitor for this object
+				var updatedConfigCommit ConfigCommit
+				log.MaestroWarnf("Adding monitor for config commit object\n")
+				ddbConfigCommitMon.AddMonitorConfig(&this.configCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
 			}
 		}
 	} else {

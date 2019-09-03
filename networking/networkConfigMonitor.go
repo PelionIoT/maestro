@@ -302,3 +302,54 @@ func (inst *networkManagerInstance) ProcessConfNetworkConfigChange(fieldchanged 
 	inst.networkConfig.Existing = reflect.ValueOf(futvalue).String();
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// Monitor for ConfigChangeHook
+//////////////////////////////////////////////////////////////////////////////////////////
+type CommitConfigChangeHook struct{
+	//struct implementing CommitConfigChangeHook intf
+}
+
+var configApplyRequestChan chan bool = nil
+
+func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
+	instance = GetInstance();
+	for applyChange := range jobConfigApplyRequestChan {
+		log.MaestroWarnf("ConfigApplyHandler::Received a apply change message: %v\n", applyChange)
+		if(applyChange) {
+			log.MaestroWarnf("ConfigApplyHandler::Processing apply change: %v\n", instance.configCommit.ConfigCommitFlag)
+			instance.submitConfig(instance.networkConfig)
+			//Setup the intfs using new config
+			instance.setupInterfaces();
+		} else {
+			log.MaestroWarnf("ConfigApplyHandler::Commit flag is false: %v\n", instance.configCommit.ConfigCommitFlag)
+		}
+    }
+}
+
+// ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
+// if there is at least one change to report
+func (cfgHook CommitConfigChangeHook) ChangesStart(configgroup string) {
+	log.MaestroInfof("CommitChangeHook:ChangesStart: %s\n", configgroup)
+	if(configApplyRequestChan == nil) {
+		configApplyRequestChan = make(chan bool, 10)
+		go ConfigApplyHandler(configApplyRequestChan)
+	}
+}
+
+// SawChange is called whenever a field changes. It will be called only once for each field which is changed.
+// It will always be called after ChangesStart is called
+// If SawChange return true, then the value of futvalue will replace the value of current value
+func (cfgHook CommitConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
+	log.MaestroWarnf("CommitChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
+	instance = GetInstance();
+	instance.configCommit.ConfigCommitFlag = reflect.ValueOf(futvalue).Bool();
+	configApplyRequestChan <- true
+	return false;//return false as we would apply only those we successfully processed
+}
+
+// ChangesComplete is called when all changes for a specific configgroup tagname
+// If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
+func (cfgHook CommitConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
+	log.MaestroInfof("CommitChangeHook:ChangesComplete: %s\n", configgroup)
+	return false; //return false as we would apply only those we successfully processed
+}

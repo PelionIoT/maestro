@@ -27,7 +27,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
-
+	
 	"github.com/armPelionEdge/dhcp4"
 	"github.com/armPelionEdge/dhcp4client"
 	"github.com/armPelionEdge/maestro/events"
@@ -648,6 +648,7 @@ func TestNetworkConfigInDDB(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12
@@ -658,8 +659,7 @@ func TestNetworkConfigInDDB(t *testing.T) {
 
 	manager.enableThreadCount() // enable block on thread count
 	manager.SetupExistingInterfaces()
-	manager.SetupDeviceDBConfig()
-
+	
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 2)
 
@@ -749,6 +749,7 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12
@@ -757,8 +758,7 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 
 	manager.enableThreadCount() // enable block on thread count
 	manager.SetupExistingInterfaces()
-	manager.SetupDeviceDBConfig()
-
+	
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 3)
 
@@ -790,6 +790,127 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 		t.FailNow()
 	} else {
 		fmt.Printf("DnsIgnoreDhcp value in network manager: %v\n", manager.networkConfig.DnsIgnoreDhcp)
+	}
+
+	storage.shutdown(manager)
+}
+
+func TestConfigCommitUpdateInDDB(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+
+	// fresh start - no database
+	os.Remove(TEST_DB_NAME)
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	// assumes TestNetworkManagerSetupExisting was ran previously
+	storage := new(testStorageManager)
+	storage.start()
+
+	//Delete any object that many be in devicedb for testing
+	var ddbCommitConfig ConfigCommit
+	configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Delete()
+	if(err != nil) {
+		log.Fatalf("Failed to delete commit config object from devicedb err: %v.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nDeleted commit config in devicedb\n")
+	}
+
+	//Wait for sometime for delete to commit
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Get(&ddbCommitConfig)
+	if(err == nil) {
+		log.Fatalf("Unable to delete commit object from devicedb\n",)
+		t.FailNow()
+	}
+	
+	config := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: false,
+	}
+
+	ifconfig := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth2",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "192.168.78.31",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+
+	config.Interfaces = append(config.Interfaces, ifconfig)
+
+	err = testInitNetworkManager(config, storage)
+	if err != nil {
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
+		t.FailNow()
+	}
+	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
+	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
+
+	timeout := 60 * 60 * 12
+	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
+	manager.waitForActiveInterfaceThreads(timeout)
+
+	manager.enableThreadCount() // enable block on thread count
+	manager.SetupExistingInterfaces()
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 3)
+
+	//Now change something in devicedb
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Get(&ddbCommitConfig)
+	if(err == nil) {
+		fmt.Printf("Current commit flag value in devicedb: %v\n", ddbCommitConfig.ConfigCommitFlag)
+		ddbCommitConfig.ConfigCommitFlag = true;
+	} else {
+		log.Fatalf("Unable to read Network config object from devicedb\n")
+		t.FailNow()
+	}
+
+	//Now write out the updated config
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&ddbCommitConfig)
+	if(err == nil) {
+		fmt.Printf("Devicedb update succeeded.\n")
+	} else {
+		log.Fatalf("Unable to update commit config object to devicedb\n")
+		t.FailNow()
+	}
+
+	//Wait for updates to propagate and processed by maestro
+	time.Sleep(time.Second * 2)
+
+	fmt.Printf("Validate commit config object\n")
+	if(manager.configCommit.ConfigCommitFlag != true) {
+		log.Fatalf("Test failed, values are different for ConfigCommitFlag expected:true actual:%v\n",manager.configCommit.ConfigCommitFlag)
+		t.FailNow()
+	} else {
+		fmt.Printf("ConfigCommitFlag value in network manager: %v\n", manager.configCommit.ConfigCommitFlag)
 	}
 
 	storage.shutdown(manager)
@@ -882,6 +1003,7 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12
@@ -892,8 +1014,7 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 
 	manager.enableThreadCount() // enable block on thread count
 	manager.SetupExistingInterfaces()
-	manager.SetupDeviceDBConfig()
-
+	
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 3)
 
