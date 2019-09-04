@@ -905,9 +905,9 @@ func TestConfigCommitUpdateInDDB(t *testing.T) {
 	//Wait for updates to propagate and processed by maestro
 	time.Sleep(time.Second * 2)
 
-	fmt.Printf("Validate commit config object\n")
-	if(manager.configCommit.ConfigCommitFlag != true) {
-		log.Fatalf("Test failed, values are different for ConfigCommitFlag expected:true actual:%v\n",manager.configCommit.ConfigCommitFlag)
+	//mt.Printf("Validate commit config object, it should be false as the flag should revert to false after commtting the updates\n")
+	if((manager.configCommit.ConfigCommitFlag != false) || (manager.configCommit.TotalCommitCountFromBoot < 0) || (len(instance.configCommit.LastUpdateTimestamp) <= 0)) {
+		log.Fatalf("Test failed, values are different:%v\n",manager.configCommit)
 		t.FailNow()
 	} else {
 		fmt.Printf("ConfigCommitFlag value in network manager: %v\n", manager.configCommit.ConfigCommitFlag)

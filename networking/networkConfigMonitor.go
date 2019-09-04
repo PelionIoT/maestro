@@ -18,6 +18,7 @@ package networking
 import (
 	"reflect"
 	"strings"
+	"time"
 	"io/ioutil"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestro/log"
@@ -320,6 +321,9 @@ func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
 			instance.submitConfig(instance.networkConfig)
 			//Setup the intfs using new config
 			instance.setupInterfaces();
+			instance.configCommit.ConfigCommitFlag = false
+			instance.configCommit.LastUpdateTimestamp = time.Now().Format(time.RFC850)
+			instance.configCommit.TotalCommitCountFromBoot = instance.configCommit.TotalCommitCountFromBoot + 1
 		} else {
 			log.MaestroWarnf("ConfigApplyHandler::Commit flag is false: %v\n", instance.configCommit.ConfigCommitFlag)
 		}

@@ -424,7 +424,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 				bodyJSON := fmt.Sprintf("%v", config.Body)
 				watcher.Updates <- string(bodyJSON)
 			} else {
-				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v", err)
+				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])
 			}
 
 		case err, ok := <-errors:

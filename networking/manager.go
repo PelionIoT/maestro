@@ -206,6 +206,10 @@ type ConfigCommit struct {
 	// so that the changes will be applied by maestro. Once maestro complete the
 	// changes the flag will be set to false by maestro.
 	ConfigCommitFlag bool `yaml:"config_commit" json:"config_commit" netgroup:"config_commit"`
+	//Datetime of last update
+	LastUpdateTimestamp	string `yaml:"config_commit" json:"last_commit_timestamp" netgroup:"config_commit"`
+	//Total number of updates from boot
+	TotalCommitCountFromBoot int `yaml:"config_commit" json:"total_commit_count_from_boot" netgroup:"config_commit"`
 }
 
 // initialized in init()
@@ -230,7 +234,7 @@ type networkManagerInstance struct {
 	waitForDeviceDB			  bool
 
 	//Configs to be used for connecting to devicedb
-	ddbConnConfig *maestroConfig.DeviceDBConnConfig
+	ddbConnConfig 			  *maestroConfig.DeviceDBConnConfig
 	configCommit		  	  ConfigCommit
 	
 	// DNS related
@@ -908,6 +912,8 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 			//Since we are booting set the Network config commit flag to false
 			log.MaestroWarnf("Setting Network config commit flag to false\n")
 			this.configCommit.ConfigCommitFlag = false
+			this.configCommit.LastUpdateTimestamp = ""
+			this.configCommit.TotalCommitCountFromBoot = 0
 			err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.configCommit)
 			if err != nil {
 				log.MaestroErrorf("Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
