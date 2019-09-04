@@ -795,6 +795,116 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 	storage.shutdown(manager)
 }
 
+func TestNetworkConfigNameserversUpdateInDDB(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+
+	// fresh start - no database
+	os.Remove(TEST_DB_NAME)
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	// assumes TestNetworkManagerSetupExisting was ran previously
+	storage := new(testStorageManager)
+	storage.start()
+
+	//Delete any object that many be in devicedb for testing
+	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
+	configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Delete()
+	if(err != nil) {
+		log.Fatalf("Failed to delete config object from devicedb err: %v.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nDeleted network config in devicedb\n")
+	}
+
+	//Wait for sometime for delete to commit
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		log.Fatalf("Unable to delete object from devicedb\n",)
+		t.FailNow()
+	}
+	
+	config := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: false,
+		Nameservers: []string{"nameserver1.com", "nameserver2.com", "nameserver3.com"},
+	}
+
+	err = testInitNetworkManager(config, storage)
+	if err != nil {
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
+		t.FailNow()
+	}
+	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
+	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
+
+	timeout := 60 * 60 * 12
+	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
+	manager.waitForActiveInterfaceThreads(timeout)
+
+	manager.enableThreadCount() // enable block on thread count
+	manager.SetupExistingInterfaces()
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 3)
+
+	//Now change something in devicedb
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		fmt.Printf("Current DnsIgnoreDhcp value in network manager: %v\n", ddbNetworkConfig.DnsIgnoreDhcp)
+		ddbNetworkConfig.DnsIgnoreDhcp = true
+		ddbNetworkConfig.Nameservers = []string{"dns1.com", "dns2.com", "dns3.com"}
+	} else {
+		log.Fatalf("Unable to read Network config object from devicedb\n")
+		t.FailNow()
+	}
+
+	//Now write out the updated config
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(&ddbNetworkConfig)
+	if(err == nil) {
+		fmt.Printf("devicedb update succeeded.\n")
+	} else {
+		log.Fatalf("Unable to update Network config object to devicedb\n")
+		t.FailNow()
+	}
+
+	//Wait for updates to propagate and processed by maestro
+	time.Sleep(time.Second * 2)
+
+	fmt.Printf("Validate Nameservers value in network manager\n")
+	if((manager.networkConfig.Nameservers[0] != "dns1.com") || (manager.networkConfig.Nameservers[1] != "dns2.com") || (manager.networkConfig.Nameservers[2] != "dns3.com" )) {
+		log.Fatalf("Test failed, values are different for Nameservers :%v\n",manager.networkConfig.Nameservers)
+		t.FailNow()
+	} else {
+		fmt.Printf("Nameservers value in network manager: %v\n", manager.networkConfig.Nameservers)
+	}
+
+	storage.shutdown(manager)
+}
+
 func TestConfigCommitUpdateInDDB(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
