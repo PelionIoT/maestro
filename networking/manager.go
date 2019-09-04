@@ -235,6 +235,8 @@ type networkManagerInstance struct {
 
 	//Configs to be used for connecting to devicedb
 	ddbConnConfig 			  *maestroConfig.DeviceDBConnConfig
+	ddbConfigMonitor		  *maestroConfig.DDBMonitor
+	ddbConfigClient 		  *maestroConfig.DDBRelayConfigClient
 	configCommit		  	  ConfigCommit
 	
 	// DNS related
@@ -884,11 +886,11 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 			return err_updated
 		} else {
 			log.MaestroWarnf("Create new devicedb relay client\n")
-			configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
-			err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+			this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
+			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
 			if(err != nil) {
 				log.MaestroWarnf("No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
-				err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
+				err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
 				if err != nil {
 					log.MaestroErrorf("Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
 					err_updated := errors.New(fmt.Sprintf("\nUnable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err))
@@ -914,7 +916,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 			this.configCommit.ConfigCommitFlag = false
 			this.configCommit.LastUpdateTimestamp = ""
 			this.configCommit.TotalCommitCountFromBoot = 0
-			err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.configCommit)
+			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.configCommit)
 			if err != nil {
 				log.MaestroErrorf("Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
 				err_updated := errors.New(fmt.Sprintf("\nUnable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
@@ -922,7 +924,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 			}
 
 			//Now start a monitor for the network config in devicedb
-			err, ddbConfigMon := maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
+			err, this.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
 			if(err != nil) {
 				log.MaestroErrorf("Unable to create config monitor: %v\n", err)
 			} else {
@@ -951,23 +953,16 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 				origNetworkConfig = *this.networkConfig
 
 				log.MaestroWarnf("Adding monitor config\n")
-				ddbConfigMon.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
-			}
+				this.ddbConfigMonitor.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
 
-			//Now start a monitor for the network config commit flag in devicedb
-			err, ddbConfigCommitMon := maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
-			if(err != nil) {
-				log.MaestroErrorf("Unable to create config commit flag monitor: %v\n", err)
-			} else {
 				//Add config change hook for all property groups, we can use the same interface
 				var commitConfigChangeHook CommitConfigChangeHook
-
 				configAna.AddHook("config_commit", commitConfigChangeHook)
 								
 				//Add monitor for this object
 				var updatedConfigCommit ConfigCommit
 				log.MaestroWarnf("Adding monitor for config commit object\n")
-				ddbConfigCommitMon.AddMonitorConfig(&this.configCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
+				this.ddbConfigMonitor.AddMonitorConfig(&this.configCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
 			}
 		}
 	} else {

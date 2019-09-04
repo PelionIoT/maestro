@@ -276,16 +276,16 @@ func (inst *networkManagerInstance) ProcessNameserverConfigChange(fieldchanged s
 	log.MaestroInfof("\nProcessNameserverConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	switch(fieldchanged) {
 	case "NameserverOverrides":
-		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
+		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].NameserverOverrides, reflect.ValueOf(futvalue))
 		inst.networkConfig.Interfaces[index].NameserverOverrides = reflect.ValueOf(futvalue).String();
 	case "AltResolvConf":
 		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
 		inst.networkConfig.AltResolvConf = reflect.ValueOf(futvalue).String();
 	case "Nameservers":
-		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
+		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Nameservers, reflect.ValueOf(futvalue))
 		inst.networkConfig.Nameservers = reflect.ValueOf(futvalue).Interface().([]string);
 	case "FallbackNameservers":
-		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
+		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.FallbackNameservers, reflect.ValueOf(futvalue))
 		inst.networkConfig.FallbackNameservers = reflect.ValueOf(futvalue).String();
 	default:
 		log.MaestroWarnf("ProcessNameserverConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
@@ -365,6 +365,13 @@ func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
 			instance.configCommit.ConfigCommitFlag = false
 			instance.configCommit.LastUpdateTimestamp = time.Now().Format(time.RFC850)
 			instance.configCommit.TotalCommitCountFromBoot = instance.configCommit.TotalCommitCountFromBoot + 1
+			//Now write out the updated commit config
+			err := instance.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&instance.configCommit)
+			if(err == nil) {
+				log.MaestroInfof("Updating commit config object to devicedb succeeded.\n")
+			} else {
+				log.MaestroErrorf("Unable to update commit config object to devicedb\n")
+			}
 		} else {
 			log.MaestroWarnf("ConfigApplyHandler::Commit flag is false: %v\n", instance.configCommit.ConfigCommitFlag)
 		}
