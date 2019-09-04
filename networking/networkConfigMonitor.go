@@ -235,28 +235,61 @@ func (inst *networkManagerInstance) Process8021xConfigChange(fieldchanged string
 //Function to process Route config change
 func (inst *networkManagerInstance) ProcessRouteConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessRouteConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-}
-
-//Function to process Http config change
-func (inst *networkManagerInstance) ProcessHttpConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	log.MaestroInfof("ProcessHttpConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-}
-
-//Function to process Nameserver config change
-func (inst *networkManagerInstance) ProcessNameserverConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	log.MaestroInfof("\nProcessNameserverConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	switch(fieldchanged) {
-	case "AltResolvConf":
-		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
-		inst.networkConfig.AltResolvConf = reflect.ValueOf(futvalue).String();
+	case "RoutePriority":
+		inst.networkConfig.Interfaces[index].RoutePriority = int(reflect.ValueOf(futvalue).Int());
+	case "Routes":
+		inst.networkConfig.Interfaces[index].Routes = reflect.ValueOf(futvalue).Interface().([]string);
+	case "DontOverrideDefaultRoute":
+		inst.networkConfig.DontOverrideDefaultRoute = reflect.ValueOf(futvalue).Bool();
 	default:
-		log.MaestroWarnf("ProcessNameserverConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+		log.MaestroWarnf("\nProcessRouteConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	}
 }
 
 //Function to process Gateway config change
 func (inst *networkManagerInstance) ProcessGatewayConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessGatewayConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	switch(fieldchanged) {
+	case "DefaultGateway":
+		inst.networkConfig.Interfaces[index].DefaultGateway = reflect.ValueOf(futvalue).String();
+	case "FallbackDefaultGateway":
+		inst.networkConfig.Interfaces[index].FallbackDefaultGateway = reflect.ValueOf(futvalue).String();
+	default:
+		log.MaestroWarnf("\nProcessGatewayConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
+}
+
+//Function to process Http config change
+func (inst *networkManagerInstance) ProcessHttpConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("ProcessHttpConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	switch(fieldchanged) {
+	case "TestHttpsRouteOut":
+		inst.networkConfig.Interfaces[index].TestHttpsRouteOut = reflect.ValueOf(futvalue).String();
+	default:
+		log.MaestroWarnf("\nProcessHttpConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
+}
+
+//Function to process Nameserver config change
+func (inst *networkManagerInstance) ProcessNameserverConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("\nProcessNameserverConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	switch(fieldchanged) {
+	case "NameserverOverrides":
+		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].NameserverOverrides = reflect.ValueOf(futvalue).String();
+	case "AltResolvConf":
+		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
+		inst.networkConfig.AltResolvConf = reflect.ValueOf(futvalue).String();
+	case "Nameservers":
+		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
+		inst.networkConfig.Nameservers = reflect.ValueOf(futvalue).Interface().([]string);
+	case "FallbackNameservers":
+		log.MaestroInfof("ProcessNameserverConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.AltResolvConf, reflect.ValueOf(futvalue))
+		inst.networkConfig.FallbackNameservers = reflect.ValueOf(futvalue).String();
+	default:
+		log.MaestroWarnf("ProcessNameserverConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process Dns config change
@@ -292,15 +325,23 @@ func (inst *networkManagerInstance) ProcessDnsConfigChange(fieldchanged string, 
 //Function to process config_netif config change
 func (inst *networkManagerInstance) ProcessConfNetIfConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessConfNetIfConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-	for idx:=0; idx < len(inst.networkConfig.Interfaces); idx++ {
-		inst.networkConfig.Interfaces[idx].Existing = reflect.ValueOf(futvalue).String();
+	switch(fieldchanged) {
+	case "Existing":
+		inst.networkConfig.Interfaces[index].Existing = reflect.ValueOf(futvalue).String();
+	default:
+		log.MaestroWarnf("\nProcessConfNetIfConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	}
 }
 
 //Function to process config_network config change
 func (inst *networkManagerInstance) ProcessConfNetworkConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessConfNetworkConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-	inst.networkConfig.Existing = reflect.ValueOf(futvalue).String();
+	switch(fieldchanged) {
+	case "Existing":
+		inst.networkConfig.Existing = reflect.ValueOf(futvalue).String();
+	default:
+		log.MaestroWarnf("\nProcessConfNetworkConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}	
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
