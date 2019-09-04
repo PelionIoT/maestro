@@ -53,15 +53,15 @@
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/maestroSpecs",
-			"Rev": "3be6edc4c3f86493c3a5e50c66b00f8004aac075"
+			"Rev": "f7044471ed9ebab46e90f7c59112ef3630543d9f"
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/maestroSpecs/netevents",
-			"Rev": "3be6edc4c3f86493c3a5e50c66b00f8004aac075"
+			"Rev": "f7044471ed9ebab46e90f7c59112ef3630543d9f"
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/maestroSpecs/templates",
-			"Rev": "3be6edc4c3f86493c3a5e50c66b00f8004aac075"
+			"Rev": "f7044471ed9ebab46e90f7c59112ef3630543d9f"
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/mustache",
