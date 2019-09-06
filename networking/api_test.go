@@ -572,6 +572,7 @@ func TestRestartWithConfigOverride2(t *testing.T) {
 
 }
 
+//Test to make sure we create a NetworkConfig config object in devicedb during bootup if no config object currently exists.
 func TestNetworkConfigInDDB(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
@@ -674,6 +675,8 @@ func TestNetworkConfigInDDB(t *testing.T) {
 	storage.shutdown(manager)
 }
 
+//Test to make sure updates to NetworkConfig config object are captured by maestro(through devicedb) and is reflected in internal data structs
+//This test modifies the Network Config object in devicedb and expects Maestro to get the updates and adjust the data structs accordingly.
 func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
@@ -795,6 +798,8 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 	storage.shutdown(manager)
 }
 
+//Test to make sure updates to Nameservers in NetworkConfig config object are captured by maestro(through devicedb) and is reflected in internal data structs
+//This test modifies the Network Config object in devicedb and expects Maestro to get the updates and adjust the data structs accordingly.
 func TestNetworkConfigNameserversUpdateInDDB(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
@@ -905,6 +910,8 @@ func TestNetworkConfigNameserversUpdateInDDB(t *testing.T) {
 	storage.shutdown(manager)
 }
 
+//Test to make sure updates to ConfigCommit object in devicedb are captured by maestro(through devicedb) and is reflected in internal data structs.
+//This test modifies the ConfigCommit object in devicedb and expects Maestro to get the updates and make actions accordingly.
 func TestConfigCommitUpdateInDDB(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
@@ -1026,6 +1033,9 @@ func TestConfigCommitUpdateInDDB(t *testing.T) {
 	storage.shutdown(manager)
 }
 
+//Test to make sure multiple updates using multiple Interfacces in Network Config object in devicedb are captured by maestro(through devicedb) 
+//and is reflected in internal data structs.
+//This test modifies the ConfigCommit object in devicedb and expects Maestro to get the updates and make actions accordingly.
 func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
 	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored

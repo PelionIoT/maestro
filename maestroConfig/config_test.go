@@ -150,6 +150,8 @@ func (cfgHook ConfigChangeHook) ChangesComplete(configgroup string) (acceptallch
 	return false;
 }
 
+//The following tests are for testing DeviceDB Client handling and calling the hooks for different type
+//of operations on different kind of objects.
 var myConfigUpdateFromHook MyConfig;
 var myDiffConfigUpdateFromHook MyDiffConfig;
 var myConfigMultipleGroup MyConfigMultipleGroup

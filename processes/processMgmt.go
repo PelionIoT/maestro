@@ -1858,6 +1858,7 @@ func GetJobStatus() (data JobStatusData, err error) {
 	return
 }
 
+//Returns true, pid if the job specified by jobname is active
 func IsJobActive(jobname string) (status bool, pid int) {
 	var data *_jobStatusData 
 	data = &_jobStatusData{

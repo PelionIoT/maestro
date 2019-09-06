@@ -796,6 +796,8 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 	return
 }
 
+//This function calls the setupInterfaces with the current config and then start connection with devicedb by calling initDeviceDBConfig
+//Note that call to initDeviceDBConfig is done as a go routine.
 func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.networkConfig, this.networkConfig.Interfaces)
 	//Setup the intfs using initial boot config first
@@ -807,9 +809,13 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 	return
 }
 
+//Constants used in the logic for connecting to devicedb
 const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = 300 //5 mins
 const DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5 //5 secs
 const DEVICEDB_JOB_NAME string = "devicedb"
+
+//This function is called during bootup. It waits for devicedb to be up and running to connect to it, once connected it calls
+//SetupDeviceDBConfig
 func (this *networkManagerInstance) initDeviceDBConfig() {
 	var waitTime int = 0
 	var err error
@@ -848,6 +854,8 @@ func (this *networkManagerInstance) initDeviceDBConfig() {
 	}
 }
 
+//SetupDeviceDBConfig reads the config from devicedb and if its new it applies the new config.
+//It also sets up the config update handlers for all the tags/groups.
 func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 	//TLS config to connect to devicedb
 	var tlsConfig *tls.Config

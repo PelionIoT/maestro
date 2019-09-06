@@ -30,29 +30,30 @@ type DDBMonitor struct {
 }
 
 //This function is called during maestro initilization to connect to deviceDB
+//ddbConnConfig should contain a valid connection config
 func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonitor *DDBMonitor) {
 	var tlsConfig *tls.Config
 		
 	if ddbConnConfig.RelayId == "" {
 		fmt.Fprintf(os.Stderr, "No relay_id provided\n")
-		err = &ConfigError{5001, "No relay_id provided\n"}
+		err = errors.New("No relay_id provided\n")
 	}
 
 	if ddbConnConfig.CaChainCert == "" {
 		fmt.Fprintf(os.Stderr, "No ca_chain provided\n")
-		err = &ConfigError{5002, "No ca_chain provided\n"}
+		err = errors.New("No ca_chain provided\n")
 	}
 
 	relayCaChain, err := ioutil.ReadFile(ddbConnConfig.CaChainCert)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err)
-		err = &ConfigError{5003, fmt.Sprintf("Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err)}
+		err = errors.New(fmt.Sprintf("Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err))
 	}
 
 	caCerts := x509.NewCertPool()
 	if !caCerts.AppendCertsFromPEM(relayCaChain) {
 		fmt.Fprintf(os.Stderr, "CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err)
-		err = &ConfigError{5004, fmt.Sprintf("CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err)}
+		err = errors.New(fmt.Sprintf("CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err))
 	}
 
 	tlsConfig = &tls.Config{
@@ -73,17 +74,22 @@ func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonito
 	return
 }
 
+//This function is used to add a configuration monitor for the "config" object with name "configName".
+//configAnalyzer object is used for comparing new and old config objects which is used by the monitor
+//when it detects a config object change
 func (ddbMonitor *DDBMonitor) AddMonitorConfig(config interface{}, updatedConfig interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer) (err error) {
 	go configMonitor(config, updatedConfig, configName, configAnalyzer, ddbMonitor.DDBConfigClient)
 	return
 }
 
+//This function is used to delete a configuration monitor with name "configName".
 func (ddbMonitor *DDBMonitor) RemoveMonitorConfig(configName string) (err error) {
 	configWatcher := ddbMonitor.DDBConfigClient.Config(configName).Watch()
 	configWatcher.Stop()
 	return
 }
 
+//Go routine which monitors the config object changes, it then calls config analyzer which in turns calls the hook functions
 func configMonitor(config interface{}, updatedConfig interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer, configClient *DDBRelayConfigClient) {
 	configWatcher := configClient.Config(configName).Watch()
 	configWatcher.Run()
@@ -252,7 +258,7 @@ func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 	return err
 }
 
-//
+// Put function will write the passed config object(t) with the configName in ddbConfig object
 func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 	//Ensure t is not nil
 	if(t != nil) {
@@ -280,14 +286,13 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 			}
 		}
 	} else {
-		//err = errors.New("Put: Invalid argument")
-		err = &ConfigError{5006, "Put: Invalid argument"}
+		err = errors.New("Put: Invalid argument")
 		log.MaestroErrorf("DDBConfig.Put() Invalid argument. Error %v", err)
 	}
 	return err
 }
 
-//
+// Delete function will remove the config object with the configName in ddbConfig object
 func (ddbConfig *DDBConfig) Delete() (err error) {
 	var devicedbClientBatch *client.Batch
 	ctx, _ := context.WithCancel(context.Background())
@@ -398,7 +403,6 @@ func (watcher *DDBWatcher) handleWatcher() {
 		select {
 		case update, ok := <-updates:
 
-			//log.MaestroWarnf("DDBConfig.handleWatcher(): updates detected")
 			if !ok {
 				log.MaestroErrorf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher")
 				break
@@ -413,7 +417,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 			var configLen int 	
 			configLen = len(sortableConfigs)
 			if configLen == 0 {
-				log.MaestroWarnf("DDBConfig.handleWatcher(): configLen == 0")
+				log.MaestroInfof("DDBConfig.handleWatcher(): configLen == 0")
 				watcher.Updates <- ""
 				continue
 			}

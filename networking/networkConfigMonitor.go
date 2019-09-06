@@ -30,16 +30,19 @@ type NetworkConfigChangeHook struct{
 
 type ConfigChangeInfo struct{
 	//struct capturing the job args to be carried out when a config change happens
-	configgroup string
-	fieldchanged string
-	canonicalfieldname string
-	futvalue interface{}
-	curvalue interface{}
-	index int
+	configgroup string	//Config group
+	fieldchanged string	//Name of the field which is changed
+	canonicalfieldname string //Canonocal Name(which includes the parent struct name) of the field which is changed
+	futvalue interface{} //This corresponds to the new value of the changed field
+	curvalue interface{} //This corresponds to the old/current value of the changed field
+	index int //Index of the element if the changed field is an array, otherwise this fied
 }
 
 var configChangeRequestChan chan ConfigChangeInfo = nil
 
+//This is the go routine which waits on configChangeRequestChan and when it
+//receives a message which is ConfigChangeInfo object, it calls corresponding
+//process functions(see below) based on config group.
 func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
 	
 	instance = GetInstance();
@@ -353,6 +356,9 @@ type CommitConfigChangeHook struct{
 
 var configApplyRequestChan chan bool = nil
 
+//This is the go routine which waits on jobConfigApplyRequestChan and when it
+//receives an updated config it submits the config and sets up the interfaces based
+//on new configuration
 func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
 	instance = GetInstance();
 	for applyChange := range jobConfigApplyRequestChan {
