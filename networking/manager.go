@@ -810,21 +810,23 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 }
 
 //Constants used in the logic for connecting to devicedb
-const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = 300 //5 mins
-const DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5 //5 secs
+const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = (24 * 60 * 60) //24 hours
+const LOOP_WAIT_TIME_INCREMENT_WINDOW int = (6 * 60) //6 minutes which is the exponential retry backoff window
+const INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5 //5 secs
+const INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 120 //Exponential retry backoff interval
 const DEVICEDB_JOB_NAME string = "devicedb"
-
 //This function is called during bootup. It waits for devicedb to be up and running to connect to it, once connected it calls
 //SetupDeviceDBConfig
 func (this *networkManagerInstance) initDeviceDBConfig() {
-	var waitTime int = 0
+	var totalWaitTime int = 0
+	var loopWaitTime int = INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 	var err error
 	var pid int = -1
 	var devicedbrunning bool = false
 
 	if(this.waitForDeviceDB) {
 		log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb process/job\n")
-		for waitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+		for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
 			//First wait for devicedb to start
 			devicedbrunning, pid = processes.IsJobActive(DEVICEDB_JOB_NAME)
 			log.MaestroWarnf("initDeviceDBConfig: devicedbrunning: %v, pid: %d\n", devicedbrunning, pid)
@@ -833,12 +835,17 @@ func (this *networkManagerInstance) initDeviceDBConfig() {
 				time.Sleep(time.Second * 15)
 				break
 			} else {
-				time.Sleep(time.Second * time.Duration(DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS))
-				waitTime += DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
+				time.Sleep(time.Second * time.Duration(loopWaitTime))
+				totalWaitTime += loopWaitTime
+				//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
+				if(totalWaitTime > LOOP_WAIT_TIME_INCREMENT_WINDOW) {
+					loopWaitTime = INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
+				}
 			}
 		}
 
-		if(waitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS) {
+		//After 24 hours just assume its never going to come up stop waiting for it and break the loop
+		if(totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS) {
 			log.MaestroErrorf("initDeviceDBConfig: devicedb is not running, cannot fetch config from devicedb")
 		}
 	}
