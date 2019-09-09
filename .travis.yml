@@ -53,7 +53,6 @@ script:
   - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run ConfigCommitUpdateInDDB )
   - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigNameserversUpdateInDDB )
   - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigUpdateInDDBMultipleInterfaces )
-)
 
 matrix:
   include:
