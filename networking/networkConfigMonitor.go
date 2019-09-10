@@ -400,9 +400,19 @@ func (cfgHook CommitConfigChangeHook) ChangesStart(configgroup string) {
 func (cfgHook CommitConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
 	log.MaestroWarnf("CommitChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 	instance = GetInstance();
-	instance.CurrConfigCommit.ConfigCommitFlag = reflect.ValueOf(futvalue).Bool();
-	configApplyRequestChan <- true
-
+	switch(fieldchanged) {
+	case "ConfigCommitFlag":
+		instance.CurrConfigCommit.ConfigCommitFlag = reflect.ValueOf(futvalue).Bool();
+		if(instance.CurrConfigCommit.ConfigCommitFlag == true) {
+			//flag set to true, apply the new config
+			log.MaestroWarnf("\nCommitChangeHook:commit flag set, applying changes")
+			configApplyRequestChan <- true
+		}
+	case "LastUpdateTimestamp":
+	case "TotalCommitCountFromBoot":
+	default:
+		log.MaestroWarnf("\nCommitChangeHook:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}	
 	return false;//return false as we would apply only those we successfully processed
 }
 
