@@ -237,7 +237,7 @@ type networkManagerInstance struct {
 	ddbConnConfig 			  *maestroConfig.DeviceDBConnConfig
 	ddbConfigMonitor		  *maestroConfig.DDBMonitor
 	ddbConfigClient 		  *maestroConfig.DDBRelayConfigClient
-	configCommit		  	  ConfigCommit
+	CurrConfigCommit		  ConfigCommit
 	
 	// DNS related
 	writeDNS bool // if true, then DNS will be written out once interfaces are processed
@@ -928,10 +928,10 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 			}
 			//Since we are booting set the Network config commit flag to false
 			log.MaestroWarnf("Setting Network config commit flag to false\n")
-			this.configCommit.ConfigCommitFlag = false
-			this.configCommit.LastUpdateTimestamp = ""
-			this.configCommit.TotalCommitCountFromBoot = 0
-			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.configCommit)
+			this.CurrConfigCommit.ConfigCommitFlag = false
+			this.CurrConfigCommit.LastUpdateTimestamp = ""
+			this.CurrConfigCommit.TotalCommitCountFromBoot = 0
+			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
 			if err != nil {
 				log.MaestroErrorf("Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
 				err_updated := errors.New(fmt.Sprintf("\nUnable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
@@ -977,7 +977,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 				//Add monitor for this object
 				var updatedConfigCommit ConfigCommit
 				log.MaestroWarnf("Adding monitor for config commit object\n")
-				this.ddbConfigMonitor.AddMonitorConfig(&this.configCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
+				this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
 			}
 		}
 	} else {
