@@ -75,10 +75,11 @@ type YAMLMaestroConfig struct {
 	StaticFileGenerators []StaticFileOp                          `yaml:"static_file_generators"`
 	PlatformReaders      []PlatformReader                        `yaml:"platform_readers"`
 	Plugins              []Plugin                                `yaml:"plugins"`
-	ConfigEnd            bool                                    `yaml:"config_end"`
 	Network              *maestroSpecs.NetworkConfigPayload      `yaml:"network"`
 	Processes            *configs.ProcessesConfig                `yaml:"processes"`
 	DebugOpts            *DebugOptions                           `yaml:"debug_opts"`
+	DDBConnConfig        *DeviceDBConnConfig                     `yaml:"devicedb_conn_config"`
+	ConfigEnd            bool                                    `yaml:"config_end"`
 }
 
 type MdnsSetup struct {
@@ -93,6 +94,19 @@ type DebugOptions struct {
 	KeepPids bool `yaml:"keep_pids"`
 	// PidFileDara prints the current date/time next to the pid number in the file upod pid file creation
 	PidFileDates bool `yaml:"pid_file_dates"`
+}
+
+type DeviceDBConnConfig struct {
+	// The URI of the relay's local DeviceDB instance
+	DeviceDBUri string `yaml:"devicedb_uri"`
+	// The prefix where keys related to configuration are stored
+	DeviceDBPrefix string `yaml:"devicedb_prefix"`
+	// The devicedb bucket where configurations are stored
+	DeviceDBBucket string `yaml:"devicedb_bucket"`
+	// The ID of the relay whose configuration should be monitored
+	RelayId string `yaml:"relay_id"`
+	// The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	CaChainCert string `yaml:"ca_chain"`
 }
 
 type PlatformReader struct {

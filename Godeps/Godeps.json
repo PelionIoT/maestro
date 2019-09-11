@@ -53,15 +53,15 @@
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/maestroSpecs",
-			"Rev": "f2224ba2abbccddc4c66e9da9bf7edeba3766bc2"
+			"Rev": "f7044471ed9ebab46e90f7c59112ef3630543d9f"
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/maestroSpecs/netevents",
-			"Rev": "f2224ba2abbccddc4c66e9da9bf7edeba3766bc2"
+			"Rev": "f7044471ed9ebab46e90f7c59112ef3630543d9f"
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/maestroSpecs/templates",
-			"Rev": "f2224ba2abbccddc4c66e9da9bf7edeba3766bc2"
+			"Rev": "f7044471ed9ebab46e90f7c59112ef3630543d9f"
 		},
 		{
 			"ImportPath": "github.com/armPelionEdge/mustache",
@@ -88,6 +88,10 @@
 		{
 			"ImportPath": "github.com/armPelionEdge/zeroconf",
 			"Rev": "78d055b6305c685b497944a859f0a7d14483269f"
+		},
+		{
+			"ImportPath": "github.com/armPelionEdge/devicedb",
+			"Rev": "bb5337257135b552f01f87ac998d7b277f18daf4"
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",

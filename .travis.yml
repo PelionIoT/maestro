@@ -7,6 +7,12 @@ env:
     - upstream="armPelionEdge/maestro"
     - GOBIN="./bin"
 
+addons:
+  hosts:
+    - WWRL000000
+
+services:
+    - docker
 
 # GoLang has an odd dependency management scheme.  Imports are hard-linked to
 # their parent repos.  Forked repos therefore must either modify _all_ of their
@@ -29,11 +35,24 @@ script:
   # Build maestro
   - ./build.sh
 
+  # Run devicedb in docker
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      docker run --rm -d -p 127.0.0.1:9090:9090/tcp senramakri/test_images:devicedb_nocluster
+      sleep 10
+    fi
+
   # Run unit tests
   - cd "../../${upstream}"
   - DEBUG=1 DEBUG2=1 ./build.sh
   - ( cd sysstats && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v )
   - ( cd maestroConfig && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v )
+  - ( cd vendor/github.com/armPelionEdge/maestroSpecs && go test -v )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigSimpleUpdateInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run ConfigCommitUpdateInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigNameserversUpdateInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigUpdateInDDBMultipleInterfaces )
 
 matrix:
   include:

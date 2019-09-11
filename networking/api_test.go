@@ -24,12 +24,16 @@ import (
 	"net"
 	"os"
 	"time"
-
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
+	
 	"github.com/armPelionEdge/dhcp4"
 	"github.com/armPelionEdge/dhcp4client"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/tasks"
+	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/netlink"
 	"github.com/boltdb/bolt"
@@ -402,7 +406,7 @@ func TestNetworkManagerNewDbDhcp(t *testing.T) {
 
 	fmt.Printf("Now we will try SetupExistingInterface(nil) ...\n")
 
-	manager.SetupExistingInterfaces(nil)
+	manager.SetupExistingInterfaces()
 
 	storage.shutdown(manager)
 
@@ -418,7 +422,7 @@ func TestRestartNetworkManagerDhcp(t *testing.T) {
 
 	fmt.Printf("Now we will try SetupExistingInterface(nil) ...\n")
 
-	manager.SetupExistingInterfaces(nil)
+	manager.SetupExistingInterfaces()
 
 	timeout := 60 * 60 * 12
 	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
@@ -491,7 +495,7 @@ func TestRestartWithConfigOverride(t *testing.T) {
 	fmt.Printf("Now we will try SetupExistingInterface() ...\n")
 
 	manager.enableThreadCount() // enable block on thread count
-	manager.SetupExistingInterfaces(nil)
+	manager.SetupExistingInterfaces()
 
 	storage.shutdown(manager)
 
@@ -562,8 +566,682 @@ func TestRestartWithConfigOverride2(t *testing.T) {
 	fmt.Printf("Now we will try SetupExistingInterface() ...\n")
 
 	manager.enableThreadCount() // enable block on thread count
-	manager.SetupExistingInterfaces(nil)
+	manager.SetupExistingInterfaces()
 
 	storage.shutdown(manager)
 
+}
+
+//Test to make sure we create a NetworkConfig config object in devicedb during bootup if no config object currently exists.
+func TestNetworkConfigInDDB(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+
+	// fresh start - no database
+	os.Remove(TEST_DB_NAME)
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	// assumes TestNetworkManagerSetupExisting was ran previously
+	storage := new(testStorageManager)
+	storage.start()
+	// manager := getNetworkManagerInstance(storage)
+
+	//Delete any object that many be in devicedb for testing
+	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
+	configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Delete()
+	if(err != nil) {
+		log.Fatalf("Failed to delete config object from devicedb err: %v.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nDeleted network config in devicedb\n")
+	}
+
+	//Wait for sometime for delete to commit
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		log.Fatalf("Unable to delete object from devicedb\n",)
+		t.FailNow()
+	}
+
+	config := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: false,
+	}
+
+	ifconfig := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth2",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "192.168.78.31",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+
+	config.Interfaces = append(config.Interfaces, ifconfig)
+	
+	err = testInitNetworkManager(config, storage)
+	if err != nil {
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
+		t.FailNow()
+	}
+	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
+	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
+
+	timeout := 60 * 60 * 12
+	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
+	manager.waitForActiveInterfaceThreads(timeout)
+
+	fmt.Printf("Now we will try SetupExistingInterface() ...\n")
+
+	manager.enableThreadCount() // enable block on thread count
+	manager.SetupExistingInterfaces()
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err != nil) {
+		log.Fatalf("No network config found in devicedb or unable to connect to devicedb err: %v. Let's try to put the current config we have from config file.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nFound a network config in devicedb: %v:%v\n", ddbNetworkConfig, *ddbNetworkConfig.Interfaces[0])
+	}
+
+	storage.shutdown(manager)
+}
+
+//Test to make sure updates to NetworkConfig config object are captured by maestro(through devicedb) and is reflected in internal data structs
+//This test modifies the Network Config object in devicedb and expects Maestro to get the updates and adjust the data structs accordingly.
+func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+
+	// fresh start - no database
+	os.Remove(TEST_DB_NAME)
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	// assumes TestNetworkManagerSetupExisting was ran previously
+	storage := new(testStorageManager)
+	storage.start()
+
+	//Delete any object that many be in devicedb for testing
+	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
+	configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Delete()
+	if(err != nil) {
+		log.Fatalf("Failed to delete config object from devicedb err: %v.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nDeleted network config in devicedb\n")
+	}
+
+	//Wait for sometime for delete to commit
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		log.Fatalf("Unable to delete object from devicedb\n",)
+		t.FailNow()
+	}
+	
+	config := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: false,
+	}
+
+	ifconfig := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth2",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "192.168.78.31",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+
+	config.Interfaces = append(config.Interfaces, ifconfig)
+
+	err = testInitNetworkManager(config, storage)
+	if err != nil {
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
+		t.FailNow()
+	}
+	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
+	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
+
+	timeout := 60 * 60 * 12
+	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
+	manager.waitForActiveInterfaceThreads(timeout)
+
+	manager.enableThreadCount() // enable block on thread count
+	manager.SetupExistingInterfaces()
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 3)
+
+	//Now change something in devicedb
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		fmt.Printf("Current DnsIgnoreDhcp value in network manager: %v\n", ddbNetworkConfig.DnsIgnoreDhcp)
+		ddbNetworkConfig.DnsIgnoreDhcp = true;
+	} else {
+		log.Fatalf("Unable to read Network config object from devicedb\n")
+		t.FailNow()
+	}
+
+	//Now write out the updated config
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(&ddbNetworkConfig)
+	if(err == nil) {
+		fmt.Printf("devicedb update succeeded.\n")
+	} else {
+		log.Fatalf("Unable to update Network config object to devicedb\n")
+		t.FailNow()
+	}
+
+	//Wait for updates to propagate and processed by maestro
+	time.Sleep(time.Second * 2)
+
+	fmt.Printf("Validate DnsIgnoreDhcp value in network manager\n")
+	if(manager.networkConfig.DnsIgnoreDhcp != true) {
+		log.Fatalf("Test failed, values are different for DnsIgnoreDhcp expected:true actual:%v\n",manager.networkConfig.DnsIgnoreDhcp)
+		t.FailNow()
+	} else {
+		fmt.Printf("DnsIgnoreDhcp value in network manager: %v\n", manager.networkConfig.DnsIgnoreDhcp)
+	}
+
+	storage.shutdown(manager)
+}
+
+//Test to make sure updates to Nameservers in NetworkConfig config object are captured by maestro(through devicedb) and is reflected in internal data structs
+//This test modifies the Network Config object in devicedb and expects Maestro to get the updates and adjust the data structs accordingly.
+func TestNetworkConfigNameserversUpdateInDDB(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+
+	// fresh start - no database
+	os.Remove(TEST_DB_NAME)
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	// assumes TestNetworkManagerSetupExisting was ran previously
+	storage := new(testStorageManager)
+	storage.start()
+
+	//Delete any object that many be in devicedb for testing
+	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
+	configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Delete()
+	if(err != nil) {
+		log.Fatalf("Failed to delete config object from devicedb err: %v.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nDeleted network config in devicedb\n")
+	}
+
+	//Wait for sometime for delete to commit
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		log.Fatalf("Unable to delete object from devicedb\n",)
+		t.FailNow()
+	}
+	
+	config := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: false,
+		Nameservers: []string{"nameserver1.com", "nameserver2.com", "nameserver3.com"},
+	}
+
+	err = testInitNetworkManager(config, storage)
+	if err != nil {
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
+		t.FailNow()
+	}
+	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
+	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
+
+	timeout := 60 * 60 * 12
+	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
+	manager.waitForActiveInterfaceThreads(timeout)
+
+	manager.enableThreadCount() // enable block on thread count
+	manager.SetupExistingInterfaces()
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 3)
+
+	//Now change something in devicedb
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		fmt.Printf("Current DnsIgnoreDhcp value in network manager: %v\n", ddbNetworkConfig.DnsIgnoreDhcp)
+		ddbNetworkConfig.DnsIgnoreDhcp = true
+		ddbNetworkConfig.Nameservers = []string{"dns1.com", "dns2.com", "dns3.com"}
+	} else {
+		log.Fatalf("Unable to read Network config object from devicedb\n")
+		t.FailNow()
+	}
+
+	//Now write out the updated config
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(&ddbNetworkConfig)
+	if(err == nil) {
+		fmt.Printf("devicedb update succeeded.\n")
+	} else {
+		log.Fatalf("Unable to update Network config object to devicedb\n")
+		t.FailNow()
+	}
+
+	//Wait for updates to propagate and processed by maestro
+	time.Sleep(time.Second * 2)
+
+	fmt.Printf("Validate Nameservers value in network manager\n")
+	if((manager.networkConfig.Nameservers[0] != "dns1.com") || (manager.networkConfig.Nameservers[1] != "dns2.com") || (manager.networkConfig.Nameservers[2] != "dns3.com" )) {
+		log.Fatalf("Test failed, values are different for Nameservers :%v\n",manager.networkConfig.Nameservers)
+		t.FailNow()
+	} else {
+		fmt.Printf("Nameservers value in network manager: %v\n", manager.networkConfig.Nameservers)
+	}
+
+	storage.shutdown(manager)
+}
+
+//Test to make sure updates to ConfigCommit object in devicedb are captured by maestro(through devicedb) and is reflected in internal data structs.
+//This test modifies the ConfigCommit object in devicedb and expects Maestro to get the updates and make actions accordingly.
+func TestConfigCommitUpdateInDDB(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+
+	// fresh start - no database
+	os.Remove(TEST_DB_NAME)
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	// assumes TestNetworkManagerSetupExisting was ran previously
+	storage := new(testStorageManager)
+	storage.start()
+
+	//Delete any object that many be in devicedb for testing
+	var ddbCommitConfig ConfigCommit
+	configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Delete()
+	if(err != nil) {
+		log.Fatalf("Failed to delete commit config object from devicedb err: %v.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nDeleted commit config in devicedb\n")
+	}
+
+	//Wait for sometime for delete to commit
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Get(&ddbCommitConfig)
+	if(err == nil) {
+		log.Fatalf("Unable to delete commit object from devicedb\n",)
+		t.FailNow()
+	}
+	
+	config := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: false,
+	}
+
+	ifconfig := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth2",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "192.168.78.31",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+
+	config.Interfaces = append(config.Interfaces, ifconfig)
+
+	err = testInitNetworkManager(config, storage)
+	if err != nil {
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
+		t.FailNow()
+	}
+	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
+	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
+
+	timeout := 60 * 60 * 12
+	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
+	manager.waitForActiveInterfaceThreads(timeout)
+
+	manager.enableThreadCount() // enable block on thread count
+	manager.SetupExistingInterfaces()
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 3)
+
+	//Now change something in devicedb
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Get(&ddbCommitConfig)
+	if(err == nil) {
+		fmt.Printf("Current commit flag value in devicedb: %v\n", ddbCommitConfig.ConfigCommitFlag)
+		ddbCommitConfig.ConfigCommitFlag = true;
+	} else {
+		log.Fatalf("Unable to read Network config object from devicedb\n")
+		t.FailNow()
+	}
+
+	//Now write out the updated config
+	err = configClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&ddbCommitConfig)
+	if(err == nil) {
+		fmt.Printf("Devicedb update succeeded.\n")
+	} else {
+		log.Fatalf("Unable to update commit config object to devicedb\n")
+		t.FailNow()
+	}
+
+	//Wait for updates to propagate and processed by maestro
+	time.Sleep(time.Second * 2)
+
+	//mt.Printf("Validate commit config object, it should be false as the flag should revert to false after commtting the updates\n")
+	if((manager.CurrConfigCommit.ConfigCommitFlag != false) || (manager.CurrConfigCommit.TotalCommitCountFromBoot < 0) || (len(instance.CurrConfigCommit.LastUpdateTimestamp) <= 0)) {
+		log.Fatalf("Test failed, values are different:%v\n",manager.CurrConfigCommit)
+		t.FailNow()
+	} else {
+		fmt.Printf("ConfigCommitFlag value in network manager: %v\n", manager.CurrConfigCommit.ConfigCommitFlag)
+	}
+
+	storage.shutdown(manager)
+}
+
+//Test to make sure multiple updates using multiple Interfacces in Network Config object in devicedb are captured by maestro(through devicedb) 
+//and is reflected in internal data structs.
+//This test modifies the ConfigCommit object in devicedb and expects Maestro to get the updates and make actions accordingly.
+func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instan*client.e
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
+	var tlsConfig *tls.Config
+
+	// fresh start - no database
+	os.Remove(TEST_DB_NAME)
+	
+	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
+	if err != nil {
+		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		fmt.Printf("CA chain loaded from %s is not valid: %v\n", relayCaChainFile, err)
+		t.FailNow()
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	// assumes TestNetworkManagerSetupExisting was ran previously
+	storage := new(testStorageManager)
+	storage.start()
+	// manager := getNetworkManagerInstance(storage)
+
+	//Delete any object that many be in devicedb for testing
+	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
+	configClient := maestroConfig.NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Delete()
+	if(err != nil) {
+		log.Fatalf("Failed to delete config object from devicedb err: %v.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nDeleted network config in devicedb\n")
+	}
+
+	//Wait for sometime for delete to commit
+	time.Sleep(time.Second * 2)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err == nil) {
+		log.Fatalf("Unable to delete object from devicedb\n",)
+		t.FailNow()
+	}
+
+	config := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: false,
+	}
+
+	ifconfig := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth2",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "192.168.78.31",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+	ifconfig2 := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth3",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:03", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "192.168.78.32",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+
+	config.Interfaces = append(config.Interfaces, ifconfig)
+	config.Interfaces = append(config.Interfaces, ifconfig2)
+	
+	err = testInitNetworkManager(config, storage)
+	if err != nil {
+		log.Fatalf("Failed to setup test instance of network manager: %+v\n", err)
+		t.FailNow()
+	}
+	manager := testGetInstance(storage)
+	manager.waitForDeviceDB = false
+	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
+
+	timeout := 60 * 60 * 12
+	fmt.Printf("Waiting on threads (%d seconds)...\n", timeout)
+	manager.waitForActiveInterfaceThreads(timeout)
+
+	fmt.Printf("Now we will try SetupExistingInterface() ...\n")
+
+	manager.enableThreadCount() // enable block on thread count
+	manager.SetupExistingInterfaces()
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 3)
+
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if(err != nil) {
+		log.Fatalf("No network config found in devicedb or unable to connect to devicedb err: %v. Let's try to put the current config we have from config file.\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("Test: Found a network config in devicedb: %v:%v\n", ddbNetworkConfig, ddbNetworkConfig.Interfaces)
+	}
+
+	updatedConfig := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: true,
+	}
+
+	ifconfig3 := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "wifi1",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "178.168.78.41",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+	ifconfig4 := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "wifi2",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:03", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "178.168.78.42",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		Existing:       "override",
+	}
+	updatedConfig.Interfaces = append(updatedConfig.Interfaces, ifconfig3)
+	updatedConfig.Interfaces = append(updatedConfig.Interfaces, ifconfig4)
+	
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(&updatedConfig)
+	if(err != nil) {
+		log.Fatalf("Unable to put updated config: %v\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nUpdated the network config in devicedb: %v:%v:%v\n", updatedConfig, *updatedConfig.Interfaces[0], *updatedConfig.Interfaces[1])
+	}
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 2)
+
+	if(manager.networkConfig.Interfaces[0].IfName != "wifi1") {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:wifi1 actual:%v\n",manager.networkConfig.Interfaces[0].IfName)
+		t.FailNow()
+	}
+	if(manager.networkConfig.Interfaces[1].IfName != "wifi2") {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:wifi2 actual:%v\n",manager.networkConfig.Interfaces[1].IfName)
+		t.FailNow()
+	}
+
+	//Add another set of changes
+	updatedConfig2 := &maestroSpecs.NetworkConfigPayload{
+		DnsIgnoreDhcp: true,
+	}
+
+	ifconfig5 := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth5",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:02", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "178.10.8.1",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.10", "178.255.255.255", "178.10.255.255"}, {"178.10.11.10", "178.255.255.255", "178.10.255.255"}},
+		Existing:       "override",
+	}
+	ifconfig6 := &maestroSpecs.NetIfConfigPayload{
+		IfName:         "eth6",
+		ClearAddresses: true,
+		DhcpV4Enabled:  false,
+		HwAddr:         "f4:f9:51:00:01:03", // orig f4:f9:51:f2:2d:b3
+		IPv4Addr:       "178.10.8.2",
+		IPv4Mask:       24,
+		IPv4BCast:      "192.168.78.255",
+		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.11", "178.255.255.255", "178.255.255.255"}, {"178.10.11.11", "178.255.255.255", "178.10.255.255"}},
+		Existing:       "override",
+	}
+	updatedConfig2.Interfaces = append(updatedConfig2.Interfaces, ifconfig5)
+	updatedConfig2.Interfaces = append(updatedConfig2.Interfaces, ifconfig6)
+	
+	err = configClient.Config(DDB_NETWORK_CONFIG_NAME).Put(&updatedConfig2)
+	if(err != nil) {
+		log.Fatalf("Unable to put updated config: %v\n", err)
+		t.FailNow()
+	} else {
+		fmt.Printf("\nUpdated new network config in devicedb: %v:%v:%v\n", updatedConfig2, *updatedConfig2.Interfaces[0], *updatedConfig2.Interfaces[1])
+	}
+	
+	//Wait for sometime for everything to come up on Network manager
+	time.Sleep(time.Second * 2)
+
+	if(manager.networkConfig.Interfaces[0].IfName != "eth5") {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth5 actual:%v\n",manager.networkConfig.Interfaces[0].IfName)
+		t.FailNow()
+	}
+	if(manager.networkConfig.Interfaces[1].IfName != "eth6") {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth6 actual:%v\n",manager.networkConfig.Interfaces[1].IfName)
+		t.FailNow()
+	}
+
+	storage.shutdown(manager)
 }

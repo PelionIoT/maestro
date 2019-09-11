@@ -453,7 +453,7 @@ func main() {
 	/*********************************************/
 	/*             Network startup               */
 	/*********************************************/
-	neterr := networking.InitNetworkManager()
+	neterr := networking.InitNetworkManager(config.Network, config.DDBConnConfig)
 	if neterr != nil {
 		Log.MaestroErrorf("Error starting networking subsystem! %s\n", neterr.Error())
 		log.Errorf("Error starting networking subsystem! %s\n", neterr.Error())
@@ -465,7 +465,7 @@ func main() {
 		time.Sleep(time.Second * 2)
 		Log.MaestroInfo("Maestro startup: Bringing up existing network interfaces.")
 		log.Info("Maestro startup: Bringing up existing network interfaces.")
-		networking.GetInstance().SetupExistingInterfaces(config.Network)
+		networking.GetInstance().SetupExistingInterfaces()
 
 		/*********************************************/
 		/*               Set date-time               */

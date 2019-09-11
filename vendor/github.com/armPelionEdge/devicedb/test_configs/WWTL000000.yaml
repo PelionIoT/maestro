@@ -1,0 +1,16 @@
+db: /tmp/devicedb0
+port: 9090
+syncSessionLimit: 2
+syncSessionPeriod: 1000
+gcInterval: 300000
+gcPurgeAge: 600000
+merkleDepth: 19
+logLevel: debug
+peers:
+    - id: WWTL000001
+      host: 127.0.0.1
+      port: 9191
+tls:
+    certificate: ../test_certs/WWTL000002.cert.pem
+    key: ../test_certs/WWTL000002.key.pem
+    rootCA: ../test_certs/ca-chain-WWTL.cert.pem

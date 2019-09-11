@@ -1858,6 +1858,35 @@ func GetJobStatus() (data JobStatusData, err error) {
 	return
 }
 
+//Returns true, pid if the job specified by jobname is active
+func IsJobActive(jobname string) (status bool, pid int) {
+	var data *_jobStatusData 
+	data = &_jobStatusData{
+		jobsByName: jobsByName,
+	}
+
+	//Parse the jobStatusData to figure if the job is active
+	for job := range data.jobsByName.Iter() {
+		val := job.Value
+		key := job.Key
+		fmt.Printf("\n%v: %+v\n", key, val)
+		if val != nil {
+			j := (*processStatus)(val)
+			name, ok2 := key.(string)
+			fmt.Printf("\nname: %+v\n", name)
+			debugging.DEBUG_OUT("\nname: %+v\n", name)
+
+			if ok2 && name == jobname {
+				if(j.status == RUNNING) {
+					return true, j.pid
+				}
+			}
+		}
+	}
+
+	return false, -1
+}
+
 func ValidateJobs() error {
 	// validate that dependencies exist for all jobs which are registered
 	outGraph, err := resolveDependencyGraph(globalDepGraph, func(name string) bool {
