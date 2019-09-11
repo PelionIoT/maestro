@@ -1023,11 +1023,11 @@ func TestConfigCommitUpdateInDDB(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	//mt.Printf("Validate commit config object, it should be false as the flag should revert to false after commtting the updates\n")
-	if((manager.configCommit.ConfigCommitFlag != false) || (manager.configCommit.TotalCommitCountFromBoot < 0) || (len(instance.configCommit.LastUpdateTimestamp) <= 0)) {
-		log.Fatalf("Test failed, values are different:%v\n",manager.configCommit)
+	if((manager.CurrConfigCommit.ConfigCommitFlag != false) || (manager.CurrConfigCommit.TotalCommitCountFromBoot < 0) || (len(instance.CurrConfigCommit.LastUpdateTimestamp) <= 0)) {
+		log.Fatalf("Test failed, values are different:%v\n",manager.CurrConfigCommit)
 		t.FailNow()
 	} else {
-		fmt.Printf("ConfigCommitFlag value in network manager: %v\n", manager.configCommit.ConfigCommitFlag)
+		fmt.Printf("ConfigCommitFlag value in network manager: %v\n", manager.CurrConfigCommit.ConfigCommitFlag)
 	}
 
 	storage.shutdown(manager)
