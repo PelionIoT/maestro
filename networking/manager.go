@@ -900,7 +900,6 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 			err_updated := errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
 			return err_updated
 		} else {
-			log.MaestroWarnf("Create new devicedb relay client\n")
 			this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
 			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
 			if(err != nil) {
@@ -913,17 +912,17 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 				}
 			} else {
 				//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
-				log.MaestroWarnf("Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
+				log.MaestroInfof("Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
 				identical, _, _, err := configAna.DiffChanges(this.networkConfig, ddbNetworkConfig)
 				if(!identical && (err == nil)) {
 					//The configs are different, lets go ahead reconfigure the intfs
-					log.MaestroWarnf("New network config found from devicedb, reconfigure nework using new config\n")
+					log.MaestroInfof("New network config found from devicedb, reconfigure nework using new config\n")
 					this.networkConfig = &ddbNetworkConfig
 					this.submitConfig(this.networkConfig)
 					//Setup the intfs using new config
 					this.setupInterfaces();
 				} else {
-					log.MaestroWarnf("New network config found from devicedb, but its same as boot config, no need to re-configure\n")
+					log.MaestroInfof("New network config found from devicedb, but its same as boot config, no need to re-configure\n")
 				}
 			}
 			//Since we are booting set the Network config commit flag to false
@@ -967,7 +966,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 				//directly updating the running config(this.networkConfig).
 				origNetworkConfig = *this.networkConfig
 
-				log.MaestroWarnf("Adding monitor config\n")
+				//Adding monitor config
 				this.ddbConfigMonitor.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
 
 				//Add config change hook for all property groups, we can use the same interface
@@ -976,7 +975,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 								
 				//Add monitor for this object
 				var updatedConfigCommit ConfigCommit
-				log.MaestroWarnf("Adding monitor for config commit object\n")
+				log.MaestroInfof("Adding monitor for config commit object\n")
 				this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
 			}
 		}
