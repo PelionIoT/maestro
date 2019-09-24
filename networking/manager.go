@@ -534,8 +534,53 @@ func updateIfConfigFromStored(netdata *NetworkInterfaceData) (ok bool, err error
 	return
 }
 
+func (this *networkManagerInstance) resetLinks() {
+	log.MaestroDebugf("NetworkManager: resetLinks: reset all network links\n")
+	//This function brings all the intfs down and puts everything back in pristine state
+	for item := range this.byInterfaceName.Iter() {
+		if item.Value == nil {
+			debugging.DEBUG_OUT("NetworkManager: resetLinks: Invalid Entry in hashmap - have null value pointer\n")
+			continue
+		}
+		ifname := "<interface name>"
+		ifname, _ = item.Key.(string)
+		log.MaestroDebugf("NetworkManager: found existing key for if [%s]\n", ifname)
+		if item.Value != nil {
+			ifdata := (*NetworkInterfaceData)(item.Value)
+			//First kill the DHCP routine if its running
+			if(ifdata.dhcpRunning) {
+				log.MaestroDebugf("NetworkManager: resetLinks: Stopping DHCP routine for if %s\n", ifname)
+				ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: stop_and_release_IP}
+				// wait on that shutdown
+				<-ifdata.dhcpWaitOnShutdown
+				//Set the flag
+				ifdata.dhcpRunning = false
+			}
+			//ifdata := (*NetworkInterfaceData)(item.Value)
+			log.MaestroDebugf("NetworkManager: Remove the interface config/settings from hashmap for if [%s]\n", ifname)
+			//Clear/Remove the interface config/settings from hashmap
+			link, err := GetInterfaceLink(ifname, -1)
+			if err == nil && link != nil {
+				ifname = link.Attrs().Name
+				// ok - need to bring interface down to set Mac
+				log.MaestroDebugf("NetworkManager: resetLinks: bringing if %s down\n", ifname)
+				err2 := netlink.LinkSetDown(link)
+				if err2 != nil {
+					log.MaestroErrorf("NetworkManager: resetLinks: failed to bring if %s down - %s\n", ifname, err2.Error())
+				}
+				//Now we can remove the entry from hashmap
+				this.byInterfaceName.Del(item.Key)
+			}
+		}
+	}
+}
+
 func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkConfigPayload) {
 	this.networkConfig = config
+
+	//reset all current config if this function is called again
+	this.resetLinks()
+
 	// NOTE: this is only for the config file initial start
 	// NOTE: the database must already be loaded and read
 	// should only be called once. Is only called by InitNetworkManager()
@@ -552,6 +597,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 		var storedifconfig NetworkInterfaceData
 		err := this.networkConfigDB.Get(ifname, &storedifconfig)
 		if err != nil {
+			log.MaestroInfof("NetworkManager: submitConfig: Get failed: %v\n", err)
 			if err != stow.ErrNotFound {
 				log.MaestroErrorf("NetworkManager: problem with database on if %s - Get: %s\n", ifname, err.Error())
 			} else {
@@ -870,7 +916,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 	if(this.ddbConnConfig != nil) {
 		log.MaestroInfof("NetworkManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
 				this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket, this.ddbConnConfig.RelayId, this.ddbConnConfig.CaChainCert)
-		//Device DB config uses deviceid as the relay_id, so uset that toset the hostname
+		//Device DB config uses deviceid as the relay_id, so uset that to set the hostname
 		log.MaestroWarnf("NetworkManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
 		syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
 		var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
@@ -896,43 +942,46 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 		//Create a config analyzer object, required for registering the config change hook and diff the config objects.
 		configAna := maestroSpecs.NewConfigAnalyzer(DDB_NETWORK_CONFIG_CONFIG_GROUP_ID)
 		if configAna == nil {
-			log.MaestroErrorf("Failed to create config analyzer object, unable to fetch config from devicedb")
+			log.MaestroErrorf("NetworkManager: Failed to create config analyzer object, unable to fetch config from devicedb")
 			err_updated := errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
 			return err_updated
 		} else {
 			this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
 			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
 			if(err != nil) {
-				log.MaestroWarnf("No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
+				log.MaestroWarnf("NetworkManager: No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
 				err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
 				if err != nil {
-					log.MaestroErrorf("Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
+					log.MaestroErrorf("NetworkManager: Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
 					err_updated := errors.New(fmt.Sprintf("\nUnable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err))
 					return err_updated
 				}
 			} else {
 				//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
-				log.MaestroInfof("Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
+				log.MaestroInfof("NetworkManager: Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
 				identical, _, _, err := configAna.DiffChanges(this.networkConfig, ddbNetworkConfig)
 				if(!identical && (err == nil)) {
 					//The configs are different, lets go ahead reconfigure the intfs
-					log.MaestroInfof("New network config found from devicedb, reconfigure nework using new config\n")
+					log.MaestroDebugf("NetworkManager: New network config found from devicedb, reconfigure nework using new config\n")
 					this.networkConfig = &ddbNetworkConfig
 					this.submitConfig(this.networkConfig)
 					//Setup the intfs using new config
 					this.setupInterfaces();
+					//Set the hostname again as we reconfigured the network
+					log.MaestroWarnf("NetworkManager: Again setting hostname: %s\n", this.ddbConnConfig.RelayId)
+					syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
 				} else {
-					log.MaestroInfof("New network config found from devicedb, but its same as boot config, no need to re-configure\n")
+					log.MaestroInfof("NetworkManager: New network config found from devicedb, but its same as boot config, no need to re-configure\n")
 				}
 			}
 			//Since we are booting set the Network config commit flag to false
-			log.MaestroWarnf("Setting Network config commit flag to false\n")
+			log.MaestroWarnf("NetworkManager: Setting Network config commit flag to false\n")
 			this.CurrConfigCommit.ConfigCommitFlag = false
 			this.CurrConfigCommit.LastUpdateTimestamp = ""
 			this.CurrConfigCommit.TotalCommitCountFromBoot = 0
 			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
 			if err != nil {
-				log.MaestroErrorf("Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
+				log.MaestroErrorf("NetworkManager: Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
 				err_updated := errors.New(fmt.Sprintf("\nUnable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
 				return err_updated
 			}
@@ -940,7 +989,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 			//Now start a monitor for the network config in devicedb
 			err, this.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
 			if(err != nil) {
-				log.MaestroErrorf("Unable to create config monitor: %v\n", err)
+				log.MaestroErrorf("NetworkManager: Unable to create config monitor: %v\n", err)
 			} else {
 				//Add config change hook for all property groups, we can use the same interface
 				var networkConfigChangeHook NetworkConfigChangeHook
@@ -975,12 +1024,12 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
 								
 				//Add monitor for this object
 				var updatedConfigCommit ConfigCommit
-				log.MaestroInfof("Adding monitor for config commit object\n")
+				log.MaestroInfof("NetworkManager: Adding monitor for config commit object\n")
 				this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
 			}
 		}
 	} else {
-		log.MaestroErrorf("No devicedb connection config available, configuration will not be fetched from devicedb\n")
+		log.MaestroErrorf("NetworkManager: No devicedb connection config available, configuration will not be fetched from devicedb\n")
 	}
 	
 	return
@@ -1065,6 +1114,7 @@ func (this *networkManagerInstance) doDhcp(ifname string, op maestroSpecs.NetInt
 		ifdata.dhcpRunning = true
 		// the channel can hold one next command
 		ifdata.dhcpWorkerControl = make(chan networkThreadMessage, 1)
+		ifdata.dhcpWaitOnShutdown = make(chan networkThreadMessage, 1)
 	} else {
 		log.MaestroWarnf("NetworkManager: Can't start DHCP lease routine, as interface '%s' is no longer managed!\n", ifname)
 		this.decIfThreadCount()
@@ -1141,10 +1191,10 @@ DhcpLoop:
 
 				ok, ifpref, r := this.primaryTable.findPreferredRoute()
 				if ok {
-					log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
+					log.MaestroWarnf("NetworkManager:(DhcpLoop) preferred default route is on if %s - %+v\n", ifpref, r)
 					err = this.primaryTable.setPreferredRoute(!this.networkConfig.DontOverrideDefaultRoute)
 					if err == nil {
-						log.MaestroInfof("NetworkManager: set default route to %s %+v\n", ifpref, r)
+						log.MaestroWarnf("NetworkManager: set default route to %s %+v\n", ifpref, r)
 					} else {
 						log.MaestroErrorf("NetworkManager: error setting preferred route: %s\n", err.Error())
 					}
@@ -1358,7 +1408,7 @@ DhcpLoop:
 						// setup default route
 						routeset, gw, err := setupDefaultRouteInPrimaryTable(this, ifdata.RunningIfconfig, leaseinfo)
 						if routeset {
-							log.MaestroInfof("NetworkManager: default route from DHCP: %s - recorded in primary table\n", gw)
+							log.MaestroDebugf("NetworkManager: default route from DHCP: %s - recorded in primary table\n", gw)
 						}
 						if err != nil {
 							log.MaestroErrorf("NetworkManager: error setting adding default route to primaryTable via DHCP: %s\n", err.Error())
@@ -1563,11 +1613,12 @@ DhcpLoop:
 
 func (mgr *networkManagerInstance) finalizePrimaryRoutes() {
 	ok, ifpref, r := mgr.primaryTable.findPreferredRoute()
+	log.MaestroDebugf("NetworkManager: finalizePrimaryRoutes: if %s - %+v (ok=%v)\n", ifpref, r, ok)
 	if ok {
 		log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
 		err := mgr.primaryTable.setPreferredRoute(!mgr.networkConfig.DontOverrideDefaultRoute)
 		if err == nil {
-			log.MaestroInfof("NetworkManager: set default route to %s %+v\n", ifpref, r)
+			log.MaestroDebugf("NetworkManager: set default route to %s %+v\n", ifpref, r)
 		} else {
 			log.MaestroErrorf("NetworkManager: error setting preferred route: %s\n", err.Error())
 		}
@@ -1615,9 +1666,9 @@ Outer:
 							ifdata.interfaceChange = make(chan networkThreadMessage)
 							err := netlink.LinkSubscribe(ch, ifdata.stopInterfaceMonitor)
 							if err != nil {
-								nmLogErrorf("Error watching interface %s - details: %s\n", work.ifname, err.Error())
+								nmLogErrorf("watchInterfaces() - Error calling stopInterfaceMonitor(LinkSubscribe) %s - details: %s\n", work.ifname, err.Error())
 							} else {
-								nmLogSuccessf("watching interface %s\n", work.ifname)
+								nmLogSuccessf("watchInterfaces() - Succeeded subscribing interface monitors for %s\n", work.ifname)
 							}
 						} else {
 							nmLogWarnf("watchInterfaces() - interface link %s appear to already be watched", work.ifname)
@@ -1647,7 +1698,7 @@ Outer:
 				}
 			}
 		case update := <-ch:
-			nmLogDebugf("link state change for if <%s>: %+v\n", update.Attrs().Name, update)
+			nmLogDebugf("watchInterfaces() - link state change for if <%s>: %+v\n", update.Attrs().Name, update)
 			debugging.DEBUG_OUT("NetworkManager>>> saw link update: %+v\n", update)
 			ifname := update.Attrs().Name
 			ifdata := mgr.getInterfaceData(ifname)
@@ -1662,7 +1713,7 @@ Outer:
 					// was the interface previously down?
 					up, err := mgr.primaryTable.isIfUp(ifname)
 					if err != nil {
-						nmLogErrorf("internal route table does not have if %s - %s\n", ifname, err.Error())
+						nmLogErrorf("watchInterfaces() - internal route table does not have if %s - %s\n", ifname, err.Error())
 					}
 					if !up {
 						// ok this is a change. The interface was down, is now up
@@ -1671,7 +1722,7 @@ Outer:
 						// mark as up, and check for preferred default route
 						err := netlink.LinkSetUp(update.Link)
 						if err != nil {
-							nmLogErrorf("error brining up interface %s - details: %s\n", ifname, err.Error())
+							nmLogErrorf("watchInterfaces() - error brining up interface %s - details: %s\n", ifname, err.Error())
 						}
 						mgr.primaryTable.markIfAsUp(ifname)
 						mgr.finalizePrimaryRoutes()
@@ -1712,21 +1763,21 @@ Outer:
 							},
 						})
 					} else {
-						nmLogDebugf("ignoring link change for if %s. already marked as up.\n", ifname)
+						nmLogDebugf("watchInterfaces() - ignoring link change for if %s. already marked as up.\n", ifname)
 					}
 				} else {
 					// ok this is a change. The interface was up, is now down
 					if (update.IfInfomsg.Flags & unix.IFF_LOWER_UP) == 0 {
 						up, err := mgr.primaryTable.isIfUp(ifname)
 						if err != nil {
-							nmLogErrorf("internal route table does not have if %s - %s\n", ifname, err.Error())
+							nmLogErrorf("watchInterfaces() - internal route table does not have if %s - %s\n", ifname, err.Error())
 						}
 						if up {
-							nmLogWarnf("interface %s now DOWN - (LOWER_UP false)\n", ifname)
+							nmLogWarnf("watchInterfaces() - interface %s now DOWN - (LOWER_UP false)\n", ifname)
 							debugging.DEBUG_OUT("NetworkManager>>> Interface %s is now DOWN (LOWER_UP off)\n", ifname)
 							err := netlink.LinkSetDown(update.Link)
 							if err != nil {
-								nmLogErrorf("error bringing down interface %s - details: %s\n", ifname, err.Error())
+								nmLogErrorf("watchInterfaces() - error bringing down interface %s - details: %s\n", ifname, err.Error())
 							}
 							// mark as down, and check for new preferred default route
 							mgr.primaryTable.markIfAsDown(ifname)
@@ -1740,13 +1791,13 @@ Outer:
 							// apparently we don't get updates without this?
 							err = netlink.LinkSetUp(update.Link)
 							if err != nil {
-								nmLogErrorf("error bringing up interface (2) %s - details: %s\n", ifname, err.Error())
+								nmLogErrorf("watchInterfaces() - error bringing up interface (2) %s - details: %s\n", ifname, err.Error())
 							}
 							err = netlink.LinkSubscribe(ch, ifdata.stopInterfaceMonitor)
 							if err != nil {
-								nmLogErrorf("Error watching interface %s - details: %s\n", ifname, err.Error())
+								nmLogErrorf("watchInterfaces() - Error calling LinkSubscribe %s - details: %s\n", ifname, err.Error())
 							} else {
-								nmLogSuccessf("watching interface %s\n", ifname)
+								nmLogSuccessf("watchInterfaces() - Calling LinkSubscribe succeeded: %s\n", ifname)
 							}
 
 							if ifdata.interfaceChange != nil {
@@ -1756,10 +1807,10 @@ Outer:
 									ifname: ifname,
 								}:
 								default:
-									nmLogWarnf("if %s state_LOWER_UP event dropped\n", ifname)
+									nmLogWarnf("watchInterfaces() - if %s state_LOWER_UP event dropped\n", ifname)
 								}
 							} else {
-								nmLogErrorf("if %s - saw state change but interfaceChange chan is nil!\n", ifname)
+								nmLogErrorf("watchInterfaces() - if %s - saw state change but interfaceChange chan is nil!\n", ifname)
 							}
 							submitNetEventData(&netevents.NetEventData{
 								Type: netevents.InterfaceStateDown,
@@ -1770,7 +1821,7 @@ Outer:
 								},
 							})
 						} else {
-							nmLogDebugf("ignoring link change for if %s. already marked as down.\n", ifname)
+							nmLogDebugf("watchInterfaces() - ignoring link change for if %s. already marked as down.\n", ifname)
 						}
 					}
 				}
@@ -1844,7 +1895,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 									if err2 != nil {
 										log.MaestroErrorf("NetworkManager: failed to bring if %s down - %s\n", ifname, err2.Error())
 									}
-									log.MaestroInfof("NetworkManager: setting if %s MAC address to %s\n", ifname, ifconfig.HwAddr)
+									log.MaestroDebugf("NetworkManager: setting if %s MAC address to %s\n", ifname, ifconfig.HwAddr)
 									err2 = netlink.LinkSetHardwareAddr(link, newHwAddr)
 									if err2 != nil {
 										log.MaestroErrorf("NetworkManager: failed to set MAC address on if %s - %s\n", ifname, err2.Error())
@@ -1879,8 +1930,12 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 							// if ifdata != nil {
 							debugging.DEBUG_OUT("ok, running goDhcp for if %s\n", ifname)
 							mgr.watchInterface(ifconfig.IfName)
-							go mgr.doDhcp(ifname, requestedOp)
-							// }
+							if(!ifdata.dhcpRunning) {
+								log.MaestroInfof("Starting DhcpLoop for %s", ifname)
+								go mgr.doDhcp(ifname, requestedOp)
+							} else {
+								log.MaestroWarnf("goDhcp for if %s\n already running, skipping new instance", ifname)
+							}
 						} else {
 							// assign static IP
 
@@ -1904,11 +1959,27 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 								debugging.DEBUG_OUT("NetworkManager: Failed to setup static address on interface %s - %s\n", ifname, err.Error())
 							} else {
 								log.MaestroSuccessf("Network Manager: Static address set on %s of %s\n", ifname, confs[0].IPv4Addr)
+								//Start watching the interface
+								mgr.watchInterface(ifconfig.IfName)
+								//Set the link up if its down
+								err := netlink.LinkSetUp(link)
+								if err != nil {
+									log.MaestroErrorf("NetworkManager: failed to bring if %s up while doing static config - %s\n", ifname, err.Error())
+								} else {
+									log.MaestroInfof("NetworkManager:  Link set up for if %s\n", ifname)
+								}
+								log.MaestroInfof("NetworkManager:  Adding primary routes %v\n", confs)
 								_, err = addDefaultRoutesToPrimaryTable(mgr, confs)
+								if(err != nil) {
+									log.MaestroErrorf("NetworkManager: Failed to add default route for %s - %s\n", ifname, err.Error())
+								} else {
+									log.MaestroErrorf("NetworkManager: Finalize default route for %s\n", ifname)
+									//Finalize the primary routes
+									mgr.finalizePrimaryRoutes()
+								}
 								if ifdata != nil {
 									ifdata.CurrentIPv4Addr = results[0].ipv4
 								}
-								mgr.watchInterface(ifconfig.IfName)
 								if len(results) > 0 && results[0].ipv4 != nil {
 									arperr := arp.SendGratuitous(&arp.Gratuitous{
 										IfaceName: ifconfig.IfName,
