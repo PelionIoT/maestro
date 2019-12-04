@@ -545,10 +545,16 @@ int GreaseLogger::logSync(const logMeta &f, const char *s, int len) { // does th
 		return GREASE_OK;
 }
 void GreaseLogger::flushAll(bool nocallbacks) { // flushes buffers. Synchronous
+	static bool suppressTargetMsg = false;
 	if(LOGGER->defaultTarget) {
 		LOGGER->defaultTarget->flushAll();
-	} else
-		ERROR_OUT("No default target!");
+		suppressTargetMsg = false;
+	} else {
+		if(!suppressTargetMsg) {
+			ERROR_OUT("No default target!");
+			suppressTargetMsg = true;
+		}
+	}
 
 	logTarget **t; // shut down other targets.
 	GreaseLogger::TargetTable::HashIterator iter(LOGGER->targets);
