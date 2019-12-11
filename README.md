@@ -31,126 +31,67 @@ Advantages:
 
 Maestro communicates to Pelion Cloud over https outbouund. It stores its config locally in a private database, but can also use DeviceDB for storage of applications, network settings, configs and other data when used in conjuction with standard Pelion Cloud services.
 
-### Interacting
-
 If you are locally on a gateway / edge system using maestro, you should explore [maestro-shell](https://github.com/armPelionEdge/maestro-shell) which will let you interact with maestro directly using the local API.
 
-### Building
+## Pre-Requisites
 
-#### prerequisites
+Install the following tools:
 
-Build pre-requisites:
+* [vagrant](https://www.vagrantup.com/) (version 2.2.6)
+* [virtualbox](https://www.virtualbox.org/) (version 6.0)
 
-* golang
-* python
-* gcc
+Install Vagrant plugins. `vagrant-reload` is a plugin that allows vagrant to reboot a VM during provisioning. This is needed to reboot the vagrant VM while setting up required network interfaces.
 
-Maestro has a simple internal preprocessor `build.sh` script which use `m4` - make sure `m4` is installed on your build system (normally included with gcc)
-
-You will need gcc for compiling maestro's dependencies.
-
-*On Ubuntu*
-
-`sudo apt-get install build-essential python`  should take care of all this.
-
-If you go not have a Go build environment up, you will need to install [golang](https://golang.org/dl/). Just expand the tar ball and put in in /opt, with `sudo mv go /opt`
-
-You also will need your golang env vars setup correctly. Here is a script you can just run, assuming your Go workspace is at `$HOME/work/gostuff`:
-
-*setup-go.sh*
-```
-#!/bin/bash
-
-export GIT_TERMINAL_PROMPT=1
-export GOROOT=/opt/go
-export GOPATH="$HOME/work/gostuff"
-export GOBIN="$HOME/work/gostuff/bin"
-export PATH="$PATH:$GOROOT/bin:$GOBIN"
+```bash
+vagrant plugin install vagrant-reload
 ```
 
-then just run: `source ./setup-go.sh` 
+### Why Vagrant?
 
-Run your build commands from this sub-shell.
+Maestro uses the `vagrant` for the following reasons:
+1. Reliability - Vagrant guarentees that every user that tries to build maestro gets the same environment and toolset.
+2. Network control - Unlike docker, vagrant allows us to specify network interfaces. Specifically, we setup a control and test network, which is explained in the `vagrant` folder README
+3. System testing - Once again a limitation to docker, vagrant allows us to start and stop the maestro daemon and configure the system for complete system testing. Additionally, we can bring in other daemons into the system over time for additional testing (ex. devicedb, devicejs)
 
-##### On Arch
+For more information as to how vagrant sets up the maestro environment, please read the README in the `vagrant` folder
 
- * install go:
-  `sudo pacman -S golang`
+## Building
 
- * Add generated executables into your path (so that you can do stuff like `maestro` on the command line)
-   ```
-   export PATH="$PATH:$HOME/go/bin"
-   ```
+Start up the virtual machine:
 
-
-#### build instructions
-
-`go get github.com/armPelionEdge/maestro`
-
-Enter github credentials as needed. Now, where `$GOPATH` is your go workspace folder, as in the sub-shell above...
-
-```
-cd $GOPATH/src/github.com/armPelionEdge/maestro
+```bash
+git clone git@github.com:armPelionEdge/maestro.git
+cd maestro
+vagrant up
 ```
 
-Run a script to build dependencies in the `/vendor` folder:
-```
-./build-deps.sh
-```
+## Running
 
-This will take a bit. You're building a bunch of libs used by maestro, including some native code.
-
-Next build maestro:
-
-```
-cd $GOPATH/src/github.com/armPelionEdge/maestro
-DEBUG=1 DEBUG2=1 ./build.sh
+```bash
+vagrant ssh -c "sudo maestro"
 ```
 
-Eliminate `DEBUG` and `DEBUG2` env var to generate less debug output.
+## Testing
 
-#### Running tests
+### Unit tests
 
-Different subsystems have different test suites. Running these may require root privleges, for instance networking. You also need to run the pre-processor if making changes.
+Example of running a networking test:
 
-Example, from `$GOPATH/src/github.com/armPelionEdge/maestro`:
+```bash
+vagrant ssh # Log in to VM
+cd $MAESTRO_SRC # Go to maestro home dir
 
-```
-DEBUG=1 DEBUG2=1 ./build.sh && cd networking && sudo -E \
-  LD_LIBRARY_PATH=../vendor/github.com/armPelionEdge/greasego/deps/lib go test -v -run DhcpRequest
-```
-
-Notes:
-
-* The dependencies of greasego (a native library extension to go) are in
-  `$GOPATH/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego/deps/lib`,
-  which requires us to add that directory to the `LD_LIBRARY_PATH` environment variable so that
-  go can find these libraries. A relative path is used in the example to reduce overall command length.
-* The build command is not strictly required to run tests, when you have already built. It's good practice
-  to include this in the command so that you don't test a stale build.
-
-#### Running `maestro`
-
-Maestro requires a config in it's working directory called `maestro.config`, so create it:
-
-`touch maestro.config`
-
-Build and run `maestro`:
-```
-DEBUG=1 DEBUG2=1 ./build.sh && LD_LIBRARY_PATH=vendor/github.com/armPelionEdge/greasego/deps/lib maestro
+cd networking # Open networking tests
+go test -v -run DhcpRequest # Run DhcpRequest test
 ```
 
-If you get a `maestro: command not found` error, check that your `$GOBIN` is part of your `$PATH`
+### System Tests
 
-#### Other examples
+On the host machine, run the following commands:
+Note: Make sure you had built using `vagrant up` before running tests.
 
-The Docker build file, for `djs-soft-relay` shows build instruction also, using this exact above method.
-https://github.com/armPelionEdge/cloud-installer/blob/master/djs-soft-relay/build-wwcontainer.sh#L155
-
-#### TroubleShooting
-
-1. `[ERROR] Failed to create scratch path directory: mkdir /tmp/maestro/images: permission denied`
-   `[ERROR] Failed to create scratch path directory: mkdir /var/maestro/images: permission denied`
-
-Maestro execution on local host creates directories at `/tmp/maestro/images` and `/var/maestro/images` path. Verify that the user running `maestro` has the proper permissions to access the respective directories.
-
+```bash
+cd tests # Go to SysTests folder
+npm i # Only run once to download dependencies
+npm test # Run mocha test suite
+```
