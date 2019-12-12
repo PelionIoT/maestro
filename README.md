@@ -31,11 +31,9 @@ Advantages:
 
 Maestro communicates to Pelion Cloud over https outbouund. It stores its config locally in a private database, but can also use DeviceDB for storage of applications, network settings, configs and other data when used in conjuction with standard Pelion Cloud services.
 
-### Interacting
-
 If you are locally on a gateway / edge system using maestro, you should explore [maestro-shell](https://github.com/armPelionEdge/maestro-shell) which will let you interact with maestro directly using the local API.
 
-### Pre-Requisites
+## Pre-Requisites
 
 Install the following tools:
 
@@ -48,7 +46,7 @@ Install Vagrant plugins:
 vagrant plugin install vagrant-reload
 ```
 
-### Building
+## Building
 
 Start up the virtual machine:
 
@@ -56,53 +54,31 @@ Start up the virtual machine:
 vagrant up
 ```
 
-### Testing
-
-Enter the virtual machine:
+## Running
 
 ```bash
-vagrant ssh
+vagrant ssh # Log in to VM
+sudo su - # Switch to root user
+cd $GOPATH/src/github.com/armPelionEdge/maestro # Go to maestro home dir
+
+maestro # Run maestro binary
 ```
 
-Change to root user:
-```bash
-sudo su -
-```
+## Testing
 
-Change directories to the `maestro` home:
+### Unit tests
 
-```bash
-cd $GOPATH/src/github.com/armPelionEdge/maestro
-```
-
-Run your desired test. Example:
+Example of running a networking test:
 
 ```bash
-cd networking
-go test -v -run DhcpRequest
+vagrant ssh # Log in to VM
+sudo su - # Switch to root user
+cd $GOPATH/src/github.com/armPelionEdge/maestro # Go to maestro home dir
+
+cd networking # Open networking tests
+go test -v -run DhcpRequest # Run DhcpRequest test
 ```
 
-### Running
+### System Tests
 
-Enter the virtual machine:
-
-```bash
-vagrant ssh
-```
-
-Change to root user:
-```bash
-sudo su -
-```
-
-Change directories to the `maestro` home:
-
-```bash
-cd $GOPATH/src/github.com/armPelionEdge/maestro
-```
-
-Run maestro:
-
-```bash
-maestro
-```
+<To be continued>
