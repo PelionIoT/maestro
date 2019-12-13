@@ -28,10 +28,10 @@ chmod 777 /var/maestro
 
 # Create a script to go to the maestro source and run maestro so maestro has access to its' configuration files
 # Allows a user to run 'sudo maestro' and have everything work out
-echo "#!/bin/bash
+echo "#!/bin/bash -ue
 . /etc/profile.d/envvars.sh
 cd $MAESTRO_SRC
-$GOBIN/maestro
+exec $GOBIN/maestro
 " > /usr/sbin/maestro
 chmod +x /usr/sbin/maestro
 
