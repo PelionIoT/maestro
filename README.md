@@ -37,8 +37,8 @@ If you are locally on a gateway / edge system using maestro, you should explore 
 
 Install the following tools:
 
-* [vagrant](https://www.vagrantup.com/)
-* [virtualbox](https://www.virtualbox.org/)
+* [vagrant](https://www.vagrantup.com/) (version 2.2.6)
+* [virtualbox](https://www.virtualbox.org/) (version 6.0)
 
 Install Vagrant plugins:
 
