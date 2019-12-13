@@ -1,0 +1,16 @@
+{
+  "name": "maestro-tests",
+  "version": "1.0.0",
+  "description": "System testing suite for maestro",
+  "main": "test.js",
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha"
+  },
+  "author": "michael.ray@arm.com",
+  "license": "Apache-2.0",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "^6.2.2",
+    "shelljs": "^0.8.3"
+  }
+}
