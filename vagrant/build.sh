@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Load go environment variables
-source /home/vagrant/.envvars
+. /etc/profile.d/envvars.sh
 
 # Import GO project maestro
 go get github.com/armPelionEdge/maestro || true
@@ -11,7 +11,7 @@ go get github.com/armPelionEdge/maestro || true
 # sed -i -e 's/make libgrease.a-server/make all/g' build-deps.sh
 
 # Go to newly created maestro directory
-cd $GOPATH/src/github.com/armPelionEdge/maestro
+cd $MAESTRO_SRC
 
 # Build maestro dependencies
 ./build-deps.sh
@@ -21,8 +21,7 @@ DEBUG=1 DEBUG2=1 ./build.sh
 
 # Create maestro dummy config
 rm -f maestro.config
-echo '
-network:
+echo 'network:
     interfaces:
         - if_name: eth1
           dhcpv4: true

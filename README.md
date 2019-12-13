@@ -57,11 +57,7 @@ vagrant up
 ## Running
 
 ```bash
-vagrant ssh # Log in to VM
-sudo su - # Switch to root user
-cd $GOPATH/src/github.com/armPelionEdge/maestro # Go to maestro home dir
-
-maestro # Run maestro binary
+vagrant ssh -c "sudo maestro"
 ```
 
 ## Testing
@@ -73,7 +69,7 @@ Example of running a networking test:
 ```bash
 vagrant ssh # Log in to VM
 sudo su - # Switch to root user
-cd $GOPATH/src/github.com/armPelionEdge/maestro # Go to maestro home dir
+cd $MAESTRO_SRC # Go to maestro home dir
 
 cd networking # Open networking tests
 go test -v -run DhcpRequest # Run DhcpRequest test
