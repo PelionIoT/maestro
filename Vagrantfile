@@ -9,4 +9,5 @@ Vagrant.configure("2") do |config|
   config.vm.provision :shell, path: "vagrant/provision.sh"
   config.vm.provision :reload
   config.vm.provision :shell, path: "vagrant/build.sh", run: 'always', privileged: false
+  config.ssh.extra_args = "-t"
 end
