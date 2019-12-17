@@ -28,3 +28,7 @@ echo 'network:
           hw_addr: "{{ARCH_ETHERNET_MAC}}"
 config_end: true
 ' >> maestro.config
+
+# Import GO project maestro-shell
+go get github.com/armPelionEdge/maestro-shell || true
+go install github.com/armPelionEdge/maestro-shell
