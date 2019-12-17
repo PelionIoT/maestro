@@ -16,7 +16,7 @@ echo "export GIT_TERMINAL_PROMPT=1
 export GOROOT=/opt/go
 export GOPATH=/home/vagrant/work/gostuff
 export GOBIN=/home/vagrant/work/gostuff/bin
-export PATH=$PATH:/opt/go/bin
+export PATH=$PATH:/opt/go/bin:/home/vagrant/work/gostuff/bin
 export MAESTRO_SRC=/home/vagrant/work/gostuff/src/github.com/armPelionEdge/maestro
 export LD_LIBRARY_PATH=/home/vagrant/work/gostuff/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego/deps/lib
 " > /etc/profile.d/envvars.sh
