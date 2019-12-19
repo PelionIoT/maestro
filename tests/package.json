@@ -4,13 +4,14 @@
   "description": "System testing suite for maestro",
   "main": "test.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha"
+    "test": "./node_modules/mocha/bin/mocha --reporter mochawesome --reporter-options reportDir=reports,reportFilename=tests.html"
   },
   "author": "michael.ray@arm.com",
   "license": "Apache-2.0",
   "dependencies": {},
   "devDependencies": {
     "mocha": "^6.2.2",
+    "mochawesome": "^4.1.0",
     "shelljs": "^0.8.3"
   }
 }
