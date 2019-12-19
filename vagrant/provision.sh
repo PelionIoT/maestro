@@ -12,14 +12,15 @@ rm -rf /opt/go
 mv go /opt/go
 
 # Set GO environment variables
-echo "export GIT_TERMINAL_PROMPT=1
+cat <<'EOF' >/etc/profile.d/envvars.sh
+export GIT_TERMINAL_PROMPT=1
 export GOROOT=/opt/go
 export GOPATH=/home/vagrant/work/gostuff
-export GOBIN=/home/vagrant/work/gostuff/bin
-export PATH=$PATH:/opt/go/bin:/home/vagrant/work/gostuff/bin
-export MAESTRO_SRC=/home/vagrant/work/gostuff/src/github.com/armPelionEdge/maestro
-export LD_LIBRARY_PATH=/home/vagrant/work/gostuff/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego/deps/lib
-" > /etc/profile.d/envvars.sh
+export GOBIN=$GOPATH/bin
+export PATH=$PATH:$GOROOT/bin:$GOBIN
+export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
+export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
+EOF
 . /etc/profile.d/envvars.sh
 
 # Create directories for read/write of vagrant user
