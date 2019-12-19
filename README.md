@@ -49,7 +49,7 @@ vagrant plugin install vagrant-reload
 ### Why Vagrant?
 
 Maestro uses the `vagrant` for the following reasons:
-1. Reliability - Vagrant guarentees that every user that tries to build maestro gets the same environment and toolset.
+1. Reliability - Vagrant guarantees that every user that tries to build maestro gets the same environment and toolset.
 2. Network control - Unlike docker, vagrant allows us to specify network interfaces. Specifically, we setup a control and test network, which is explained in the `vagrant` folder README
 3. System testing - Once again a limitation to docker, vagrant allows us to start and stop the maestro daemon and configure the system for complete system testing. Additionally, we can bring in other daemons into the system over time for additional testing (ex. devicedb, devicejs)
 
@@ -57,12 +57,18 @@ For more information as to how vagrant sets up the maestro environment, please r
 
 ## Building
 
-Start up the virtual machine:
+Start up the virtual machine. The very first time `vagrant up` is run, the VM will go through a provisioning phase.
 
 ```bash
 git clone git@github.com:armPelionEdge/maestro.git
 cd maestro
 vagrant up
+```
+
+Then build maestro and its dependencies. You can run this whenever you desire as long as the VM is online
+
+```bash
+vagrant ssh -c "build_maestro"
 ```
 
 ## Running
@@ -88,7 +94,7 @@ go test -v -run DhcpRequest # Run DhcpRequest test
 ### System Tests
 
 On the host machine, run the following commands:
-Note: Make sure you had built using `vagrant up` before running tests.
+Note: Make sure you had built using `vagrant up` and `vagrant ssh -c "build_maestro"` before running tests.
 
 ```bash
 cd tests # Go to SysTests folder
