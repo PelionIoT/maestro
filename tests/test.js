@@ -6,12 +6,13 @@ let maestro_src = '/home/vagrant/work/gostuff/src/github.com/armPelionEdge/maest
 let maestro_bin = '/home/vagrant/work/gostuff/bin/maestro';
 let maestro_config_name = 'maestro.config';
 
-let command_maestro = 'vagrant ssh -c "sudo maestro"';
-let command_vagrant_upload = 'vagrant upload {{in_file}} {{out_file}}';
-let command_kill = 'vagrant ssh -c "sudo pkill maestro"';
-let command_dhcp_check = 'vagrant ssh -c "ps -aef | grep dhcp"';
-let command_ip_addr = 'vagrant ssh -c "ip addr show eth1"';
-let command_ip_flush = 'vagrant ssh -c "sudo ip addr flush dev eth1"';
+let vm_name = 'default';
+let command_maestro = 'vagrant ssh ' + vm_name + ' -c "sudo maestro"';
+let command_vagrant_upload = 'vagrant upload {{in_file}} {{out_file}} ' + vm_name;
+let command_kill = 'vagrant ssh ' + vm_name + ' -c "sudo pkill maestro"';
+let command_dhcp_check = 'vagrant ' + vm_name + ' ssh -c "ps -aef | grep dhcp"';
+let command_ip_addr = 'vagrant ssh ' + vm_name + ' -c "ip addr show eth1"';
+let command_ip_flush = 'vagrant ssh ' + vm_name + ' -c "sudo ip addr flush dev eth1"';
 
 let template_network_config = `
 network:
@@ -150,7 +151,7 @@ describe('Networking', function() {
 
         it('should now have a DHCP enabled IP address', function(done) {
             this.timeout(timeout);
-            check_ip_addr('10.', function(contains_ip) {
+            check_ip_addr('172.28.128.', function(contains_ip) {
                 assert(contains_ip, 'Interface eth1 not set with an IP address prefixed with 10.xxx.yyy.zzz');
                 this.done();
             }.bind({ctx: this, done: done}));
