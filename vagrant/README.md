@@ -12,7 +12,7 @@ There are 2 scripts that vagrant utilizes:
 
 See: `provision.sh`
 
-Provisioning occurs at vagrant virtual machine creation. This runs the very first time a user creates a vagrant VM and will never run again unless the original VM is deleted from disk or a user specifically restarts the provisioning phase of the VM.
+Provisioning sets up the virtual machine with the required set of package dependencies and configures networking interfaces.  Provisioning occurs during vagrant virtual machine creation and will not run again unless the original VM is deleted from disk or a user specifically restarts the provisioning phase.  The user must rerun provisioning if the VM is out of date with the provision.sh script.
 
 The command to manually run provisioning on a VM is as follows:
 
@@ -37,16 +37,10 @@ The provision script does the following:
 
 See: `build.sh`
 
-Building occurs every time the user brings up the vagrant VM. This can occur with the following command:
+The build script downloads and compiles Maestro along with its dependent packages and associated utilities.  The script must be called manually after the user brings up the VM.
 
 ```bash
-vagrant build
-```
-
-or
-
-```bash
-vagrant reload
+vagrant ssh -c "build_maestro"
 ```
 
 #### Script details
@@ -59,9 +53,3 @@ The build script does the following:
 * Builds maestro-shell
 
 ## Additional information
-
-### Jenkins default network interface
-
-You may notice that in the `Vagrantfile` in the maestro home directory, the interface `enp0s31f6` is specified.
-
-This interface is the default interface for our Jenkins machine and can be changed for your host machine. If the interface is not changed, and is not available on your machine, vagrant will ask you when starting up for a replacement network interface to bridge
