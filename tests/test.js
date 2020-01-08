@@ -11,8 +11,8 @@ let command_maestro = 'vagrant ssh ' + vm_name + ' -c "sudo maestro"';
 let command_vagrant_upload = 'vagrant upload {{in_file}} {{out_file}} ' + vm_name;
 let command_kill = 'vagrant ssh ' + vm_name + ' -c "sudo pkill maestro"';
 let command_dhcp_check = 'vagrant ' + vm_name + ' ssh -c "ps -aef | grep dhcp"';
-let command_ip_addr = 'vagrant ssh ' + vm_name + ' -c "ip addr show eth1"';
-let command_ip_flush = 'vagrant ssh ' + vm_name + ' -c "sudo ip addr flush dev eth1"';
+let command_ip_addr = 'vagrant ssh ' + vm_name + ' -c "ip addr show eth"';
+let command_ip_flush = 'vagrant ssh ' + vm_name + ' -c "sudo ip addr flush dev eth1; sudo ip addr flush dev eth2"';
 
 let template_network_config = `
 network:
@@ -35,18 +35,35 @@ network:
 config_end: true
 `;
 
+let template_network_config_two_no_dhcp = `
+network:
+    interfaces:
+        - if_name: eth1
+          existing: replace
+          dhcpv4: false
+          ipv4_addr: 10.123.123.123
+          ipv4_mask: 24
+        - if_name: eth2
+          existing: replace
+          dhcpv4: false
+          ipv4_addr: 10.123.123.124
+          ipv4_mask: 24
+config_end: true
+`;
+
 // Allow 30 seconds for the test to run, and provide 5 seconds for test cleanup
 const timeout = 30000;
 const timeout_cleanup = 5000;
 
 /**
  * Check an ip addr command to verify a valid IP address exists
+ * @param {Number} interface - Numerical representation of what ethernet interface you would like to check
  * @param {String} ip - IP address that should be available (or portion of an IP)
  * @param {callback} cb - Callback to run when done
  **/
-function check_ip_addr(ip, cb)
+function check_ip_addr(interface, ip, cb)
 {
-    shell.exec(command_ip_addr, { silent: true}, function(code, stdout, stderr) {
+    shell.exec(command_ip_addr + interface, { silent: true}, function(code, stdout, stderr) {
         let arr = stdout.split('\n');
         for (var i in arr) {
             let line = arr[i].trim();
@@ -150,9 +167,9 @@ describe('Networking', function() {
         });
 
         it('should now have a DHCP enabled IP address', function(done) {
-            this.timeout(timeout);
-            check_ip_addr('172.28.128.', function(contains_ip) {
-                assert(contains_ip, 'Interface eth1 not set with an IP address prefixed with 10.xxx.yyy.zzz');
+            this.timeout(timeout_cleanup);
+            check_ip_addr(1, '172.28.128.', function(contains_ip) {
+                assert(contains_ip, 'Interface eth1 not set with an IP address prefixed with 172.28.128.xxx');
                 this.done();
             }.bind({ctx: this, done: done}));
         });
@@ -166,10 +183,29 @@ describe('Networking', function() {
         });
 
         it('should now have a static enabled IP address', function(done) {
-            this.timeout(timeout);
-            check_ip_addr('10.123.123.123', function(contains_ip) {
+            this.timeout(timeout_cleanup);
+            check_ip_addr(1, '10.123.123.123', function(contains_ip) {
                 assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
                 this.done();
+            }.bind({ctx: this, done: done}));
+        });
+
+        it('should disable DCHP for eth1 and eth2 when specified in the configuration file provided to maestro', function(done) {
+            this.timeout(timeout);
+            shell.exec(command_ip_flush, { silent: true});
+            maestro_workflow(template_network_config_two_no_dhcp, done, function(data) {
+                return data.includes('Static address set on eth1 of 10.123.123.123') || data.includes('Static address set on eth1 of 10.123.123.124');
+            });
+        });
+
+        it('should now have 2 static enabled IP addresses', function(done) {
+            this.timeout(timeout);
+            check_ip_addr(1, '10.123.123.123', function(contains_ip) {
+                assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
+                check_ip_addr(2, '10.123.123.124', function(contains_ip) {
+                    assert(contains_ip, 'Interface eth2 not set with IP address 10.123.123.124');
+                    this.done();
+                }.bind({ctx: this.ctx, done: this.done}));
             }.bind({ctx: this, done: done}));
         });
 
@@ -182,8 +218,8 @@ describe('Networking', function() {
         });
 
         it('should now have a static enabled IP address', function(done) {
-            this.timeout(timeout);
-            check_ip_addr('10.123.123.123', function(contains_ip) {
+            this.timeout(timeout_cleanup);
+            check_ip_addr(1, '10.123.123.123', function(contains_ip) {
                 assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
                 this.done();
             }.bind({ctx: this, done: done}));
