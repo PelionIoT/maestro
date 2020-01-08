@@ -2,7 +2,13 @@
 
 # Install prerequisite packages
 apt-get update
-apt-get install -y build-essential python wget git nodejs npm m4
+apt-get install -y build-essential python wget git nodejs npm m4 docker.io docker-compose
+systemctl start docker
+systemctl enable docker
+
+# Install docker-compose
+sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
 # Download GO
 wget https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz
@@ -20,6 +26,8 @@ export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOROOT/bin:$GOBIN
 export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
 export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
+export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
+export EDGE_CLIENT_RESOURCES=$DEVICEDB_SRC/edgeconfig
 EOF
 . /etc/profile.d/envvars.sh
 
@@ -35,6 +43,14 @@ cd $MAESTRO_SRC
 exec $GOBIN/maestro
 " > /usr/sbin/maestro
 chmod +x /usr/sbin/maestro
+
+# Create a script to go to the devicedb source and run devicedb
+echo "#!/bin/bash -ue
+. /etc/profile.d/envvars.sh
+cd $DEVICEDB_SRC
+docker-compose up
+" > /usr/sbin/devicedb
+chmod +x /usr/sbin/devicedb
 
 # Set the network interface to eth0 instead of Ubuntu 16.04 default enp0s3
 rm /etc/udev/rules.d/70-persistent-net.rules

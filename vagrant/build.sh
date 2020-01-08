@@ -2,6 +2,7 @@
 
 # Load go environment variables
 . /etc/profile.d/envvars.sh
+sudo usermod -aG docker $USER
 
 # Import GO project maestro
 go get github.com/armPelionEdge/maestro || true
@@ -33,3 +34,10 @@ config_end: true
 # Import GO project maestro-shell
 go get github.com/armPelionEdge/maestro-shell || true
 go install github.com/armPelionEdge/maestro-shell
+
+# Import project devicedb
+cd $MAESTRO_SRC/..
+git clone git@github.com:armPelionEdge/devicedb.git
+
+cd devicedb
+mkdir edgeconfig
