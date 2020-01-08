@@ -4,8 +4,10 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/xenial64"
   config.vm.network "private_network", type: "dhcp"
+  config.vm.network "private_network", ip: "172.28.128.1"
   config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "~/.ssh/id_rsa"
   config.vm.provision "file", source: "~/.ssh/known_hosts", destination: "~/.ssh/known_hosts"
+  config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
   config.vm.provision :shell, path: "vagrant/provision.sh"
   config.vm.provision :reload
   config.vm.provision "file", source: "vagrant/build.sh", destination: "/tmp/build_maestro"
