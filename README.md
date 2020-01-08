@@ -105,3 +105,15 @@ cd tests # Go to SysTests folder
 npm i # Only run once to download dependencies
 npm test # Run mocha test suite
 ```
+
+## Additional Features/Information
+
+### DeviceDB
+
+In order to test additional maestro functionality, the vagrant VM has the ability to startup and run devicedb, another Arm Pelion Edge gateway feature.
+
+To start devicedb within your vagrant VM, run the following command from your host machine:
+
+```bash
+vagrant ssh -c "devicedb"
+```
