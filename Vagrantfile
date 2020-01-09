@@ -4,7 +4,7 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/xenial64"
   config.vm.network "private_network", type: "dhcp"
-  config.vm.network "private_network", ip: "172.28.128.1"
+  config.vm.network "private_network", ip: "172.28.128.1", auto_config: false
   config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "~/.ssh/id_rsa"
   config.vm.provision "file", source: "~/.ssh/known_hosts", destination: "~/.ssh/known_hosts"
   config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
@@ -12,5 +12,6 @@ Vagrant.configure("2") do |config|
   config.vm.provision :reload
   config.vm.provision "file", source: "vagrant/build.sh", destination: "/tmp/build_maestro"
   config.vm.provision "shell", inline: "mv /tmp/build_maestro /usr/sbin/build_maestro; chmod +x /usr/sbin/build_maestro"
+  config.vm.provision "file", source: "patches/0001-Fake-devicedb-running-on-local-machine.patch", destination: "/tmp/0001-Fake-devicedb-running-on-local-machine.patch"
   config.ssh.extra_args = "-t"
 end

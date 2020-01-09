@@ -49,8 +49,8 @@ echo "#!/bin/bash -ue
 . /etc/profile.d/envvars.sh
 cd $DEVICEDB_SRC
 docker-compose up
-" > /usr/sbin/devicedb
-chmod +x /usr/sbin/devicedb
+" > /usr/sbin/devicedb_server
+chmod +x /usr/sbin/devicedb_server
 
 # Set the network interface to eth0 instead of Ubuntu 16.04 default enp0s3
 rm /etc/udev/rules.d/70-persistent-net.rules

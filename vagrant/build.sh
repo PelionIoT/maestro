@@ -17,6 +17,11 @@ cd $MAESTRO_SRC
 # Build maestro dependencies
 ./build-deps.sh
 
+# Apply maestro patch
+git config --global user.email "fake@email.com"
+git config --global user.name "Vagrant User"
+git am /tmp/0001-Fake-devicedb-running-on-local-machine.patch
+
 # Build maestro
 DEBUG=1 DEBUG2=1 ./build.sh
 
@@ -35,9 +40,12 @@ config_end: true
 go get github.com/armPelionEdge/maestro-shell || true
 go install github.com/armPelionEdge/maestro-shell
 
+# Set go get to use SSH instead of https due to the private devicedb repo
+git config --global url.git@github.com:.insteadOf https://github.com/
+
 # Import project devicedb
 cd $MAESTRO_SRC/..
-git clone git@github.com:armPelionEdge/devicedb.git
+go get github.com/armPelionEdge/devicedb
 
-cd devicedb
-mkdir edgeconfig
+# Create directory for devicedb certificates
+mkdir -p devicedb/edgeconfig
