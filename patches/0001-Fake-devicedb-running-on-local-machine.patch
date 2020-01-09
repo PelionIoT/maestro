@@ -1,0 +1,36 @@
+From 6c328ee424992739bd14a82a75094ec431eab46a Mon Sep 17 00:00:00 2001
+From: Michael Ray <michael.ray@arm.com>
+Date: Thu, 9 Jan 2020 22:16:48 +0000
+Subject: [PATCH] Fake devicedb running on local machine
+
+Current way of running devicedb is within docker and therefore
+devicedb is not running as a local process
+---
+ networking/manager.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/networking/manager.go b/networking/manager.go
+index b05815a..7196753 100644
+--- a/networking/manager.go
++++ b/networking/manager.go
+@@ -50,7 +50,6 @@ import (
+ 	"github.com/armPelionEdge/maestro/networking/arp"
+ 	"github.com/armPelionEdge/maestro/storage"
+ 	"github.com/armPelionEdge/maestro/tasks"
+-	"github.com/armPelionEdge/maestro/processes"
+ 	"github.com/armPelionEdge/maestro/maestroConfig"
+ 	"github.com/armPelionEdge/maestroSpecs"
+ 	"github.com/armPelionEdge/maestroSpecs/netevents"
+@@ -874,7 +873,8 @@ func (this *networkManagerInstance) initDeviceDBConfig() {
+ 		log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb process/job\n")
+ 		for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+ 			//First wait for devicedb to start
+-			devicedbrunning, pid = processes.IsJobActive(DEVICEDB_JOB_NAME)
++			devicedbrunning = true
++			pid = 8573
+ 			log.MaestroWarnf("initDeviceDBConfig: devicedbrunning: %v, pid: %d\n", devicedbrunning, pid)
+ 			if(devicedbrunning) {
+ 				//Service is started, but wait for some seconds for the port to be up and running
+-- 
+2.7.4
+
