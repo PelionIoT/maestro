@@ -110,12 +110,18 @@ npm test # Run mocha test suite
 
 ### DeviceDB
 
-In order to test additional maestro functionality, the vagrant VM has the ability to startup and run devicedb, another Arm Pelion Edge gateway feature.
+In order to test additional maestro functionality, the vagrant VM automatically installs and runs DeviceDB Edge and DeviceDB Cloud in the background. See [DeviceDB](https://github.com/armPelionEdge/devicedb) for more information.
 
-Before going further, please make sure you have built maestro using the instructions above. If you built when in a SSH shell, please restart your shell.
-
-To start devicedb, run the following command from your host machine:
-
+To view logs from DeviceDB Edge, run:
 ```bash
-vagrant ssh -c "devicedb_server"
+vagrant ssh
+sudo journalctl -u devicedb_edge
 ```
+
+To view logs from DeviceDB Cloud, run:
+```bash
+vagrant ssh
+docker ps
+docker logs <container-id>"
+```
+Where `<container-id>` is the ID of the DeviceDB Server docker container that was shown in `docker ps`
