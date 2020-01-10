@@ -2,13 +2,14 @@
 
 # Install prerequisite packages
 apt-get update
-apt-get install -y build-essential python wget git nodejs npm m4 docker.io docker-compose
+apt-get install -y build-essential python wget git nodejs npm m4 docker.io docker-compose uuid
 systemctl start docker
 systemctl enable docker
 
 # Install docker-compose
 sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
+sudo usermod -aG docker vagrant
 
 # Download GO
 wget https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz
@@ -24,16 +25,35 @@ export GOROOT=/opt/go
 export GOPATH=/home/vagrant/work/gostuff
 export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOROOT/bin:$GOBIN
+
 export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
+
 export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
 export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
-export EDGE_CLIENT_RESOURCES=$DEVICEDB_SRC/edgeconfig
+export EDGE_CLIENT_RESOURCES=/etc/devicedb/shared
+export CLOUD_HOST=localhost
+export CLOUD_URI=ws://$CLOUD_HOST:8080/sync
+export EDGE_DATA_DIRECTORY=/var/lib/devicedb/data
+export EDGE_SNAP_DIRECTORY=/var/lib/devicedb/snapshots
+export EDGE_LISTEN_PORT=9090
+export EDGE_LOG_LEVEL=info
+export EDGE_CLIENT_CERT=$EDGE_CLIENT_RESOURCES/client.crt
+export EDGE_CLIENT_KEY=$EDGE_CLIENT_RESOURCES/client.key
+export EDGE_CLIENT_CA=$EDGE_CLIENT_RESOURCES/myCA.pem
 EOF
 . /etc/profile.d/envvars.sh
 
 # Create directories for read/write of vagrant user
 mkdir /var/maestro
 chmod 777 /var/maestro
+
+# Create directories for devicedb resources (certs)
+mkdir -p $EDGE_CLIENT_RESOURCES
+chmod 777 $EDGE_CLIENT_RESOURCES
+mkdir -p $EDGE_SNAP_DIRECTORY
+chmod 777 $EDGE_SNAP_DIRECTORY
+mkdir -p $EDGE_DATA_DIRECTORY
+chmod 777 $EDGE_DATA_DIRECTORY
 
 # Create a script to go to the maestro source and run maestro so maestro has access to its' configuration files
 # Allows a user to run 'sudo maestro' and have everything work out
@@ -43,14 +63,6 @@ cd $MAESTRO_SRC
 exec $GOBIN/maestro
 " > /usr/sbin/maestro
 chmod +x /usr/sbin/maestro
-
-# Create a script to go to the devicedb source and run devicedb
-echo "#!/bin/bash -ue
-. /etc/profile.d/envvars.sh
-cd $DEVICEDB_SRC
-docker-compose up
-" > /usr/sbin/devicedb_server
-chmod +x /usr/sbin/devicedb_server
 
 # Set the network interface to eth0 instead of Ubuntu 16.04 default enp0s3
 rm /etc/udev/rules.d/70-persistent-net.rules
@@ -63,3 +75,30 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
 " > /etc/network/interfaces.d/50-cloud-init.cfg
+
+# Add a script to start devicedb as an edge node
+echo "#!/bin/bash -ue
+. /etc/profile.d/envvars.sh
+cd $DEVICEDB_SRC
+devicedb start -conf $EDGE_CLIENT_RESOURCES/devicedb.conf
+" > /usr/sbin/devicedb_edge
+chmod +x /usr/sbin/devicedb_edge
+
+# Create a systemctl service that always run devicedb on reboot
+echo "[Unit]
+Description=DeviceDB Edge
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/devicedb_edge
+
+[Install]
+WantedBy=multi-user.target
+" > /etc/systemd/system/devicedb_edge.service
+chmod +x /etc/systemd/system/devicedb_edge.service
+
+# Reload systemctl with the new devicedb_edge service
+systemctl daemon-reload
+
+# Provide a default host for devicedb that will be configured on build
+echo "127.0.0.1       unconfigured-devicedb-host"  >> /etc/hosts
