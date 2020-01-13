@@ -130,7 +130,7 @@ func handlePutNetworkInterfaces(w http.ResponseWriter, r *http.Request, _ httpro
 			if err == nil {
 				w.WriteHeader(http.StatusOK)
 			} else {
-				w.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
 			}
 		} else {

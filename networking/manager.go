@@ -423,15 +423,30 @@ func (this *networkManagerInstance) StorageClosed(instance storage.MaestroDBStor
 
 func (this *networkManagerInstance) SetInterfacesAsJson(data []byte) error {
 
+	var err error
 	configs := make([]maestroSpecs.NetIfConfigPayload, 0)
 
-	err := json.Unmarshal(data, &configs)
+	err = json.Unmarshal(data, &configs)
 	if err != nil {
-		return errors.New("Failed to decode JSON configuration")
+		return err
 	}
 
 	for _, config := range configs {
-		log.MaestroDebugf("NetworkManager: SetInterfacesAsJson: IfName=%s\n", config.IfName)
+		ok, problem := validateIfConfig(&config)
+		if !ok {
+			log.MaestroErrorf("NetworkManager: Interface config problem: \"%s\"  Skipping interface config.\n", problem)
+			return errors.New("Invalid config")
+		}
+		log.MaestroDebugf("NetworkManager: SetInterfacesAsJson: Searching for iface IfName=%s\n", config.IfName)
+		var iface = this.getInterfaceData(config.IfName)
+		if iface == nil {
+			return fmt.Errorf("Interface not found: %s", config.IfName)
+		}
+		log.MaestroDebugf("NetworkManager: SetInterfacesAsJson: Config iface %s\n", iface.IfName)
+		err = this.SetInterfaceConfigByName(config.IfName, &config)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
