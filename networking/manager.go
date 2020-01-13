@@ -421,6 +421,22 @@ func (this *networkManagerInstance) StorageClosed(instance storage.MaestroDBStor
 
 }
 
+func (this *networkManagerInstance) SetInterfacesAsJson(data []byte) error {
+
+	configs := make([]maestroSpecs.NetIfConfigPayload, 0)
+
+	err := json.Unmarshal(data, &configs)
+	if err != nil {
+		return errors.New("Failed to decode JSON configuration")
+	}
+
+	for _, config := range configs {
+		log.MaestroDebugf("NetworkManager: SetInterfacesAsJson: IfName=%s\n", config.IfName)
+	}
+
+	return nil
+}
+
 func (this *networkManagerInstance) GetInterfacesAsJson(enabled_only bool, up_only bool) ([]byte, error) {
 	ifs := make([]*NetworkInterfaceData, 0)
 

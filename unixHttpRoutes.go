@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -75,6 +76,7 @@ func AddProcessRoutes(router *httprouter.Router) {
 	router.GET("/status/:taskid", handleGetTaskStatus)
 
 	router.GET("/net/interfaces", handleGetNetworkInterfaces)
+	router.PUT("/net/interfaces", handlePutNetworkInterfaces)
 	router.GET("/net/events", handleSubscribeNetworkEvents)
 	router.GET("/net/events/:subscription", handleGetLatestNetworkEvents)
 
@@ -117,6 +119,30 @@ func handleAlive(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(buffer.Bytes())
 	defer r.Body.Close()
+}
+
+func handlePutNetworkInterfaces(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	inst := networking.GetInstance()
+	if inst != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			err = inst.SetInterfacesAsJson(body)
+			if err == nil {
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+			}
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"no network manager\"}"))
+	}
+	defer r.Body.Close()
+
 }
 
 func handleGetNetworkInterfaces(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
