@@ -431,6 +431,7 @@ func (this *networkManagerInstance) SetInterfacesAsJson(data []byte) error {
 		return err
 	}
 
+	dirty := false
 	for _, config := range configs {
 		ok, problem := validateIfConfig(&config)
 		if !ok {
@@ -447,9 +448,14 @@ func (this *networkManagerInstance) SetInterfacesAsJson(data []byte) error {
 		if err != nil {
 			return err
 		}
+		dirty = true
 	}
 
-	return nil
+	if dirty {
+		return this.setupInterfaces()
+	} else {
+		return nil
+	}
 }
 
 func (this *networkManagerInstance) GetInterfacesAsJson(enabled_only bool, up_only bool) ([]byte, error) {
