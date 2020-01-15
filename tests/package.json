@@ -8,7 +8,9 @@
   },
   "author": "michael.ray@arm.com",
   "license": "Apache-2.0",
-  "dependencies": {},
+  "dependencies": {
+    "mustache": "^3.2.1"
+  },
   "devDependencies": {
     "mocha": "^6.2.2",
     "mochawesome": "^4.1.0",
