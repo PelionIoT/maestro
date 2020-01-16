@@ -30,16 +30,19 @@ module.exports = class Commands {
     {
         let devicedb_src = Commands.devicedb_src;
         return {
-            start_maestro: 'vagrant ssh -c "sudo maestro"',
+            start_maestro: 'vagrant ssh -c "sudo maestro 2>&1 | tee /tmp/maestro.log"',
             upload_vagrant: 'vagrant upload {{in_file}} {{out_file}}',
             kill_maestro: 'vagrant ssh -c "sudo pkill maestro"',
             check_dhcp: 'vagrant ssh -c "ps -aef | grep dhcp"',
             ip_addr: 'vagrant ssh -c "ip addr show eth"',
             ip_flush: 'vagrant ssh -c "sudo ip addr flush dev eth1; sudo ip addr flush dev eth2"',
             get_device_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
+            get_site_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/site_id"',
             send_maestro_config: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
             maestro_shell_get_iface: 'vagrant ssh -c "sudo curl -XGET --unix-socket /tmp/maestroapi.sock http:/net/interfaces"',
-            maestro_shell_put_iface: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:/net/interfaces -d \'{{payload}}\'"'
+            maestro_shell_put_iface: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:/net/interfaces -d \'{{payload}}\'"',
+            devicedb_commit: 'vagrant ssh -c \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG -value \'\\\'\'{"name":"vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG","body":"{\\\"config_commit\\\":true}"}\'\\\'',
+            devicedb_put_iface: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_ID -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh'
         };
     }
 
@@ -57,6 +60,11 @@ module.exports = class Commands {
     get_device_id(cb)
     {
         this.run_shell(Commands.list.get_device_id, cb);
+    }
+
+    get_site_id(cb)
+    {
+        this.run_shell(Commands.list.get_site_id, cb);
     }
 
     /**

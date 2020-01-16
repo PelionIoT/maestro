@@ -16,19 +16,19 @@ module.exports = class Config {
             devicedb_prefix: \"vagrant\"
             devicedb_bucket: \"lww\"
             relay_id: \"{{device_id}}\"
-            ca_chain: \"$DEVICEDB_SRC/hack/certs/myCA.pem\"
+            ca_chain: \"/home/vagrant/work/gostuff/src/github.com/armPelionEdge/devicedb/hack/certs/myCA.pem\"
         config_end: true`;
     }
 
     static get template_network_dhcp() {
         return `- if_name: {{interface_name}}
-                  existing: override
+                  existing: replace
                   dhcpv4: {{dhcp}}`;
     }
 
     static get template_network_static() {
         return `- if_name: {{interface_name}}
-                  existing: override
+                  existing: replace
                   dhcpv4: {{dhcp}}
                   ipv4_addr: {{ip_address}}
                   ipv4_mask: {{ip_mask}}`;
