@@ -68,6 +68,12 @@ echo "network:
           exists: replace
           dhcpv4: true
           hw_addr: \"{{ARCH_ETHERNET_MAC}}\"
+        - if_name: eth2
+          exists: replace
+          dhcpv4: false
+          ipv4_addr: 10.0.102.102
+          ipv4_mask: 24
+          hw_addr: \"{{ARCH_ETHERNET_MAC}}\"
 devicedb_conn_config:
     devicedb_uri: \"https://$DEVICE_ID:9090\"
     devicedb_prefix: \"vagrant\"
