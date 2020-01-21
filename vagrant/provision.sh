@@ -40,6 +40,65 @@ export EDGE_LOG_LEVEL=info
 export EDGE_CLIENT_CERT=$EDGE_CLIENT_RESOURCES/client.crt
 export EDGE_CLIENT_KEY=$EDGE_CLIENT_RESOURCES/client.key
 export EDGE_CLIENT_CA=$EDGE_CLIENT_RESOURCES/myCA.pem
+
+function site_id() { cat $DEVICEDB_SRC/hack/certs/site_id; }
+function relay_id() { cat $DEVICEDB_SRC/hack/certs/device_id; }
+
+# shorthand for 'devicedb cluster' which provides reasonable defaults
+function dc() {
+    local site=$(site_id)
+    local relay=$(relay_id)
+    local bucket=lww
+    local prefix=vagrant
+    local cmd=get_matches
+    local -a args=(cluster cmd)
+    while [ -n "$1" ]; do
+        shift_count=2
+        case "$1" in
+            -site)
+                site="$2"
+                ;;
+            -relay)
+                relay="$2"
+                ;;
+            -bucket)
+                bucket="$2"
+                ;;
+            -prefix)
+                prefix="$2"
+                ;;
+            -help)
+                args+=("$1")
+                shift_count=1
+                ;;
+            -*)
+                args+=("$1" "$2")
+                ;;
+            *)
+                cmd="$1"
+                args[1]="$cmd"
+                shift_count=1
+                ;;
+        esac
+        shift $shift_count
+    done
+    if [ "${args[2]}" != "-help" ]; then
+      case "$cmd" in
+        relay_status)
+            args+=(-site "$site" -relay "$relay")
+            ;;
+        get|put|delete)
+            args+=(-site "$site" -bucket "$bucket")
+            ;;
+        get_matches)
+            args+=(-site "$site" -bucket "$bucket" -prefix "$prefix")
+            ;;
+        *)  args+=(-site "$site")
+            ;;
+      esac
+    fi
+    devicedb "${args[@]}"
+}
 EOF
 . /etc/profile.d/envvars.sh
 
