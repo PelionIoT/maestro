@@ -20,7 +20,7 @@ cd $MAESTRO_SRC
 ./build-deps.sh
 
 # Apply maestro patch
-git am /tmp/0001-Fake-devicedb-running-on-local-machine.patch
+git am /tmp/0001-PATCH-Fake-devicedb-running-on-local-machine.patch
 
 # Build maestro
 DEBUG=1 DEBUG2=1 ./build.sh
