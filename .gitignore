@@ -27,3 +27,4 @@ _testmain.go
 .DS_Store
 
 .vagrant
+/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/libtest

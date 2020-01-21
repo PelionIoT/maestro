@@ -54,10 +54,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
-// https://gcc.gnu.org/onlinedocs/cpp/Stringification.html
-#define xstr(s) str(s)
-#define str(s) #s
+// Commented this out - whatever I was doing here... it was just wrong. Think it was before we 
+// went to C++11
+// https://gcc.gnu.org/onlinedocs/cpp/Stringification.html (link dead now)
+// #define xstr(s) str(s)
+// #define str(s) #s
 
 // concept from node.js src/node_constants.cc
 //#define _ERRCMN_DEFINE_CONSTANT(target, constant)

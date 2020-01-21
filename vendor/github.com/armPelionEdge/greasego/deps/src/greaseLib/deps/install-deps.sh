@@ -13,6 +13,7 @@ LOG=${DEPS_DIR}/../install_deps.log
 GPERF_DIR=${DEPS_DIR}/gperftools-2.4
 LIBUV_DIR=${DEPS_DIR}/libuv-v1.10.1
 LIBTW_DIR=${DEPS_DIR}/twlib
+GTEST_DIR=${DEPS_DIR}/googletest-release-1.10.0
 #PCRE_DIR=${DEPS_DIR}/pcre2-10.22  # not used
 #RE2_DIR=${DEPS_DIR}/re2-2017-01-01
 
@@ -31,6 +32,12 @@ elif [[ "$unamestr" == 'Darwin' ]]; then
 fi
 
 
+pushd $GTEST_DIR
+# remove it if it is there
+rm -rf $DEPS_DIR/build/include/gtest
+# copy the include files for gtest (all that is needed)
+cp -a googletest/include/gtest $DEPS_DIR/build/include
+popd
 
 pushd $GPERF_DIR
 touch $LOG
@@ -99,3 +106,5 @@ if [ ! -e TW ]; then
     ln -s ../../twlib/include/TW .
 fi
 popd
+
+cp -a 

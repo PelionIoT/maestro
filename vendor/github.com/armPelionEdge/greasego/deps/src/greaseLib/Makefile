@@ -107,6 +107,11 @@ standalone_test_logsink: CFLAGS+= -DGREASE_LIB -I./deps/$(LIBUVDIR)/include -I./
 standalone_test_logsink: getversion standalone_test_logsink.o libgrease.a
 	$(CXX) $(CXXFLAGS) $(CFLAGS) libgrease.a deps/build/lib/libuv.a deps/build/lib/libTW.a $(LDFLAGS) -lpthread -pthread  -o $@ 
 
+libtest: CFLAGS+= -DGREASE_LIB -I./deps/$(LIBUVDIR)/include -I./deps/twlib/include
+libtest: getversion libtest.o libgrease.a
+	$(CXX) $(CXXFLAGS) $(CFLAGS) libgrease.a deps/build/lib/libuv.a deps/build/lib/libTW.a $(LDFLAGS) -lpthread -pthread  -o $@ 
+
+
 grease_echo: CFLAGS+= -DGREASE_LIB -I./deps/$(LIBUVDIR)/include -I./deps/twlib/include
 grease_echo: $(OUTPUT_DIR)/grease_client.o $(OUTPUT_DIR)/grease_echo.o
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $^ -ldl -o $@ 
