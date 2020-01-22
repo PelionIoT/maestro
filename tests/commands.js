@@ -42,7 +42,8 @@ module.exports = class Commands {
             maestro_shell_get_iface: 'vagrant ssh -c "sudo curl -XGET --unix-socket /tmp/maestroapi.sock http:/net/interfaces"',
             maestro_shell_put_iface: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:/net/interfaces -d \'{{payload}}\'"',
             devicedb_commit: 'vagrant ssh -c \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG -value \'\\\'\'{"name":"vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG","body":"{\\\"config_commit\\\":true}"}\'\\\'',
-            devicedb_put_iface: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_ID -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh'
+            devicedb_put: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_ID -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh',
+            maestro_shell_put_log: 'vagrant ssh -c "echo \'N/A\'"'
         };
     }
 
@@ -133,6 +134,40 @@ module.exports = class Commands {
                 }.bind(this));
             }
         }.bind({ctx: this, done: done, cb: condition_cb}));
+    }
+
+    /**
+     * Run a deviceDB command to put the payload into devicedb edge
+     * @param {String} device_id - Device ID obtained from the gateway
+     * @param {String} site_id - Site ID obtained from the gateway
+     * @param {String} key - Key in the database to put the payload into
+     * @param {Object} payload - Javascript dictionary containing the payload to send to devicedb
+     * @param {callback} callback - Callback to run when the devicedb command is complete
+     **/
+    devicedb_command(device_id, site_id, key, payload, callback)
+    {
+        let body_string = JSON.stringify(payload);
+        // Create the master view
+        let view = {
+            name: "vagrant.{{relay_id}}." + key,
+            relay: "{{relay_id}}",
+            body: body_string                
+        };
+        let json_view = JSON.stringify(view);
+        // Formulate the command to send to devicedb
+        let command = Commands.list.devicedb_put;
+        command = command.replace('{{payload}}', json_view);
+        command = command.replace(/{{relay_id}}/g, device_id);
+        command = command.replace(/{{site_id}}/g, site_id);
+
+        this.run_shell(command, function(result) {
+
+            let command = Commands.list.devicedb_commit;
+            command = command.replace(/{{relay_id}}/g, this.device_id);
+            command = command.replace(/{{site_id}}/g, this.site_id);
+
+            this.ctx.run_shell(command, this.callback);
+        }.bind({ctx: this, device_id: device_id, site_id: site_id, callback: callback}));
     }
 
     /**
