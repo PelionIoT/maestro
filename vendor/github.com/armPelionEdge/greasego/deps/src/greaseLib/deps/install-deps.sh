@@ -18,7 +18,7 @@ GTEST_DIR=${DEPS_DIR}/googletest-release-1.10.0
 #RE2_DIR=${DEPS_DIR}/re2-2017-01-01
 
 rm -f $LOG
-mkdir -p ${DEPS_DIR}/build
+mkdir -p ${DEPS_DIR}/build/lib ${DEPS_DIR}/build/include
 
 
 platform='unknown'
@@ -37,6 +37,12 @@ pushd $GTEST_DIR
 rm -rf $DEPS_DIR/build/include/gtest
 # copy the include files for gtest (all that is needed)
 cp -a googletest/include/gtest $DEPS_DIR/build/include
+GTEST_GTEST_DIR=`pwd`
+mkdir buildgoogletest
+cd buildgoogletest
+cmake ${GTEST_GTEST_DIR}
+make
+cp lib/* $DEPS_DIR/build/lib
 popd
 
 pushd $GPERF_DIR

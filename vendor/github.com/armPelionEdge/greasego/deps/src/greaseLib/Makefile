@@ -47,8 +47,8 @@ include/TW/tw_dlist.h   include/TW/tw_llist.h    include/TW/tw_socktask.h    inc
 include/TW/tw_macros.h include/TW/tw_globals.h include/TW/tw_alloc.h include/TW/tw_sparsehash.h include/TW/tw_densehash.h\
 include/TW/tw_stringmap.h
 
-SRCS_CPP= error-common.cc logger.cc standalone_test_logsink.cc grease_lib.cc
-
+SRCS_CPP= error-common.cc logger.cc  grease_lib.cc 
+## standalone_test_logsink.cc libtest.cc
 SRCS_C= grease_client.c local_strdup.c
 OBJS= $(SRCS_CPP:%.cc=$(OUTPUT_DIR)/%.o) $(SRCS_C:%.c=$(OUTPUT_DIR)/%.o)
 OBJS_NAMES= $(SRCS_CPP:%.cc=$%.o) $(SRCS_C:%.c=%.o)
@@ -104,13 +104,12 @@ libgrease.a-server: getversion $(OBJS)
 
 
 standalone_test_logsink: CFLAGS+= -DGREASE_LIB -I./deps/$(LIBUVDIR)/include -I./deps/twlib/include
-standalone_test_logsink: getversion standalone_test_logsink.o libgrease.a
-	$(CXX) $(CXXFLAGS) $(CFLAGS) libgrease.a deps/build/lib/libuv.a deps/build/lib/libTW.a $(LDFLAGS) -lpthread -pthread  -o $@ 
+standalone_test_logsink: standalone_test_logsink.o getversion libgrease.a
+	$(CXX) $(CXXFLAGS) $(CFLAGS) $@.o libgrease.a deps/build/lib/libuv.a deps/build/lib/libTW.a $(LDFLAGS) -lpthread -pthread  -o $@ 
 
 libtest: CFLAGS+= -DGREASE_LIB -I./deps/$(LIBUVDIR)/include -I./deps/twlib/include
-libtest: getversion libtest.o libgrease.a
-	$(CXX) $(CXXFLAGS) $(CFLAGS) libgrease.a deps/build/lib/libuv.a deps/build/lib/libTW.a $(LDFLAGS) -lpthread -pthread  -o $@ 
-
+libtest: libtest.o getversion libgrease.a
+	$(CXX) $(CXXFLAGS) $(CFLAGS) $@.o libgrease.a deps/build/lib/libgtest.a deps/build/lib/libuv.a deps/build/lib/libTW.a $(LDFLAGS) -lpthread -pthread  -o $@ 
 
 grease_echo: CFLAGS+= -DGREASE_LIB -I./deps/$(LIBUVDIR)/include -I./deps/twlib/include
 grease_echo: $(OUTPUT_DIR)/grease_client.o $(OUTPUT_DIR)/grease_echo.o
