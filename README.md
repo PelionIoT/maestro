@@ -33,7 +33,11 @@ Maestro communicates to Pelion Cloud over https outbouund. It stores its config 
 
 If you are locally on a gateway / edge system using maestro, you should explore [maestro-shell](https://github.com/armPelionEdge/maestro-shell) which will let you interact with maestro directly using the local API.
 
-## Pre-Requisites
+## Developing Maestro
+
+Due to the large list of system services provided by Maestro, the recommended way to develop and test Maestro is in isolation using a virtual machine.  Running Maestro on your local dev box, while possible, would create a lot of headaches and running Maestro in Docker is not possible.  See the 'Why Vagrant?' section for additional info.
+
+### Pre-Requisites
 
 Install the following tools:
 
@@ -55,7 +59,7 @@ Maestro uses the `vagrant` for the following reasons:
 
 For more information as to how vagrant sets up the maestro environment, please read the README in the `vagrant` folder
 
-## Building
+### Building
 
 Start up the virtual machine. The very first time `vagrant up` is run, the VM will go through a provisioning phase.
 
@@ -71,15 +75,15 @@ Then build maestro and its dependencies. You can run this whenever you desire as
 vagrant ssh -c "build_maestro"
 ```
 
-## Running
+### Running
 
 ```bash
 vagrant ssh -c "sudo maestro"
 ```
 
-## Testing
+### Testing
 
-### Unit tests
+#### Unit tests
 
 Example of running a networking test:
 
@@ -91,7 +95,7 @@ cd networking # Open networking tests
 go test -v -run DhcpRequest # Run DhcpRequest test
 ```
 
-### System Tests
+#### System Tests
 
 On the host machine, run the following commands:
 Note: Make sure you had built using `vagrant up` and `vagrant ssh -c "build_maestro"` before running tests.
@@ -101,3 +105,23 @@ cd tests # Go to SysTests folder
 npm i # Only run once to download dependencies
 npm test # Run mocha test suite
 ```
+
+## Additional Features/Information
+
+### DeviceDB
+
+In order to test additional maestro functionality, the vagrant VM automatically installs and runs DeviceDB Edge and DeviceDB Cloud in the background. See [DeviceDB](https://github.com/armPelionEdge/devicedb) for more information.
+
+To view logs from DeviceDB Edge, run:
+```bash
+vagrant ssh
+sudo journalctl -u devicedb_edge
+```
+
+To view logs from DeviceDB Cloud, run:
+```bash
+vagrant ssh
+docker ps
+docker logs <container-id>"
+```
+Where `<container-id>` is the ID of the DeviceDB Server docker container that was shown in `docker ps`
