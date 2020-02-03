@@ -47,10 +47,12 @@
 	a different code path than short strings
 */
 
-
+int test_logger_started = 0;
+#define MAGIC_TEST_LOGGER_STARTED_CB 33
 
 void loggerStartedCB(GreaseLibError *, void *d) {
 	printf("Logger started.\n");
+	test_logger_started = MAGIC_TEST_LOGGER_STARTED_CB;
 }
 
 GreaseLibFilter *f1, *f2, *f3;
@@ -268,109 +270,129 @@ int createChild(const char* szCommand, char* const aArguments[], char* const aEn
 }
 
 
+namespace {
+	TEST(LibTest, BasicStartStop) {
 
-int main() {
-	GreaseLib_start(loggerStartedCB);
+		GreaseLib_start(loggerStartedCB);
 
-	printf("before sleep ... 5 seconds\n");
-	sleep(5);
-	printf("after sleep - setup sink\n");
+		EXPECT_EQ(test_logger_started, MAGIC_TEST_LOGGER_STARTED_CB) << "start callback failed";
 
-	GreaseLib_setupStandardLevels();
-	GreaseLib_setupStandardTags();
-	// test setting up a sink
-	GreaseLibSink *sink = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_UNIXDGRAM,"/tmp/testsocket");
-	GreaseLibSink *klog_sink = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_KLOG2,NULL);
+		printf("before sleep ... 5 seconds\n");
+		sleep(5);
+		printf("after sleep - setup sink\n");
 
-	// setup a file destination
-	GreaseLibTargetOpts *target = GreaseLib_new_GreaseLibTargetOpts();
+		GreaseLib_setupStandardLevels();
+		GreaseLib_setupStandardTags();
+		// test setting up a sink
+		GreaseLibSink *sink = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_UNIXDGRAM,"/tmp/testsocket");
+		GreaseLibSink *klog_sink = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_KLOG2,NULL);
 
-	char outFile[] = "/tmp/output.log";
+		// setup a file destination
+		GreaseLibTargetOpts *target = GreaseLib_new_GreaseLibTargetOpts();
 
-	target->file = outFile;
-	target->optsId = FILE_TARG_OPTID;
-	target->format_level = (char *) level_format;
-	target->format_level_len = strlen(level_format);
-	target->format_tag = (char *) tag_format;
-	target->format_tag_len = strlen(tag_format);
-	target->format_origin = (char *) origin_format;
-	target->format_origin_len = strlen(origin_format);
-	target->fileOpts = GreaseLib_new_GreaseLibTargetFileOpts();
-	f1 = GreaseLib_new_GreaseLibFilter();
+		char outFile[] = "/tmp/output.log";
 
-	GreaseLib_addTarget(targetAddCB, target);
+		target->file = outFile;
+		target->optsId = FILE_TARG_OPTID;
+		target->format_level = (char *) level_format;
+		target->format_level_len = strlen(level_format);
+		target->format_tag = (char *) tag_format;
+		target->format_tag_len = strlen(tag_format);
+		target->format_origin = (char *) origin_format;
+		target->format_origin_len = strlen(origin_format);
+		target->fileOpts = GreaseLib_new_GreaseLibTargetFileOpts();
+		f1 = GreaseLib_new_GreaseLibFilter();
 
-	f3 = GreaseLib_new_GreaseLibFilter();
+		GreaseLib_addTarget(targetAddCB, target);
 
-	// another target... will be ignored - since nothing if directed to it yet
-	GreaseLibTargetOpts *target2 = GreaseLib_new_GreaseLibTargetOpts();
+		f3 = GreaseLib_new_GreaseLibFilter();
 
-	target2->optsId = CALLBACK_TARG_OPTID;
-	target2->targetCB = targetCallback;
-	target2->num_banks = 10; // default is 4, let's make it
-	target2->format_level = (char *) level_format;
-	target2->format_level_len = strlen(level_format);
-	target2->format_tag = (char *) tag_format;
-	target2->format_tag_len = strlen(tag_format);
-	target2->format_origin = (char *) origin_format;
-	target2->format_origin_len = strlen(origin_format);
-	GreaseLib_set_flag_GreaseLibTargetOpts(target2,GREASE_JSON_ESCAPE_STRINGS);
-	GreaseLib_addTarget(targetAddCB, target2);
+		// another target... will be ignored - since nothing if directed to it yet
+		GreaseLibTargetOpts *target2 = GreaseLib_new_GreaseLibTargetOpts();
 
-	// an origin label for testing
-	const char *testLabel = "testLabel";
-	GreaseLib_addOriginLabel( 1055, testLabel, strlen(testLabel) );
+		target2->optsId = CALLBACK_TARG_OPTID;
+		target2->targetCB = targetCallback;
+		target2->num_banks = 10; // default is 4, let's make it
+		target2->format_level = (char *) level_format;
+		target2->format_level_len = strlen(level_format);
+		target2->format_tag = (char *) tag_format;
+		target2->format_tag_len = strlen(tag_format);
+		target2->format_origin = (char *) origin_format;
+		target2->format_origin_len = strlen(origin_format);
+		GreaseLib_set_flag_GreaseLibTargetOpts(target2,GREASE_JSON_ESCAPE_STRINGS);
+		GreaseLib_addTarget(targetAddCB, target2);
 
-	int ret;
+		// an origin label for testing
+		const char *testLabel = "testLabel";
+		GreaseLib_addOriginLabel( 1055, testLabel, strlen(testLabel) );
 
-	if((ret = GreaseLib_addSink(sink)) != GREASE_LIB_OK) {
-		printf("ERROR on addSink(): %d",ret);
+		int ret;
+
+		if((ret = GreaseLib_addSink(sink)) != GREASE_LIB_OK) {
+			ADD_FAILURE_AT(__FILE__,__LINE__) << "Failed on addSink()";
+			printf("ERROR on addSink(): %d",ret);
+			GreaseLib_cleanup_GreaseLibSink(sink);
+		}
+		if((ret = GreaseLib_addSink(klog_sink)) != GREASE_LIB_OK) {
+			ADD_FAILURE_AT(__FILE__,__LINE__) << "Failed on addSink() - klog";
+			printf("ERROR on addSink() - klog: %d",ret);
+			GreaseLib_cleanup_GreaseLibSink(klog_sink);
+		}
+		printf("after setup sink\n");
+
+
+		GreaseLibSink *sink2 = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_SYSLOGDGRAM,"/dev/log");
+
+		if((ret = GreaseLib_addSink(sink2)) != GREASE_LIB_OK) {
+			ADD_FAILURE_AT(__FILE__,__LINE__)  << "Failed on second addSink(): %d" << ret;
+			printf("ERROR on addSink(): %d",ret);
+			GreaseLib_cleanup_GreaseLibSink(sink2);
+		}
+		printf("after setup sink\n");
+
+
+		pthread_t printThreadId;
+		if(pthread_create(&printThreadId, NULL, printWork, NULL)) {
+			fprintf(stderr, "Error printWork thread\n");
+			ADD_FAILURE_AT(__FILE__,__LINE__) << "pthread_create failed.";
+		}
+
+		printf("Gonna exec a command in 5 seconds\n");
+		sleep(10);
+		printf("\nexec ls -al\n");
+		char *args[4];
+
+		args[0] = "/bin/ls";
+		args[1] = "-al";//"test-re.cc";
+		args[2] = NULL;
+		createChild("/bin/ls",args,NULL,NULL);
+
+		sleep(1);
+
+	#if 0
+		args[0] = "/home/ed/work/gostuff/bin/devicedb";
+		args[1] = "start";
+		args[2] = "-conf=/home/ed/work/gostuff/config.yaml";//"test-re.cc";
+		args[3] = NULL;
+		createChild("/home/ed/work/gostuff/bin/devicedb",args,NULL,NULL);
+	#endif
 		GreaseLib_cleanup_GreaseLibSink(sink);
-	}
-	if((ret = GreaseLib_addSink(klog_sink)) != GREASE_LIB_OK) {
-		printf("ERROR on addSink() - klog: %d",ret);
 		GreaseLib_cleanup_GreaseLibSink(klog_sink);
-	}
-	printf("after setup sink\n");
-
-
-	GreaseLibSink *sink2 = GreaseLib_new_GreaseLibSink(GREASE_LIB_SINK_SYSLOGDGRAM,"/dev/log");
-
-	if((ret = GreaseLib_addSink(sink2)) != GREASE_LIB_OK) {
-		printf("ERROR on addSink(): %d",ret);
 		GreaseLib_cleanup_GreaseLibSink(sink2);
+		printf("sleep over\n");
+		GreaseLib_shutdown(NULL);
+		GreaseLib_waitOnGreaseShutdown();
+
+
+
+
 	}
-	printf("after setup sink\n");
 
+}
 
-	pthread_t printThreadId;
-	if(pthread_create(&printThreadId, NULL, printWork, NULL)) {
-		fprintf(stderr, "Error printWork thread\n");
-	}
-
-	printf("Gonna exec a command in 5 seconds\n");
-	sleep(10);
-	printf("\nexec ls -al\n");
-	char *args[4];
-
-	args[0] = "/bin/ls";
-	args[1] = "-al";//"test-re.cc";
-	args[2] = NULL;
-	createChild("/bin/ls",args,NULL,NULL);
-
-	sleep(1);
-
-#if 0
-	args[0] = "/home/ed/work/gostuff/bin/devicedb";
-	args[1] = "start";
-	args[2] = "-conf=/home/ed/work/gostuff/config.yaml";//"test-re.cc";
-	args[3] = NULL;
-	createChild("/home/ed/work/gostuff/bin/devicedb",args,NULL,NULL);
-#endif
-	GreaseLib_cleanup_GreaseLibSink(sink);
-	GreaseLib_cleanup_GreaseLibSink(klog_sink);
-	GreaseLib_cleanup_GreaseLibSink(sink2);
-	printf("sleep over\n");
-	GreaseLib_shutdown(NULL);
-	GreaseLib_waitOnGreaseShutdown();
+GTEST_API_ int main(int argc, char **argv) {
+  printf("Running main() from %s\n", __FILE__);
+//  exit(1);
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
