@@ -11,6 +11,7 @@ Vagrant.configure("2") do |config|
   config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
   config.vm.provision :shell, path: "vagrant/provision.sh"
   config.vm.provision :reload
+  config.vm.provision "file", source: "vagrant/maestro.config", destination: "/tmp/maestro.config"
   config.vm.provision "file", source: "vagrant/build.sh", destination: "/tmp/build_maestro"
   config.vm.provision "shell", inline: "mv /tmp/build_maestro /usr/sbin/build_maestro; chmod +x /usr/sbin/build_maestro"
   config.vm.provision "file", source: "vagrant/docker-compose.yaml", destination: "/tmp/docker-compose.yaml"

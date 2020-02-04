@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 # Install prerequisite packages
+add-apt-repository ppa:rmescandon/yq
 apt-get update
-apt-get install -y build-essential python wget git nodejs npm m4 docker.io docker-compose uuid
+apt-get install -y build-essential python wget git nodejs npm m4 docker.io docker-compose uuid yq
 systemctl start docker
 systemctl enable docker
 
@@ -37,6 +38,7 @@ export EDGE_DATA_DIRECTORY=/var/lib/devicedb/data
 export EDGE_SNAP_DIRECTORY=/var/lib/devicedb/snapshots
 export EDGE_LISTEN_PORT=9090
 export EDGE_LOG_LEVEL=info
+export MAESTRO_CERTS=/var/lib/maestro/certs
 export EDGE_CLIENT_CERT=$EDGE_CLIENT_RESOURCES/client.crt
 export EDGE_CLIENT_KEY=$EDGE_CLIENT_RESOURCES/client.key
 export EDGE_CLIENT_CA=$EDGE_CLIENT_RESOURCES/myCA.pem
@@ -113,6 +115,8 @@ mkdir -p $EDGE_SNAP_DIRECTORY
 chmod 777 $EDGE_SNAP_DIRECTORY
 mkdir -p $EDGE_DATA_DIRECTORY
 chmod 777 $EDGE_DATA_DIRECTORY
+mkdir -p $MAESTRO_CERTS
+chmod 777 $MAESTRO_CERTS
 
 # Create a script to go to the maestro source and run maestro so maestro has access to its' configuration files
 # Allows a user to run 'sudo maestro' and have everything work out
