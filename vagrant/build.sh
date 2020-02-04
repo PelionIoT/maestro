@@ -30,7 +30,16 @@ DEBUG=1 DEBUG2=1 ./build.sh
 go get github.com/armPelionEdge/maestro-shell || true
 go install github.com/armPelionEdge/maestro-shell
 
+# Generate identity certificates to use to connect to Pelion
+cd $MAESTRO_SRC/..
+git clone git@github.com:armPelionEdge/edge-utils.git
+cd edge-utils/debug_scripts/get_new_gw_identity/developer_gateway_identity
+chmod +x generate_self_signed_certs.sh
+# TODO swap out ACCOUNTID and DEVICEID with real IDs, not fake ones
+OU=ACCOUNTID internalid=DEVICEID ./generate_self_signed_certs.sh $MAESTRO_CERTS
+
 # Import project devicedb
+cd $MAESTRO_SRC/..
 go get github.com/armPelionEdge/devicedb || true
 
 # Generate devicedb certs and identity file
@@ -62,24 +71,16 @@ else
 fi
 
 # Create maestro dummy config if config does not exist
-[ -f maestro.config ] || \
-echo "network:
-    interfaces:
-        - if_name: eth1
-          exists: replace
-          dhcpv4: true
-          hw_addr: \"{{ARCH_ETHERNET_MAC}}\"
-        - if_name: eth2
-          exists: replace
-          dhcpv4: false
-          ipv4_addr: 10.0.102.102
-          ipv4_mask: 24
-          hw_addr: \"{{ARCH_ETHERNET_MAC}}\"
-devicedb_conn_config:
-    devicedb_uri: \"https://$DEVICE_ID:9090\"
-    devicedb_prefix: \"vagrant\"
-    devicedb_bucket: \"lww\"
-    relay_id: \"$DEVICE_ID\"
-    ca_chain: \"$DEVICEDB_SRC/hack/certs/myCA.pem\"
-config_end: true
-" >> maestro.config
+if [ ! -f maestro.config ]; then
+    SYMPHONY_HOST="gateways.mbedcloudstaging.net"
+    SYMPHONY_CLIENT_CRT=$(cat $MAESTRO_CERTS/device_cert.pem)
+    SYMPHONY_CLIENT_KEY=$(cat $MAESTRO_CERTS/device_private_key.pem)
+
+    mv /tmp/maestro.config maestro.config
+    sed -i "s|{{DEVICE_ID}}|$DEVICE_ID|g" maestro.config
+    sed -i "s|{{DEVICEDB_SRC}}|$DEVICEDB_SRC|g" maestro.config
+
+    yq w -i maestro.config symphony.host -- "$SYMPHONY_HOST"
+    yq w -i maestro.config symphony.client_key -- "$SYMPHONY_CLIENT_KEY"
+    yq w -i maestro.config symphony.client_cert -- "$SYMPHONY_CLIENT_CRT"
+fi
