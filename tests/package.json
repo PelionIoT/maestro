@@ -9,11 +9,11 @@
   "author": "michael.ray@arm.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "mustache": "^3.2.1"
+    "shelljs": "^0.8.3",
+    "json2yaml": "^1.1.0"
   },
   "devDependencies": {
     "mocha": "^6.2.2",
-    "mochawesome": "^4.1.0",
-    "shelljs": "^0.8.3"
+    "mochawesome": "^4.1.0"
   }
 }
