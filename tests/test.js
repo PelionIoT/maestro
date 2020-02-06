@@ -1,9 +1,8 @@
 const assert = require('assert');
+const YAML = require('json2yaml');
 
-var Config = require('./config.js');
 var Commands = require('./commands.js');
 
-let maestro_config = new Config();
 let maestro_commands = new Commands();
 
 // Allow 30 seconds for the test to run, and provide 5 seconds for test cleanup
@@ -12,19 +11,9 @@ const timeout_cleanup = 10000;
 
 describe('Maestro Config', function() {
 
-    before(function(done) {
-        this.timeout(timeout_cleanup);
-        maestro_commands.get_device_id(function(device_id) {
-            this.ctx.device_id = device_id;
-            this.done();
-        }.bind({ctx: this, done: done}));
-    });
-
     afterEach(function(done) {
         this.timeout(timeout_cleanup);
-        maestro_commands.run_shell(Commands.list.kill_maestro, function() {
-            this.done();
-        }.bind({ctx: this, done: done}));
+        maestro_commands.run_shell(Commands.list.kill_maestro, done);
     });
 
     /**
@@ -34,98 +23,121 @@ describe('Maestro Config', function() {
 
         it('should enable DHCP for eth1 when specified in the configuration file provided to maestro', function(done) {
             this.timeout(timeout);
+            // Flush the IP table to get a clean slate
             maestro_commands.run_shell(Commands.list.ip_flush, null);
 
             // Create the config
             let view = {
-                device_id: this.device_id,
-                interfaces: [{interface_name: 'eth1', dhcp: true}]
+                network: {
+                    interfaces: [
+                        {if_name: 'eth1', existing: 'replace', dhcpv4: true}
+                    ],
+                }
             };
-            let config = maestro_config.render(view);
 
-            maestro_commands.maestro_workflow(config, done, function(data) {
-                return data.includes('DHCP') && data.includes('Lease acquired');
-            });
-        });
+            maestro_commands.maestro_workflow(YAML.stringify(view),
 
-        it('should now have a DHCP enabled IP address', function(done) {
-            this.timeout(timeout_cleanup);
-            maestro_commands.check_ip_addr(1, '172.28.128.', function(contains_ip) {
-                assert(contains_ip, 'Interface eth1 not set with an IP address prefixed with 172.28.128.xxx');
-                this.done();
-            }.bind({ctx: this, done: done}));
+                // Function to run when done with the workflow
+                function() {
+                    // Compare the IP address of the VM to verify maestro set the IP properly
+                    maestro_commands.check_ip_addr(1, '172.28.128.', function(contains_ip) {
+                        assert(contains_ip, 'Interface eth1 not set with an IP address prefixed with 172.28.128.xxx');
+                        this();
+                    }.bind(this));
+                }.bind(done),
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    // Compare the log to see if the DHCP lease was acquired
+                    return data.includes('DHCP') && data.includes('Lease acquired');
+                }
+            );
         });
 
         it('should disable DHCP for eth1 when specified in the configuration file provided to maestro', function(done) {
             this.timeout(timeout);
+            // Flush the IP table to get a clean slate
             maestro_commands.run_shell(Commands.list.ip_flush, null);
 
             // Create the config
             let view = {
-                device_id: this.device_id,
-                interfaces: [{interface_name: 'eth1', dhcp: false, ip_address: '10.123.123.123', ip_mask: 24}]
+                network: {
+                    interfaces: [
+                        {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.123.123.123', ip_mask: 24}
+                    ],
+                }
             };
-            let config = maestro_config.render(view);
 
-            maestro_commands.maestro_workflow(config, done, function(data) {
-                return data.includes('Static address set on eth1 of 10.123.123.123');
-            });
-        });
+            maestro_commands.maestro_workflow(YAML.stringify(view), 
 
-        it('should now have a static enabled IP address', function(done) {
-            this.timeout(timeout_cleanup);
-            maestro_commands.check_ip_addr(1, '10.123.123.123', function(contains_ip) {
-                assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
-                this.done();
-            }.bind({ctx: this, done: done}));
+                // Function to run when done with the workflow
+                function() {
+                    // Compare the IP address of the VM to verify maestro set the IP properly
+                    maestro_commands.check_ip_addr(1, '10.123.123.123', function(contains_ip) {
+                        assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
+                        this();
+                    }.bind(this));
+                }.bind(done),
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    // Compare the log to see if the DHCP lease was acquired
+                    return data.includes('Static address set on ' + this.if_name + ' of ' + this.ipv4_addr);
+                }.bind(view.network.interfaces[0])
+            );
         });
 
         it('should disable DHCP for eth1 and eth2 when specified in the configuration file provided to maestro', function(done) {
             this.timeout(timeout);
+            // Flush the IP table to get a clean slate
             maestro_commands.run_shell(Commands.list.ip_flush, null);
 
             // Create the config
             let view = {
-                device_id: this.device_id,
-                interfaces: [
-                    {interface_name: 'eth1', dhcp: false, ip_address: '10.123.123.123', ip_mask: 24},
-                    {interface_name: 'eth2', dhcp: false, ip_address: '10.123.123.124', ip_mask: 24}
-                ]
+                network: {
+                    interfaces: [
+                        {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
+                        {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
+                    ],
+                }
             };
-            let config = maestro_config.render(view);
 
-            maestro_commands.maestro_workflow(config, done, function(data) {
-                return data.includes('Static address set on eth1 of 10.123.123.123') || data.includes('Static address set on eth1 of 10.123.123.124');
-            });
-        });
+            maestro_commands.maestro_workflow(YAML.stringify(view),
 
-        it('should now have 2 static enabled IP addresses', function(done) {
-            this.timeout(timeout);
-            maestro_commands.check_ip_addr(1, '10.123.123.123', function(contains_ip) {
-                assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
-                maestro_commands.check_ip_addr(2, '10.123.123.124', function(contains_ip) {
-                    assert(contains_ip, 'Interface eth2 not set with IP address 10.123.123.124');
-                    this.done();
-                }.bind({ctx: this.ctx, done: this.done}));
-            }.bind({ctx: this, done: done}));
+                // Function to run when done with the workflow
+                function() {
+                    // Compare the IP address of the VM to verify maestro set the IP properly
+                    maestro_commands.check_ip_addr(1, this.interfaces[0].ipv4_addr, function(contains_ip) {
+                        assert(contains_ip, 'Interface ' + this.interfaces[0].if_name + ' not set with IP address ' + this.interfaces[0].ipv4_addr);
+                        // Compare the IP address of the VM to verify maestro set the IP properly
+                        maestro_commands.check_ip_addr(2, this.interfaces[1].ipv4_addr, function(contains_ip) {
+                            assert(contains_ip, 'Interface ' + this.interfaces[1].if_name + ' not set with IP address ' + this.interfaces[1].if_name);
+                            this.done();
+                        }.bind(this));
+                    }.bind(this));
+                }.bind({done: done, interfaces: view.network.interfaces}),
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    return data.includes('Static address set on ' + this[1].if_name + ' of ' + this[1].ipv4_addr);
+                }.bind(view.network.interfaces)
+            );
         });
 
         it('should disable DHCP when no networking configuration is specified in the configuration file provided to maestro', function(done) {
             this.timeout(timeout);
             this.skip(); // Currently doesn't support not having a network configuration
             maestro_commands.run_shell(Commands.list.ip_flush, null);
-            maestro_commands.maestro_workflow('config_end: true', done, function(data) {
-                return data.includes('Static address set on');
-            });
-        });
+            maestro_commands.maestro_workflow('config_end: true',
 
-        it('should now have a static enabled IP address', function(done) {
-            this.timeout(timeout_cleanup);
-            this.skip(); // Currently doesn't support not having a network configuration
-            maestro_commands.check_ip_addr(1, '10.123.123.123', function(contains_ip) {
-                assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
-                this.done();
-            }.bind({ctx: this, done: done}));
+                // Function to run when done with the workflow
+                done,
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    return data.includes('Static address set on');
+                }
+            );
         });
     });
 
@@ -164,29 +176,26 @@ describe('Maestro API', function() {
 
     before(function(done) {
         this.timeout(timeout);
+        // Flush the IP table to get a clean slate
         maestro_commands.run_shell(Commands.list.ip_flush, null);
-        maestro_commands.get_device_id(function(device_id) {
-            this.ctx.device_id = device_id;
-            assert.notEqual(this.ctx.device_id, '');
-            // Create the config
-            let view = {
-                device_id: device_id,
+
+        // Create the config
+        this.view = {
+            network: {
                 interfaces: [
-                    {interface_name: 'eth1', dhcp: false, ip_address: '10.123.123.123', ip_mask: 24},
-                    {interface_name: 'eth2', dhcp: false, ip_address: '10.123.123.124', ip_mask: 24}
+                    {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
+                    {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
                 ]
-            };
-            let config = maestro_config.render(view);
-            maestro_commands.maestro_workflow(config, null, null);
-            setTimeout(this.done, 5000);
-        }.bind({ctx: this, done: done}));
+            }
+        };
+
+        maestro_commands.maestro_workflow(YAML.stringify(this.view), null, null);
+        setTimeout(done, 5000);
     });
 
     after(function(done) {
         this.timeout(timeout_cleanup);
-        maestro_commands.run_shell(Commands.list.kill_maestro, function() {
-            this.done();
-        }.bind({ctx: this, done: done}));
+        maestro_commands.run_shell(Commands.list.kill_maestro, done);
     });
 
     /**
@@ -198,14 +207,18 @@ describe('Maestro API', function() {
             this.done = done;
             maestro_commands.run_shell(Commands.list.maestro_shell_get_iface, function(active_iface) {
                 let active_config = JSON.parse(active_iface);
-                var eth1Array = active_config.filter(function (el) {
-                    return el.StoredIfconfig.if_name === 'eth1';
-                });
-                assert.equal(eth1Array[0].StoredIfconfig.ipv4_addr, '10.123.123.123');
-                var eth2Array = active_config.filter(function (el) {
-                    return el.StoredIfconfig.if_name === 'eth2';
-                });
-                assert.equal(eth2Array[0].StoredIfconfig.ipv4_addr, '10.123.123.124');
+
+                let iface_arr = this.view.network.interfaces;
+                // Loop through all the interfaces and verify they match the active maestro.config
+                for (var interface in iface_arr) {
+                    // Look for the specific interface
+                    let filtered_arr = active_config.filter(function (el) {
+                        return el.StoredIfconfig.if_name === this.if_name;
+                    }.bind(iface_arr[interface]));
+                    // Check the IP address
+                    assert.equal(filtered_arr[0].StoredIfconfig.ipv4_addr, iface_arr[interface].ipv4_addr);
+                }
+
                 this.done();
             }.bind(this));
         });
@@ -268,52 +281,48 @@ function devicedb_set_ip_address(ctx, interface, ip_address)
     }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
 }
 
-function devicedb_set_logging(ctx, type)
-{
-    // Base view but needs to contain ALL of the interfaces
-    let body = {
-        //TODO insert command body here
-    };
-
-    let key = ''; //TODO insert devicedb key here
-    maestro_commands.devicedb_command(ctx.device_id, ctx.site_id, key, body, function(output) {
-        setTimeout(function() {
-            //TODO Insert verification function here
-        }.bind(this), 5000);
-    }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
-}
-
 describe('DeviceDB', function() {
 
     before(function(done) {
         this.timeout(timeout);
+        this.done = done;
+        // Flush the IP table to get a clean slate
         maestro_commands.run_shell(Commands.list.ip_flush, null);
 
+        // Get the site ID to connect to devicedb properly
         maestro_commands.get_site_id(function(site_id) {
-            this.ctx.site_id = site_id;
+            this.site_id = site_id;
 
+            // Get the relay ID to connect to devicedb properly
             maestro_commands.get_device_id(function(device_id) {
-                this.ctx.device_id = device_id;
+                this.device_id = device_id;
+
                 // Create the config
                 let view = {
-                    device_id: device_id,
-                    interfaces: [
-                        {interface_name: 'eth1', dhcp: false, ip_address: '10.123.123.123', ip_mask: 24},
-                        {interface_name: 'eth2', dhcp: false, ip_address: '10.124.124.124', ip_mask: 24}
-                    ]
+                    network: {
+                        interfaces: [
+                            {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.77.77.77', ip_mask: 24},
+                            {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.66.66.66', ip_mask: 24}
+                        ]
+                    },
+                    devicedb_conn_config: {
+                        devicedb_uri: 'https://' + device_id + ':9090',
+                        devicedb_prefix: 'vagrant',
+                        devicedb_bucket: 'lww',
+                        relay_id: device_id,
+                        ca_chain: Commands.devicedb_src + '/hack/certs/myCA.pem'
+                    }
                 };
-                let config = maestro_config.render(view);
-                maestro_commands.maestro_workflow(config, null, null);
+
+                maestro_commands.maestro_workflow(YAML.stringify(view), null, null);
                 setTimeout(this.done, 15000);
             }.bind(this));
-        }.bind({ctx: this, done: done}));
+        }.bind(this));
     });
 
     after(function(done) {
         this.timeout(timeout_cleanup);
-        maestro_commands.run_shell(Commands.list.kill_maestro, function() {
-            this.done();
-        }.bind({ctx: this, done: done}));
+        maestro_commands.run_shell(Commands.list.kill_maestro, done);
     });
 
     /**
