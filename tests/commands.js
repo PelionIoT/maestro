@@ -34,7 +34,7 @@ module.exports = class Commands {
             upload_vagrant: 'vagrant upload {{in_file}} {{out_file}}',
             kill_maestro: 'vagrant ssh -c "sudo pkill maestro"',
             check_dhcp: 'vagrant ssh -c "ps -aef | grep dhcp"',
-            ip_addr: 'vagrant ssh -c "ip addr show eth"',
+            ip_addr: 'vagrant ssh -c "ip addr show {{interface}}"',
             ip_flush: 'vagrant ssh -c "sudo ip addr flush dev eth1; sudo ip addr flush dev eth2"',
             get_device_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
             get_site_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/site_id"',
@@ -75,7 +75,8 @@ module.exports = class Commands {
      **/
     check_ip_addr(iface, ip, cb)
     {
-        this.run_shell(Commands.list.ip_addr + iface, function(stdout) {
+        let command = Commands.list.ip_addr.replace('{{interface}}', iface);
+        this.run_shell(command, function(stdout) {
             let arr = stdout.split('\n');
             for (var i in arr) {
                 let line = arr[i].trim();
