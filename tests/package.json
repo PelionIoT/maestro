@@ -9,8 +9,9 @@
   "author": "michael.ray@arm.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "shelljs": "^0.8.3",
-    "json2yaml": "^1.1.0"
+    "async": "^3.1.1",
+    "json2yaml": "^1.1.0",
+    "shelljs": "^0.8.3"
   },
   "devDependencies": {
     "mocha": "^6.2.2",

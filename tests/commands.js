@@ -3,6 +3,7 @@
 const shell = require('shelljs');
 const fs = require('fs');
 const assert = require('assert');
+var async = require('async');
 
 module.exports = class Commands {
 
@@ -14,6 +15,11 @@ module.exports = class Commands {
     static get devicedb_src()
     {
         return '/home/vagrant/work/gostuff/src/github.com/armPelionEdge/devicedb';
+    }
+
+    static get maestro_certs()
+    {
+        return '/var/lib/maestro/certs';
     }
 
     static get go_bin()
@@ -29,6 +35,7 @@ module.exports = class Commands {
     static get list()
     {
         let devicedb_src = Commands.devicedb_src;
+        let maestro_certs = Commands.maestro_certs;
         return {
             start_maestro: 'vagrant ssh -c "sudo maestro 2>&1 | tee /tmp/maestro.log"',
             upload_vagrant: 'vagrant upload {{in_file}} {{out_file}}',
@@ -39,11 +46,18 @@ module.exports = class Commands {
             get_device_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
             get_site_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/site_id"',
             send_maestro_config: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
+            check_file_existence: 'vagrant ssh -c "sudo ls {{filename}}"',
+            remove_logs: 'vagrant ssh -c "sudo rm -rf {{filename}}"',
+
+            maestro_identity_get_cert: 'vagrant ssh -c "cat ' + maestro_certs + '/device_cert.pem"',
+            maestro_identity_get_key: 'vagrant ssh -c "cat ' + maestro_certs + '/device_private_key.pem"',
+
             maestro_shell_get_iface: 'vagrant ssh -c "sudo curl -XGET --unix-socket /tmp/maestroapi.sock http:/net/interfaces"',
             maestro_shell_put_iface: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:/net/interfaces -d \'{{payload}}\'"',
+            maestro_shell_put_log: 'vagrant ssh -c "echo \'N/A\'"',
+
             devicedb_commit: 'vagrant ssh -c \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG -value \'\\\'\'{"name":"vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG","body":"{\\\"config_commit\\\":true}"}\'\\\'',
-            devicedb_put: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_ID -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh',
-            maestro_shell_put_log: 'vagrant ssh -c "echo \'N/A\'"'
+            devicedb_put: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_ID -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh'
         };
     }
 
@@ -55,6 +69,16 @@ module.exports = class Commands {
         shell.exec(command, {silent: true}, function(code, stdout, stderr) {
             if (this.cb)
                 this.cb(stdout.trim());
+        }.bind({ctx: this, cb: cb}));
+    }
+
+    get_certs(cb)
+    {
+        this.run_shell(Commands.list.maestro_identity_get_key, function(result) {
+            this.ctx.run_shell(Commands.list.maestro_identity_get_cert, function(result) {
+                let output = {key: this.key.replace(/\\r/g, ''), cert: result.replace(/\\r/g, '')};
+                this.cb(output);
+            }.bind({ctx: this.ctx, cb: this.cb, key: result}));
         }.bind({ctx: this, cb: cb}));
     }
 
@@ -88,6 +112,19 @@ module.exports = class Commands {
             }
             this.cb(false);
         }.bind({ctx: this, cb: cb}));
+    }
+
+    check_log_existence(filenames, done)
+    {
+        async.eachSeries(filenames, function(key, next) {
+            let command = Commands.list.check_file_existence.replace('{{filename}}', key);
+            this.run_shell(command, function(stdout) {
+                assert.equal(stdout, this.filename);
+                if (!stdout.includes(this.filename))
+                    this.next('File not found');
+                this.next();
+            }.bind({next: next, filename: key}));
+        }.bind(this), done);
     }
 
     /**
