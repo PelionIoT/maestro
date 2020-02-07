@@ -43,11 +43,20 @@ Install the following tools:
 
 * [vagrant](https://www.vagrantup.com/) (version 2.2.6)
 * [virtualbox](https://www.virtualbox.org/) (version 6.0)
+* [git bash](https://git-scm.com/downloads) (on windows only)
+
+**NOTE** - 
+_For the following instructions to work correctly on **Windows 10** you must install the latest version of **Git** and use **Git Bash** instead of **Windows CLI** to issue the commands._
 
 Install Vagrant plugins. `vagrant-reload` is a plugin that allows vagrant to reboot a VM during provisioning. This is needed to reboot the vagrant VM while setting up required network interfaces.
 
 ```bash
 vagrant plugin install vagrant-reload
+```
+
+**On Windows** use Git Bash to turn off Windows line conversions to protect the Linux scripts with the following command:
+```bash
+git config --global core.autocrlf false
 ```
 
 ### Why Vagrant?
@@ -69,16 +78,32 @@ cd maestro
 vagrant up
 ```
 
+On Windows also do the following:
+```bash
+VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "chmod 400 ~/.ssh/id_rsa"
+```
+
 Then build maestro and its dependencies. You can run this whenever you desire as long as the VM is online
 
+On Linux or Mac:
 ```bash
 vagrant ssh -c "build_maestro"
+```
+On Windows:
+```bash
+VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "build_maestro"
 ```
 
 ### Running
 
+On Linux or Mac:
 ```bash
 vagrant ssh -c "sudo maestro"
+```
+
+On Windows:
+```bash
+VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "sudo maestro"
 ```
 
 ### Testing
