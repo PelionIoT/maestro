@@ -40,7 +40,7 @@ describe('Maestro Config', function() {
                 // Function to run when done with the workflow
                 function() {
                     // Compare the IP address of the VM to verify maestro set the IP properly
-                    maestro_commands.check_ip_addr(1, '172.28.128.', function(contains_ip) {
+                    maestro_commands.check_ip_addr('eth1', '172.28.128.', function(contains_ip) {
                         assert(contains_ip, 'Interface eth1 not set with an IP address prefixed with 172.28.128.xxx');
                         this();
                     }.bind(this));
@@ -73,7 +73,7 @@ describe('Maestro Config', function() {
                 // Function to run when done with the workflow
                 function() {
                     // Compare the IP address of the VM to verify maestro set the IP properly
-                    maestro_commands.check_ip_addr(1, '10.123.123.123', function(contains_ip) {
+                    maestro_commands.check_ip_addr('eth1', '10.123.123.123', function(contains_ip) {
                         assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
                         this();
                     }.bind(this));
@@ -107,10 +107,10 @@ describe('Maestro Config', function() {
                 // Function to run when done with the workflow
                 function() {
                     // Compare the IP address of the VM to verify maestro set the IP properly
-                    maestro_commands.check_ip_addr(1, this.interfaces[0].ipv4_addr, function(contains_ip) {
+                    maestro_commands.check_ip_addr('eth1', this.interfaces[0].ipv4_addr, function(contains_ip) {
                         assert(contains_ip, 'Interface ' + this.interfaces[0].if_name + ' not set with IP address ' + this.interfaces[0].ipv4_addr);
                         // Compare the IP address of the VM to verify maestro set the IP properly
-                        maestro_commands.check_ip_addr(2, this.interfaces[1].ipv4_addr, function(contains_ip) {
+                        maestro_commands.check_ip_addr('eth2', this.interfaces[1].ipv4_addr, function(contains_ip) {
                             assert(contains_ip, 'Interface ' + this.interfaces[1].if_name + ' not set with IP address ' + this.interfaces[1].if_name);
                             this.done();
                         }.bind(this));
@@ -153,7 +153,7 @@ function maestro_api_set_ip_address(ctx, interface, ip_address)
 {
     let view = [{
         dhcpv4: false,
-        if_name: "eth" + interface,
+        if_name: interface,
         ipv4_addr: ip_address,
         ipv4_mask: 24,
         clear_addresses: true
@@ -166,7 +166,7 @@ function maestro_api_set_ip_address(ctx, interface, ip_address)
 
     maestro_commands.run_shell(command, function(result) {
         maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
-            assert(contains_ip, 'Interface eth' + this.interface + ' not set with IP address ' + this.ip_address);
+            assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
             this.ctx.done();
         }.bind(this));
     }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
@@ -226,13 +226,13 @@ describe('Maestro API', function() {
         it('should change the IP address of the first network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            maestro_api_set_ip_address(this, 1, '10.234.234.234');
+            maestro_api_set_ip_address(this, 'eth1', '10.234.234.234');
         });
 
         it('should change the IP address of the second network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            maestro_api_set_ip_address(this, 2, '10.229.229.229');
+            maestro_api_set_ip_address(this, 'eth2', '10.229.229.229');
         });
     });
 
@@ -273,7 +273,7 @@ function devicedb_set_ip_address(ctx, interface, ip_address)
     let key = 'MAESTRO_NETWORK_CONFIG_ID';
     maestro_commands.devicedb_command(ctx.device_id, ctx.site_id, key, body, function(output) {
         setTimeout(function() {
-            maestro_commands.check_ip_addr(parseInt(this.interface.replace('eth', '')), this.ip_address, function(contains_ip) {
+            maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
                 assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
                 this.ctx.done();
             }.bind(this));
