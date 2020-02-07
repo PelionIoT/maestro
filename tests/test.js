@@ -32,7 +32,8 @@ describe('Maestro Config', function() {
                     interfaces: [
                         {if_name: 'eth1', existing: 'replace', dhcpv4: true}
                     ],
-                }
+                },
+                config_end: true
             };
 
             maestro_commands.maestro_workflow(YAML.stringify(view),
@@ -65,7 +66,8 @@ describe('Maestro Config', function() {
                     interfaces: [
                         {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.123.123.123', ip_mask: 24}
                     ],
-                }
+                },
+                config_end: true
             };
 
             maestro_commands.maestro_workflow(YAML.stringify(view), 
@@ -99,7 +101,8 @@ describe('Maestro Config', function() {
                         {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
                         {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
                     ],
-                }
+                },
+                config_end: true
             };
 
             maestro_commands.maestro_workflow(YAML.stringify(view),
@@ -186,7 +189,8 @@ describe('Maestro API', function() {
                     {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
                     {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
                 ]
-            }
+            },
+            config_end: true
         };
 
         maestro_commands.maestro_workflow(YAML.stringify(this.view), null, null);
@@ -311,7 +315,8 @@ describe('DeviceDB', function() {
                         devicedb_bucket: 'lww',
                         relay_id: device_id,
                         ca_chain: Commands.devicedb_src + '/hack/certs/myCA.pem'
-                    }
+                    },
+                    config_end: true
                 };
 
                 maestro_commands.maestro_workflow(YAML.stringify(view), null, null);
