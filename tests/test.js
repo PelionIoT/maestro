@@ -149,6 +149,110 @@ describe('Maestro Config', function() {
      **/
     describe('Logging', function() {
 
+        before(function(done) {
+            this.timeout(timeout);
+            this.done = done;
+
+            // Get the site ID to connect to devicedb properly
+            maestro_commands.get_certs(function(certs) {
+                this.certs = certs;
+                this.done();
+            }.bind(this));
+        });
+
+        beforeEach(function(done) {
+            this.timeout(timeout);
+
+            let command = Commands.list.remove_logs.replace('{{filename}}', '/var/log/maestro/maestro.log*');
+            maestro_commands.run_shell(command, done);
+        });
+
+        it('should enable symphony and cloud logging', function(done) {
+            this.timeout(timeout);
+
+            // Create the config
+            let view = {
+                network: {
+                    interfaces: [
+                        {if_name: 'eth1', existing: 'replace', dhcpv4: true}
+                    ],
+                },
+                sys_stats: {
+                    vm_stats: {every: '15s', name: 'vm'},
+                    disk_stats: {every: '15s', name: 'disk'}
+                },
+                symphony: {
+                    sys_stats_count_threshold: 15,
+                    sys_stats_time_threshold: 120000,
+                    client_cert: this.certs.cert,
+                    client_key: this.certs.key,
+                    host: 'gateways.mbedcloudstaging.net'
+                },
+                targets: [
+                    {name: 'toCloud', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'all'}]}
+                ],
+                config_end: true
+            };
+
+            maestro_commands.maestro_workflow(YAML.stringify(view),
+
+                // Function to run when done with the workflow
+                done,
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    // Compare the log to see if the DHCP lease was acquired
+                    return data.includes('RMI client workers started');
+                }
+            );
+        });
+
+        it('should enable file logging with 2 files to rotate', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+
+            // Create the config
+            let view = {
+                network: {
+                    interfaces: [
+                        {if_name: 'eth1', existing: 'replace', dhcpv4: true}
+                    ],
+                },
+                sys_stats: {
+                    vm_stats: {every: '15s', name: 'vm'},
+                    disk_stats: {every: '15s', name: 'disk'}
+                },
+                targets: [
+                    {
+                        file: '/var/log/maestro/maestro.log',
+                        format_time: "\"timestamp\":%ld%03d, ",
+                        filters: [{levels: 'all'}],
+                        rotate: {
+                            max_files: 2,
+                            max_file_size: 1000000,
+                            max_total_size: 2200000,
+                            rotate_on_start: true
+                        }
+                    }
+                ],
+                config_end: true
+            };
+
+            maestro_commands.maestro_workflow(YAML.stringify(view),
+
+                // Function to run when done with the workflow
+                function() {
+                    maestro_commands.check_log_existence(['/var/log/maestro/maestro.log'], this);
+                }.bind(done),
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    // Compare the log to see if the DHCP lease was acquired
+                    return data.includes('Needs rotate...');
+                }.bind(view.targets[0].file)
+            );
+        });
+
     });
 });
 
@@ -192,7 +296,6 @@ describe('Maestro API', function() {
             },
             config_end: true
         };
-
         maestro_commands.maestro_workflow(YAML.stringify(this.view), null, null);
         setTimeout(done, 5000);
     });

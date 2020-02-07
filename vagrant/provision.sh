@@ -39,6 +39,7 @@ export EDGE_SNAP_DIRECTORY=/var/lib/devicedb/snapshots
 export EDGE_LISTEN_PORT=9090
 export EDGE_LOG_LEVEL=info
 export MAESTRO_CERTS=/var/lib/maestro/certs
+export MAESTRO_LOGS=/var/log/maestro
 export EDGE_CLIENT_CERT=$EDGE_CLIENT_RESOURCES/client.crt
 export EDGE_CLIENT_KEY=$EDGE_CLIENT_RESOURCES/client.key
 export EDGE_CLIENT_CA=$EDGE_CLIENT_RESOURCES/myCA.pem
@@ -117,6 +118,8 @@ mkdir -p $EDGE_DATA_DIRECTORY
 chmod 777 $EDGE_DATA_DIRECTORY
 mkdir -p $MAESTRO_CERTS
 chmod 777 $MAESTRO_CERTS
+mkdir -p $MAESTRO_LOGS
+chmod 777 $MAESTRO_LOGS
 
 # Create a script to go to the maestro source and run maestro so maestro has access to its' configuration files
 # Allows a user to run 'sudo maestro' and have everything work out
