@@ -42,7 +42,7 @@ cd $SELF/deps/src
 
 GREASE_LIB="greaseLib"
 GREASE_LIB_REPO="https://github.com/armPelionEdge/greaseLib.git"
-GREASE_LIB_BRANCH="memory_leak"
+GREASE_LIB_BRANCH="master"
 
 echo ">>>>>>>>> Getting greaselib repo: $GREASE_LIB_REPO @branch $GREASE_LIB_BRANCH"
 if [ ! -d $GREASE_LIB ]; then
