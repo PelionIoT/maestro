@@ -391,17 +391,21 @@ function devicedb_set_ip_address(ctx, interface, ip_address)
 describe('DeviceDB', function() {
 
     before(function(done) {
-        this.timeout(timeout);
+        this.timeout(timeout * 2);
         this.done = done;
         // Flush the IP table to get a clean slate
         maestro_commands.run_shell(Commands.list.ip_flush, null);
 
         // Get the site ID to connect to devicedb properly
         maestro_commands.get_site_id(function(site_id) {
+            // Check for invalid site IDs
+            assert.notEqual(site_id, '', 'Site ID not obtained!');
             this.site_id = site_id;
 
             // Get the relay ID to connect to devicedb properly
             maestro_commands.get_device_id(function(device_id) {
+                // Check for invalid site IDs
+                assert.notEqual(device_id, '', 'Device/Relay ID not obtained!');
                 this.device_id = device_id;
 
                 // Create the config
@@ -423,7 +427,7 @@ describe('DeviceDB', function() {
                 };
 
                 maestro_commands.maestro_workflow(YAML.stringify(view), null, null);
-                setTimeout(this.done, 15000);
+                setTimeout(this.done, timeout);
             }.bind(this));
         }.bind(this));
     });
