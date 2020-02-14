@@ -57,7 +57,7 @@ type LogTarget struct {
 	FormatOrigin             string                           `yaml:"format_origin,omitempty" greaseAssign:"Format_origin"`
 	FormatPost               string                           `yaml:"format_post,omitempty" greaseAssign:"Format_post"`
 	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" greaseAssign:"Format_pre_msg"`
-	Name                     string                           `yaml:"name,omitempty"`
+	Name                     string                           `yaml:"name,omitempty" greaseAssign:"Name"`
 	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings"`
 }
 
