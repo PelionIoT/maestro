@@ -1072,6 +1072,34 @@ LIB_METHOD_SYNC(addFilter,GreaseLibFilter *filter) {
 
 }
 
+LIB_METHOD_SYNC(modifyFilter, GreaseLibFilter *filter) {
+	if (!filter) {
+		return GREASE_INVALID_PARAMS;
+	}
+
+	GreaseLogger *l = GreaseLogger::setupClass();
+
+	GreaseLogger::logLabel *preFormat = NULL;
+	GreaseLogger::logLabel *postFormat = NULL;
+	GreaseLogger::logLabel *postFormatPreMsg = NULL;
+
+	if (filter->format_post) {
+		postFormat = GreaseLogger::logLabel::fromUTF8(filter->format_post, filter->format_post_len);
+	}
+	if (filter->format_pre) {
+		preFormat = GreaseLogger::logLabel::fromUTF8(filter->format_pre, filter->format_pre_len);
+	}
+	if (filter->format_post_pre_msg) {
+		postFormatPreMsg = GreaseLogger::logLabel::fromUTF8(filter->format_post_pre_msg, filter->format_post_pre_msg_len);
+	}
+
+	if (l->_modifyFilter(filter->origin, filter->tag, filter->id, filter->mask, preFormat, postFormatPreMsg, postFormat)) {
+		return GREASE_LIB_OK;
+	} else {
+		return GREASE_LIB_NOT_FOUND;
+	}
+}
+
 LIB_METHOD_SYNC(disableFilter,GreaseLibFilter *filter) {
 	GreaseLogger *l = GreaseLogger::setupClass();
 	GreaseLogger::Filter *found = NULL;
@@ -1091,6 +1119,17 @@ LIB_METHOD_SYNC(enableFilter,GreaseLibFilter *filter) {
 
 	if(l->_lookupFilter(filter->origin,filter->tag,filter->id,found)) {
 		found->_disabled = false;
+		return GREASE_LIB_OK;
+	} else {
+		return GREASE_LIB_NOT_FOUND;
+	}
+}
+
+LIB_METHOD_SYNC(deleteFilter,GreaseLibFilter *filter) {
+	GreaseLogger *l = GreaseLogger::setupClass();
+	GreaseLogger::Filter *found = NULL;
+
+	if (l->_deleteFilter(filter->origin, filter->tag, filter->id)) {
 		return GREASE_LIB_OK;
 	} else {
 		return GREASE_LIB_NOT_FOUND;
