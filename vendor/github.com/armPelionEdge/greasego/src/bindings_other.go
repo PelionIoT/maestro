@@ -812,6 +812,13 @@ func DisableFilter(opts *GreaseLibFilter) int {
 func EnableFilter(opts *GreaseLibFilter) int {
 	return int(C.GreaseLib_enableFilter(&opts._binding))
 }
+func ModifyFilter(opts *GreaseLibFilter) int {
+	convertFilterToCGreaseLib(opts)
+	return int(C.GreaseLib_modifyFilter(&opts._binding))
+}
+func DeleteFilter(opts *GreaseLibFilter) int {
+	return int(C.GreaseLib_deleteFilter(&opts._binding))
+}
 
 const GREASE_LIB_SINK_UNIXDGRAM uint32 = 0x1
 const GREASE_LIB_SINK_PIPE uint32 = 0x2
