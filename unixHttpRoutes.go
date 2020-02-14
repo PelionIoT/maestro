@@ -85,6 +85,8 @@ func AddProcessRoutes(router *httprouter.Router) {
 
 	router.PUT("/log/filter", handlePutLogFilter)
 
+	router.PUT("/log/target", handlePutLogTarget)
+
 	router.GET("/alive", handleAlive)
 
 	router.POST("/reboot", handleReboot)
@@ -177,6 +179,36 @@ func handlePutLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
 		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func handlePutLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		return
+	}
+
+	targetConfigs := make([]maestroSpecs.LogTarget, 0)
+	err = json.Unmarshal(body, &targetConfigs)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		return
+	}
+
+	for _, target := range targetConfigs {
+		for _, filter := range target.Filters {
+			err = processPutLogFilter(filter)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+				return
+			}
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
