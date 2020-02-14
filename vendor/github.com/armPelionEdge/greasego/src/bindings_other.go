@@ -184,6 +184,7 @@ type GreaseLibTargetCB func(err *GreaseError, data *TargetCallbackData)
 
 // used temporarily when waiting for the callback when we call AddTarget
 type addTargetCallbackData struct {
+	targetName  string
 	addTargetCB GreaseLibAddTargetCB
 	targetCB    GreaseLibTargetCB
 }
@@ -337,6 +338,12 @@ func findTypeByTag(tag string, in interface{}) reflect.Type {
 		}
 	}
 	return nil
+}
+
+// return value = 0 means the target name doesn't exist
+// return value > 0 is the ID of the target
+func GetTargetId(name string) uint32 {
+	return TargetMap[name]
 }
 
 func SetSelfOriginLabel(label string) {
@@ -612,6 +619,9 @@ func do_addTargetCB(err *C.GreaseLibError, info *C.GreaseLibStartedTargetInfo) {
 		data := addTargetCallbackMap[optsid]
 		addTargetCallbackMapMutex.Unlock()
 
+		// save the TargetInfo into the TargetMap
+		TargetMap[data.targetName] = uint32(info.targId)
+
 		if data.targetCB != nil { // assign the target callback, if one is provided
 			targetCallbackMapMutex.Lock()
 			targetCallbackMap[uint32(info.targId)] = data.targetCB
@@ -697,6 +707,18 @@ func AddTarget(opts *GreaseLibTargetOpts, cb GreaseLibAddTargetCB) {
 	// opts._binding.optsId = C.int(optid) // that ID needs to be unique amongst threads
 
 	dat := new(addTargetCallbackData)
+
+	if opts.Name != nil {
+		dat.targetName = *opts.Name
+	} else if opts.File != nil {
+		dat.targetName = *opts.File
+	} else if opts.TTY != nil {
+		dat.targetName = *opts.TTY
+	} else {
+		DEBUG(fmt.Println("WARN: Missing target name, so creating a default name"))
+		dat.targetName = fmt.Sprintf("UnnamedTarget%d", optid)
+	}
+	DEBUG(fmt.Println("Adding target name: ", dat.targetName))
 
 	if opts.TargetCB != nil {
 		dat.targetCB = opts.TargetCB
