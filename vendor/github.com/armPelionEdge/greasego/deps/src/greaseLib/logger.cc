@@ -2203,7 +2203,7 @@ int GreaseLogger::_log( const logMeta &meta, const char *s, int len) { // intern
 		internalCmdReq req(WRITE_TARGET_OVERFLOW);
 		int _len = len;
 		if(len > MAX_LOG_MESSAGE_SIZE) _len = MAX_LOG_MESSAGE_SIZE;
-		l = new singleLog(_len);
+		l = singleLog::heapSingleLog(_len);
 		l->buf.memcpy(s,len,"[!! OVERFLOW ENDING]");
 		if(META_HAS_IGNORES(meta)) {
 			extra_logMeta *extra = META_WITH_EXTRAS(meta);

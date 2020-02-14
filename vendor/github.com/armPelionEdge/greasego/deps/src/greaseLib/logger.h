@@ -3144,6 +3144,7 @@ protected:
 //			HEAVY_DBG_OUT("write_cb");
 			writeCBData *d = (writeCBData *) req->data;
 			d->t->returnBuffer(d->b,false,d->nocallback);
+			delete d;
 			delete req;
 		}
 		static void write_overflow_cb(uv_write_t* req, int status) {
