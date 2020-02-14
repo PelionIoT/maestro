@@ -97,8 +97,8 @@ if [ "$1" != "preprocess_only" ]; then
 	else
 		make bindings.a
 	fi
-	go build github.com/armPelionEdge/greasego
-	go install github.com/armPelionEdge/greasego
+	go build
+	go install
 
 	popd
 fi
