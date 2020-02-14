@@ -44,13 +44,14 @@ GREASE_LIB="greaseLib"
 GREASE_LIB_REPO="https://github.com/armPelionEdge/greaseLib.git"
 GREASE_LIB_BRANCH="master"
 
-echo ">>>>>>>>> Getting greaselib repo: $GREASE_LIB_REPO @branch $GREASE_LIB_BRANCH"
 if [ ! -d $GREASE_LIB ]; then
+    echo ">>>>>>>>> Getting greaselib repo: $GREASE_LIB_REPO @branch $GREASE_LIB_BRANCH"
     git clone $GREASE_LIB_REPO
 fi
 
 cd $GREASE_LIB
 if [ -d ".git" ]; then
+    echo ">>>>>>>>> Updating greaselib repo: $GREASE_LIB_REPO @branch $GREASE_LIB_BRANCH"
     git pull
     git checkout $GREASE_LIB_BRANCH
 fi
@@ -96,12 +97,8 @@ if [ -e libgrease.so.1 ]; then
     cp *.h $SELF/deps/include
     echo ">>>>>>>>> Success. libgrease.so.1 ready."
     cd $SELF/deps/lib
-    ln -s libgrease.so.1 libgrease.so 
+    ln -sf libgrease.so.1 libgrease.so
     echo ">>>>>>>>> Success. libgrease.so link ready."
 else
     echo ">>>>>>>>> ERROR: libgrease.so.1 missing or not built."
 fi
-
-
-
-
