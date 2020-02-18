@@ -15,7 +15,7 @@ go get github.com/armPelionEdge/maestro || true
 
 # Go to newly created maestro directory
 cd $MAESTRO_SRC
-git checkout dev
+git checkout $(cat /tmp/githash.txt)
 
 # Build maestro dependencies
 ./build-deps.sh
