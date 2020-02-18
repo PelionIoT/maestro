@@ -274,6 +274,21 @@ describe('Maestro Config', function() {
     });
 });
 
+function maestro_api_set_log_target(ctx)
+{
+    let view = [];
+    let json_view = JSON.stringify(view);
+    json_view = json_view.replace(/"/g, '\\\"');
+
+    let command = Commands.list.maestro_shell_put;
+    command = command.replace('{{url}}', '/log/target');
+    command = command.replace('{{payload}}', json_view);
+
+    maestro_commands.run_shell(command, function(result) {
+        console.log(result);
+    }.bind({ctx: ctx}));
+}
+
 function maestro_api_set_ip_address(ctx, interface, ip_address)
 {
     let view = [{
@@ -286,7 +301,8 @@ function maestro_api_set_ip_address(ctx, interface, ip_address)
     let json_view = JSON.stringify(view);
     json_view = json_view.replace(/"/g, '\\\"');
 
-    let command = Commands.list.maestro_shell_put_iface;
+    let command = Commands.list.maestro_shell_put;
+    command = command.replace('{{url}}', '/net/interfaces');
     command = command.replace('{{payload}}', json_view);
 
     maestro_commands.run_shell(command, function(result) {
@@ -330,7 +346,9 @@ describe('Maestro API', function() {
         it('should retrieve the active maestro config', function(done) {
             this.timeout(timeout);
             this.done = done;
-            maestro_commands.run_shell(Commands.list.maestro_shell_get_iface, function(active_iface) {
+            let command = Commands.list.maestro_shell_get;
+            command = command.replace('{{url}}', '/net/interfaces');
+            maestro_commands.run_shell(command, function(active_iface) {
                 let active_config = JSON.parse(active_iface);
 
                 let iface_arr = this.view.network.interfaces;
