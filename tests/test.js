@@ -412,40 +412,41 @@ describe('DeviceDB', function() {
         this.timeout(timeout * 2);
         this.done = done;
         // Flush the IP table to get a clean slate
-        maestro_commands.run_shell(Commands.list.ip_flush, null);
+        maestro_commands.run_shell(Commands.list.ip_flush, function() {
 
-        // Get the site ID to connect to devicedb properly
-        maestro_commands.get_site_id(function(site_id) {
-            // Check for invalid site IDs
-            assert.notEqual(site_id, '', 'Site ID not obtained!');
-            this.site_id = site_id;
-
-            // Get the relay ID to connect to devicedb properly
-            maestro_commands.get_device_id(function(device_id) {
+            // Get the site ID to connect to devicedb properly
+            maestro_commands.get_site_id(function(site_id) {
                 // Check for invalid site IDs
-                assert.notEqual(device_id, '', 'Device/Relay ID not obtained!');
-                this.device_id = device_id;
+                assert.notEqual(site_id, '', 'Site ID not obtained!');
+                this.site_id = site_id;
 
-                // Create the config
-                let view = {
-                    network: {
-                        interfaces: [
-                            {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.77.77.77', ip_mask: 24},
-                            {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.66.66.66', ip_mask: 24}
-                        ]
-                    },
-                    devicedb_conn_config: {
-                        devicedb_uri: 'https://' + device_id + ':9090',
-                        devicedb_prefix: 'vagrant',
-                        devicedb_bucket: 'lww',
-                        relay_id: device_id,
-                        ca_chain: Commands.devicedb_src + '/hack/certs/myCA.pem'
-                    },
-                    config_end: true
-                };
+                // Get the relay ID to connect to devicedb properly
+                maestro_commands.get_device_id(function(device_id) {
+                    // Check for invalid site IDs
+                    assert.notEqual(device_id, '', 'Device/Relay ID not obtained!');
+                    this.device_id = device_id;
 
-                maestro_commands.maestro_workflow(YAML.stringify(view), null, null);
-                setTimeout(this.done, timeout);
+                    // Create the config
+                    let view = {
+                        network: {
+                            interfaces: [
+                                {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.77.77.77', ip_mask: 24},
+                                {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.66.66.66', ip_mask: 24}
+                            ]
+                        },
+                        devicedb_conn_config: {
+                            devicedb_uri: 'https://' + device_id + ':9090',
+                            devicedb_prefix: 'vagrant',
+                            devicedb_bucket: 'lww',
+                            relay_id: device_id,
+                            ca_chain: Commands.devicedb_src + '/hack/certs/myCA.pem'
+                        },
+                        config_end: true
+                    };
+
+                    maestro_commands.maestro_workflow(YAML.stringify(view), null, null);
+                    setTimeout(this.done, timeout);
+                }.bind(this));
             }.bind(this));
         }.bind(this));
     });
