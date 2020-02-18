@@ -17,6 +17,40 @@ describe('Maestro Config', function() {
     });
 
     /**
+     * Generic tests
+     **/
+    describe('Generic', function() {
+
+        it('should continue running when only "config_end: true" is specified in the configuration file provided to maestro', function(done) {
+            this.timeout(timeout);
+            maestro_commands.maestro_workflow('config_end: true',
+
+                // Function to run when done with the workflow
+                done,
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    return data.includes('[ERROR] Error starting networking subsystem!');
+                }
+            );
+        });
+
+        it('should continue running when nothing is specified in the configuration file provided to maestro', function(done) {
+            this.timeout(timeout);
+            maestro_commands.maestro_workflow('',
+
+                // Function to run when done with the workflow
+                done,
+
+                // Function to run whenever a new stream of data comes accross STDOUT
+                function(data) {
+                    return data.includes('[ERROR] Error starting networking subsystem!');
+                }
+            );
+        });
+    });
+
+    /**
      * DHCP tests
      **/
     describe('DHCP', function() {
@@ -124,22 +158,6 @@ describe('Maestro Config', function() {
                 function(data) {
                     return data.includes('Static address set on ' + this[1].if_name + ' of ' + this[1].ipv4_addr);
                 }.bind(view.network.interfaces)
-            );
-        });
-
-        it('should disable DHCP when no networking configuration is specified in the configuration file provided to maestro', function(done) {
-            this.timeout(timeout);
-            this.skip(); // Currently doesn't support not having a network configuration
-            maestro_commands.run_shell(Commands.list.ip_flush, null);
-            maestro_commands.maestro_workflow('config_end: true',
-
-                // Function to run when done with the workflow
-                done,
-
-                // Function to run whenever a new stream of data comes accross STDOUT
-                function(data) {
-                    return data.includes('Static address set on');
-                }
             );
         });
     });

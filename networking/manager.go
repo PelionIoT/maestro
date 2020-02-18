@@ -2152,7 +2152,7 @@ func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbcon
 		log.MaestroInfof("NetworkManager: Submit config read from config file\n")
 		inst.submitConfig(inst.networkConfig)
 	} else {
-		log.MaestroErrorf("NetworkManager: No network configuration set, unable to cofigure network\n")
+		return errors.New("NetworkManager: No network configuration set, unable to cofigure network")
 	}
 
 	return

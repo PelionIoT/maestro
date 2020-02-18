@@ -454,10 +454,6 @@ func main() {
 	/*             Network startup               */
 	/*********************************************/
 	neterr := networking.InitNetworkManager(config.Network, config.DDBConnConfig)
-	if neterr != nil {
-		Log.MaestroErrorf("Error starting networking subsystem! %s\n", neterr.Error())
-		log.Errorf("Error starting networking subsystem! %s\n", neterr.Error())
-	}
 
 	bringUpIfs := func() {
 		// wait a few seconds to start interface bring up. we want the logging to be working, and
@@ -553,7 +549,13 @@ func main() {
 
 	}
 
-	go bringUpIfs()
+	if neterr != nil {
+		Log.MaestroErrorf("Error starting networking subsystem! %s\n", neterr.Error())
+		log.Errorf("Error starting networking subsystem! %s\n", neterr.Error())
+	} else {
+		go bringUpIfs()
+	}
+
 
 	/*********************************************/
 	/*               Jobs startup                */
