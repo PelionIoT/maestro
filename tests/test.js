@@ -274,15 +274,28 @@ describe('Maestro Config', function() {
     });
 });
 
-function maestro_api_set_log_target(ctx)
+function maestro_api_set_log_target(ctx, levels)
 {
-    let view = [];
+    let filters = []
+    let targetName = '/var/log/maestro/maestro.log';
+    for (var level in levels) {
+        filters.push({
+            levels: levels[level]
+        });
+    }
+    let view = [{
+        file: targetName,
+        name: targetName,
+        format_time: '[%ld:%d] ',
+        filters: filters
+    }];
     let json_view = JSON.stringify(view);
     json_view = json_view.replace(/"/g, '\\\"');
 
     let command = Commands.list.maestro_shell_put;
     command = command.replace('{{url}}', '/log/target');
     command = command.replace('{{payload}}', json_view);
+    console.log(command);
 
     maestro_commands.run_shell(command, function(result) {
         console.log(result);
@@ -328,6 +341,14 @@ describe('Maestro API', function() {
                     {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
                 ]
             },
+            sys_stats: {
+                vm_stats: {every: '15s', name: 'vm'},
+                disk_stats: {every: '15s', name: 'disk'}
+            },
+            targets: [
+                {name: 'toCloud', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'all'}]},
+                {file: '/var/log/maestro/maestro.log', name: '/var/log/maestro/maestro.log', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'all'}]},
+            ],
             config_end: true
         };
         maestro_commands.maestro_workflow(YAML.stringify(this.view), null, null);
@@ -383,7 +404,11 @@ describe('Maestro API', function() {
      * Logging tests
      **/
     describe('Logging', function() {
-
+        it('should change the change the log level of the file target', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+            maestro_api_set_log_target(this, ['warn']);
+        });
     });
 });
 
