@@ -19,7 +19,7 @@ cd $MAESTRO_SRC
 # Add the locally synced maestro folder as a remote.  This folder
 # is synced from the host system into the VM by Vagrant.
 MAESTRO_SYNC_SRC=/vagrant
-git remote add vagranthost ${MAESTRO_SYNC_SRC}
+git remote show vagranthost &>/dev/null || git remote add vagranthost ${MAESTRO_SYNC_SRC}
 git fetch vagranthost
 git checkout $(git -C ${MAESTRO_SYNC_SRC} rev-parse HEAD)
 
@@ -27,7 +27,7 @@ git checkout $(git -C ${MAESTRO_SYNC_SRC} rev-parse HEAD)
 ./build-deps.sh
 
 # Apply maestro patch
-git am /tmp/0001-PATCH-Fake-devicedb-running-on-local-machine.patch
+git am patches/0001-PATCH-Fake-devicedb-running-on-local-machine.patch || git am --abort
 
 # Build maestro
 DEBUG=1 DEBUG2=1 ./build.sh
@@ -38,32 +38,34 @@ go install github.com/armPelionEdge/maestro-shell
 
 # Generate identity certificates to use to connect to Pelion
 cd $MAESTRO_SRC/..
-git clone git@github.com:armPelionEdge/edge-utils.git
-cd edge-utils/debug_scripts/get_new_gw_identity/developer_gateway_identity
-chmod +x generate_self_signed_certs.sh
-# TODO swap out ACCOUNTID and DEVICEID with real IDs, not fake ones
-OU=ACCOUNTID internalid=DEVICEID ./generate_self_signed_certs.sh $MAESTRO_CERTS
+if [ ! -d edge-utils ]; then
+    git clone git@github.com:armPelionEdge/edge-utils.git
+    cd edge-utils/debug_scripts/get_new_gw_identity/developer_gateway_identity
+    chmod +x generate_self_signed_certs.sh
+    # TODO swap out ACCOUNTID and DEVICEID with real IDs, not fake ones
+    OU=ACCOUNTID internalid=DEVICEID ./generate_self_signed_certs.sh $MAESTRO_CERTS
+fi
 
 # Import project devicedb
-cd $MAESTRO_SRC/..
 go get github.com/armPelionEdge/devicedb || true
 
-# Generate devicedb certs and identity file
-cd $DEVICEDB_SRC/hack
-mkdir -p certs
-./generate-certs-and-identity.sh certs
-
 # Startup devicedb cloud in background
-cp /tmp/docker-compose.yaml $DEVICEDB_SRC/docker-compose.yaml
+cd ${DEVICEDB_SRC}
+cp ${MAESTRO_SRC}/vagrant/docker-compose.yaml ./docker-compose.yaml
 docker-compose up -d
+
+# Generate devicedb certs and identity file
+cd ${DEVICEDB_SRC}/hack
+if [ ! -d certs ]; then
+    mkdir -p certs
+    ./generate-certs-and-identity.sh certs
+fi
 
 # Add device and site information to the cloud
 ./compose-cloud-add-device.sh certs
 
 # Restart devicedb edge
 sudo systemctl restart devicedb_edge
-
-cd $MAESTRO_SRC
 
 # Read Device ID from certs folder
 DEVICE_ID=$(cat $DEVICEDB_SRC/hack/certs/device_id)
@@ -77,6 +79,7 @@ else
 fi
 
 # Create maestro dummy config if config does not exist
+cd $MAESTRO_SRC
 if [ ! -f maestro.config ]; then
     SYMPHONY_HOST="gateways.mbedcloudstaging.net"
     SYMPHONY_CLIENT_CRT=$(cat $MAESTRO_CERTS/device_cert.pem)
