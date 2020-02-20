@@ -13,9 +13,15 @@ git config --global url.git@github.com:.insteadOf https://github.com/
 # Import GO project maestro
 go get github.com/armPelionEdge/maestro || true
 
-# Go to newly created maestro directory
+# Go to newly created maestro directory to check out the
+# proper version
 cd $MAESTRO_SRC
-git checkout $(cat /tmp/githash.txt)
+# Add the locally synced maestro folder as a remote.  This folder
+# is synced from the host system into the VM by Vagrant.
+MAESTRO_SYNC_SRC=/vagrant
+git remote add vagranthost ${MAESTRO_SYNC_SRC}
+git fetch vagranthost
+git checkout $(git -C ${MAESTRO_SYNC_SRC} rev-parse HEAD)
 
 # Build maestro dependencies
 ./build-deps.sh
