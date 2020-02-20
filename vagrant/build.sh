@@ -3,13 +3,6 @@
 # Load go environment variables
 . /etc/profile.d/envvars.sh
 
-# Setup default email and name for github. Needed to apply patches
-git config --global user.email "fake@email.com"
-git config --global user.name "Vagrant User"
-
-# Set go get to use SSH instead of https due to the private devicedb repo
-git config --global url.git@github.com:.insteadOf https://github.com/
-
 # Import GO project maestro
 go get github.com/armPelionEdge/maestro || true
 
