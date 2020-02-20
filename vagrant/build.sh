@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# exit on error to make errors more visible
+set -e
+
 # Load go environment variables
 . /etc/profile.d/envvars.sh
 
