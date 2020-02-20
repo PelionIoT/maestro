@@ -26,11 +26,17 @@ git remote show vagranthost &>/dev/null || git remote add vagranthost ${MAESTRO_
 git fetch vagranthost
 git checkout $(git -C ${MAESTRO_SYNC_SRC} rev-parse HEAD)
 
-# Build maestro dependencies
-./build-deps.sh
-
 # Apply maestro patch
 git am patches/0001-PATCH-Fake-devicedb-running-on-local-machine.patch || git am --abort
+
+# apply any uncommitted changes from the synced folder
+if ! git -C ${MAESTRO_SYNC_SRC} diff --quiet; then
+    git reset --hard HEAD
+    git -C ${MAESTRO_SYNC_SRC} diff | git apply
+fi
+
+# Build maestro dependencies
+./build-deps.sh
 
 # Build maestro
 DEBUG=1 DEBUG2=1 ./build.sh
