@@ -9,11 +9,20 @@ let maestro_commands = new Commands();
 const timeout = 30000;
 const timeout_cleanup = 10000;
 
+let failure_count = 0;
+
 describe('Maestro Config', function() {
 
     afterEach(function(done) {
         this.timeout(timeout_cleanup);
-        maestro_commands.run_shell(Commands.list.kill_maestro, done);
+        this.done = done;
+        maestro_commands.run_shell(Commands.list.kill_maestro, function() {
+            if (!this.currentTest.state.includes('passed')) {
+                maestro_commands.save_maestro_log(failure_count++, this.done);
+            } else {
+                this.done();
+            }
+        }.bind(this));
     });
 
     /**
@@ -183,12 +192,6 @@ describe('Maestro Config', function() {
 
             let command = Commands.list.remove_logs.replace('{{filename}}', '/var/log/maestro/maestro.log*');
             maestro_commands.run_shell(command, done);
-        });
-
-        afterEach(function(done) {
-            maestro_commands.run_shell(Commands.list.cat_maestro_debug_log, function(result) {
-                console.log(result);
-            });
         });
 
         it('should enable symphony and cloud logging', function(done) {
@@ -389,6 +392,15 @@ describe('Maestro API', function() {
         maestro_commands.run_shell(Commands.list.kill_maestro, done);
     });
 
+    afterEach(function(done) {
+        this.timeout(timeout_cleanup);
+        if (!this.currentTest.state.includes('passed')) {
+            maestro_commands.save_maestro_log(failure_count++, done);
+        } else {
+            done();
+        }
+    });
+
     /**
      * DHCP tests
      **/
@@ -526,6 +538,15 @@ describe('DeviceDB', function() {
     after(function(done) {
         this.timeout(timeout_cleanup);
         maestro_commands.run_shell(Commands.list.kill_maestro, done);
+    });
+
+    afterEach(function(done) {
+        this.timeout(timeout_cleanup);
+        if (!this.currentTest.state.includes('passed')) {
+            maestro_commands.save_maestro_log(failure_count++, done);
+        } else {
+            done();
+        }
     });
 
     /**
