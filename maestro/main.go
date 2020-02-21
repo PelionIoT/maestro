@@ -21,6 +21,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"os/signal"
+	"syscall"
 	//	"reflect"
 	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/httprouter"
@@ -56,6 +58,7 @@ import (
 )
 
 var log = logging.MustGetLogger("maestro")
+var fileLog = Log.NewPrefixedLogger("logger")
 
 var (
 	NumWorkers = os.Getenv("MAESTRO_LOG_WORKERS")
@@ -76,6 +79,27 @@ func main() {
 	}
 
 	log.Info("maestro starting.")
+
+	// Debug function that runs on USR1 signal
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGUSR1)
+		for {
+			<-c
+			fmt.Println("[*] SIGUSR1 received")
+			// add all types of log messages here
+			fileLog.Info("debug log output - Info")
+			fileLog.Warn("debug log output - Warn")
+			fileLog.Error("debug log output - Error")
+			fileLog.Debug("debug log output - Debug")
+			fileLog.Success("debug log output - Success")
+			Log.MaestroSuccess("debug log output - MaestroSuccess")
+			Log.MaestroDebug("debug log output - MaestroDebug")
+			Log.MaestroInfo("debug log output - MaestroInfo")
+			Log.MaestroError("debug log output - MaestroError")
+			Log.MaestroWarn("debug log output - MaestroWarn")
+        }
+    }()
 
 	configFlag := flag.String("config", "./maestro.config", "Config path")
 	dumpMetaVars := flag.Bool("dump_meta_vars", false, "Dump config file meta variables only")

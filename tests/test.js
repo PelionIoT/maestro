@@ -301,11 +301,34 @@ function maestro_api_set_log_target(ctx, levels)
     let command = Commands.list.maestro_shell_put;
     command = command.replace('{{url}}', '/log/target');
     command = command.replace('{{payload}}', json_view);
-    console.log(command);
 
+    // Change log target levels
     maestro_commands.run_shell(command, function(result) {
-        console.log(result);
-    }.bind({ctx: ctx}));
+
+        // Force all 4 levels into the logger to see if only the expected ones get outputted
+        maestro_commands.run_shell(Commands.list.send_logs, function(result) {
+
+            // Get the log file
+            let command = Commands.list.get_logs;
+            command = command.replace('{{filename}}', this.targetName);
+            maestro_commands.run_shell(command, function(output) {
+
+                // Check to see if the exepcted logs are in the log file
+                // Check to see if the non-expected logs are missing from the log file
+                let masterLevels = ['Info', 'Warn', 'Error', 'Debug', 'Success'];
+                for (var level in masterLevels) {
+                    if (this.levels.includes(masterLevels[level].toLowerCase()) || 'all' in this.levels) {
+                        assert(output.includes('debug log output - ' + masterLevels[level]), 'Log level ' + masterLevels[level] + ' not found in output log');
+                    } else {
+                        assert(!output.includes('debug log output - ' + masterLevels[level]),'Log level ' + masterLevels[level] + ' found in output log but should not be');
+                    }
+                }
+
+                // Quit the test
+                this.ctx.done();
+            }.bind(this));
+        }.bind(this));
+    }.bind({ctx: ctx, targetName: targetName, levels: levels}));
 }
 
 function maestro_api_set_ip_address(ctx, interface, ip_address)
