@@ -173,7 +173,25 @@ func handlePutLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	}
 
 	for _, target := range targetConfigs {
+		if len(target.Name) == 0 {
+			if len(target.File) > 0 {
+				target.Name = target.File
+			} else if len(target.TTY) > 0 {
+				target.Name = target.TTY
+			} else {
+				target.Name = "default"
+			}
+		}
 		for _, filter := range target.Filters {
+			if len(filter.Target) == 0 {
+				filter.Target = target.Name
+			}
+			if filter.Target != target.Name {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(fmt.Sprintf("{\"error\":\"Target name (%s) and Filter target (%s) are mismatched\"}",
+					target.Name, filter.Target)))
+				return
+			}
 			err = processPutLogFilter(filter)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
