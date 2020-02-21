@@ -38,6 +38,7 @@ module.exports = class Commands {
         let maestro_certs = Commands.maestro_certs;
         return {
             start_maestro: 'vagrant ssh -c "sudo maestro 2>&1 | tee /tmp/maestro.log"',
+            cat_maestro_debug_log: 'vagrant ssh -c "cat /tmp/maestro.log"',
             upload_vagrant: 'vagrant upload {{in_file}} {{out_file}}',
             kill_maestro: 'vagrant ssh -c "sudo pkill maestro"',
             check_dhcp: 'vagrant ssh -c "ps -aef | grep dhcp"',
