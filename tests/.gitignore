@@ -3,3 +3,4 @@ node_modules/
 reports/
 maestro.config
 tests/maestro.config
+failureLogs/
