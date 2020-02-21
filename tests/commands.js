@@ -144,6 +144,19 @@ module.exports = class Commands {
         }.bind({ctx: this, cb: cb}));
     }
 
+    save_maestro_log(count, cb)
+    {
+        if (!fs.existsSync('failureLogs')) {
+            fs.mkdirSync('failureLogs');
+        }
+        this.run_shell(Commands.list.cat_maestro_debug_log, function(result) {
+            fs.writeFile('failureLogs/maestro_log_fail' + this.count, result, function() {
+                console.log('Maestro log for failure ' + this.count + ' saved to: ' + 'failureLogs/maestro_log_fail' + this.count);
+                this.cb();
+            }.bind(this));
+        }.bind({count: count, cb: cb}));
+    }
+
     /**
      * Upload a file to the vagrant VM
      * @param {callback} cb - Callback when the upload has finished
