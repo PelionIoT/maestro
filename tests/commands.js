@@ -47,8 +47,11 @@ module.exports = class Commands {
             get_device_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
             get_site_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/site_id"',
             send_maestro_config: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
+
             check_file_existence: 'vagrant ssh -c "sudo ls {{filename}}"',
             remove_logs: 'vagrant ssh -c "sudo rm -rf {{filename}}"',
+            get_logs: 'vagrant ssh -c "sudo tail -100 {{filename}}"',
+            send_logs: 'vagrant ssh -c "sudo killall -USR1 maestro"',
 
             maestro_identity_get_cert: 'vagrant ssh -c "cat ' + maestro_certs + '/device_cert.pem"',
             maestro_identity_get_key: 'vagrant ssh -c "cat ' + maestro_certs + '/device_private_key.pem"',
