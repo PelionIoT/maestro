@@ -185,6 +185,12 @@ describe('Maestro Config', function() {
             maestro_commands.run_shell(command, done);
         });
 
+        afterEach(function(done) {
+            maestro_commands.run_shell(Commands.list.cat_maestro_debug_log, function(result) {
+                console.log(result);
+            });
+        });
+
         it('should enable symphony and cloud logging', function(done) {
             this.timeout(timeout);
 
