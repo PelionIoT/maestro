@@ -24,7 +24,7 @@ cd $MAESTRO_SRC
 MAESTRO_SYNC_SRC=/vagrant
 git remote show vagranthost &>/dev/null || git remote add vagranthost ${MAESTRO_SYNC_SRC}
 git fetch vagranthost
-git checkout $(git -C ${MAESTRO_SYNC_SRC} rev-parse HEAD)
+git reset --hard $(git -C ${MAESTRO_SYNC_SRC} rev-parse HEAD)
 
 # Apply maestro patch
 git am patches/0001-PATCH-Fake-devicedb-running-on-local-machine.patch || git am --abort
