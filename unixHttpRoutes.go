@@ -84,6 +84,7 @@ func AddProcessRoutes(router *httprouter.Router) {
 	router.GET("/net/events/:subscription", handleGetLatestNetworkEvents)
 
 	router.PUT("/log/target", handlePutLogTarget)
+	router.GET("/log/target", handleGetLogTarget)
 
 	router.GET("/alive", handleAlive)
 
@@ -202,6 +203,21 @@ func handlePutLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func handleGetLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	targetConfigs := make([]maestroSpecs.LogTarget, 0)
+
+	body, err := json.Marshal(targetConfigs)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
 }
 
 func handlePutNetworkInterfaces(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
