@@ -3139,6 +3139,7 @@ protected:
 	class ttyTarget final : public logTarget {
 	public:
 		int ttyFD;
+		char *ttyPath;
 		uv_tty_t tty;
 		static void write_cb(uv_write_t* req, int status) {
 //			HEAVY_DBG_OUT("write_cb");
@@ -3209,14 +3210,13 @@ protected:
 		   : logTarget(buffer_size, id, o, cb, std::move(_delim), readydata, num_banks), ttyFD(0)  {
 			_errcmn::err_ev err;
 
-			if(ttypath) {
-				HEAVY_DBG_OUT("TTY: at open(%s) ", ttypath);
-				ttyFD = ::open(ttypath, O_WRONLY, 0);
+			if (ttypath) {
+			    ttyPath = local_strdup_safe(ttypath);
+			} else {
+			    ttyPath = local_strdup_safe("/dev/tty");
 			}
-			else {
-				HEAVY_DBG_OUT("TTY: at open(/dev/tty) ", ttypath);
-				ttyFD = ::open("/dev/tty", O_WRONLY, 0);
-			}
+			HEAVY_DBG_OUT("TTY: at open(%s) ", ttyPath);
+			ttyFD = ::open(ttyPath, O_WRONLY, 0);
 
 			HEAVY_DBG_OUT("TTY: past open() ");
 
@@ -3242,6 +3242,12 @@ protected:
 				readyCB(false,err, this);
 			}
 
+		}
+
+		~ttyTarget() {
+			if (ttyPath) {
+				free(ttyPath);
+			}
 		}
 
 	protected:
