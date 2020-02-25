@@ -784,6 +784,8 @@ protected:
 	public:
 		bool _disabled;
 		FilterId id;
+		OriginId origin;
+		TagId tag;
 		LevelMask levelMask;
 		TargetId targetId;
 		logLabel preFormat;
@@ -795,11 +797,13 @@ protected:
 			targetId = 0;
 			_disabled = false;
 		};
-		Filter(FilterId id, LevelMask mask, TargetId t) : _disabled(false), id(id), levelMask(mask), targetId(t), preFormat(), postFormatPreMsg(), postFormat() {}
+		Filter(FilterId id, OriginId origin, TagId tag, LevelMask mask, TargetId t) : _disabled(false), id(id), origin(origin), tag(tag), levelMask(mask), targetId(t), preFormat(), postFormatPreMsg(), postFormat() {}
 //		Filter(Filter &&o) : id(o.id), levelMask(o.mask), targetId(o.t) {};
-		Filter(Filter &o) :  _disabled(false), id(o.id), levelMask(o.levelMask), targetId(o.targetId) {};
+		Filter(Filter &o) :  _disabled(false), id(o.id), origin(o.origin), tag(o.tag), levelMask(o.levelMask), targetId(o.targetId) {};
 		Filter& operator=(Filter& o) {
 			id = o.id;
+			origin = o.origin;
+			tag = o.tag;
 			levelMask = o.levelMask;
 			targetId = o.targetId;
 			preFormat = o.preFormat;
@@ -4017,7 +4021,7 @@ protected:
 			DBG_OUT("new FilterList: hash %llu", hash);
 			filterHashTable.addNoreplace(hash, list);
 		}
-		Filter f(id,level,t);
+		Filter f(id, origin, tag, level,t);
 		if(preformat && !preformat->empty())
 			f.preFormat = *preformat;
 		if(postformatpremsg && !postformatpremsg->empty())
@@ -4091,7 +4095,8 @@ protected:
 				}
 				// create a new filter with the same id and target, but with modified
 				// level and message formats.
-				Filter f(filter->id, level, filter->targetId);
+				Filter f(*filter);
+				f.levelMask = level;
 				if (preformat && !preformat->empty())
 					f.preFormat = *preformat;
 				if (postformatpremsg && !postformatpremsg->empty())
