@@ -346,6 +346,15 @@ func GetTargetId(name string) uint32 {
 	return TargetMap[name]
 }
 
+func GetTargetName(id uint32) string {
+	for k, v := range TargetMap {
+		if v == id {
+			return k
+		}
+	}
+	return ""
+}
+
 func SetSelfOriginLabel(label string) {
 	s := C.CString(label)
 	C.greasego_setSelfOriginLabel(s)
@@ -527,6 +536,63 @@ func AssignFromStruct(opts interface{}, obj interface{}) { //, typ reflect.Type)
 
 	}
 	DEBUG(fmt.Println("exit assign"))
+}
+
+func convertCGreaseLibToOpts(opts *GreaseLibTargetOpts) {
+
+	if opts._binding.delim != nil {
+		s := C.GoStringN(opts._binding.delim, opts._binding.len_delim)
+		opts.Delim = &s
+	}
+
+	if opts._binding.tty != nil {
+		s := C.GoString(opts._binding.tty)
+		opts.TTY = &s
+	}
+
+	if opts._binding.file != nil {
+		s := C.GoString(opts._binding.file)
+		opts.File = &s
+	}
+
+	if opts._binding.format_pre != nil {
+		s := C.GoStringN(opts._binding.format_pre, opts._binding.format_pre_len)
+		opts.Format_pre = &s
+	}
+
+	if opts._binding.format_time != nil {
+		s := C.GoStringN(opts._binding.format_time, opts._binding.format_time_len)
+		opts.Format_time = &s
+	}
+
+	if opts._binding.format_level != nil {
+		s := C.GoStringN(opts._binding.format_level, opts._binding.format_level_len)
+		opts.Format_level = &s
+	}
+
+	if opts._binding.format_tag != nil {
+		s := C.GoStringN(opts._binding.format_tag, opts._binding.format_tag_len)
+		opts.Format_tag = &s
+	}
+
+	if opts._binding.format_origin != nil {
+		s := C.GoStringN(opts._binding.format_origin, opts._binding.format_origin_len)
+		opts.Format_origin = &s
+	}
+
+	if opts._binding.format_post != nil {
+		s := C.GoStringN(opts._binding.format_post, opts._binding.format_post_len)
+		opts.Format_post = &s
+	}
+
+	if opts._binding.format_pre_msg != nil {
+		s := C.GoStringN(opts._binding.format_pre_msg, opts._binding.format_pre_msg_len)
+		opts.Format_pre_msg = &s
+	}
+
+	opts.NumBanks = uint32(opts._binding.num_banks)
+	// TODO: opts.FileOpts
+	opts.flags = uint32(opts._binding.flags)
 }
 
 func convertOptsToCGreaseLib(opts *GreaseLibTargetOpts) {
@@ -733,6 +799,39 @@ func AddTarget(opts *GreaseLibTargetOpts, cb GreaseLibAddTargetCB) {
 	addTargetCallbackMap[optid] = dat
 	addTargetCallbackMapMutex.Unlock()
 	C.greasego_wrapper_addTarget(&(opts._binding)) // use the wrapper func
+}
+
+func GetAllTargetsAndFilters() ([]GreaseLibTargetOpts, []GreaseLibFilter) {
+	var targets []GreaseLibTargetOpts
+	var filters []GreaseLibFilter
+
+	var cfilters *C.GreaseLibFilter
+	var cfiltersSlice []C.GreaseLibFilter
+	count := C.GreaseLib_getFilters(&cfilters)
+	if count > 0 {
+		defer C.free(unsafe.Pointer(cfilters))
+		cfiltersSlice = (*[1 << 30]C.GreaseLibFilter)(unsafe.Pointer(cfilters))[:count:count]
+	}
+
+	for _, cfilter := range cfiltersSlice {
+		filter := NewGreaseLibFilter()
+		filter.Origin = uint32(cfilter.origin)
+		filter.Tag = uint32(cfilter.tag)
+		filter.Target = uint32(cfilter.target)
+		filter.Mask = uint32(cfilter.mask)
+		filters = append(filters, *filter)
+	}
+
+	for name, id := range TargetMap {
+		target := NewGreaseLibTargetOpts()
+		C.GreaseLib_get_GreaseLibTargetOpts(&target._binding, C.uint32_t(id))
+		namecopy := name
+		target.Name = &namecopy
+		convertCGreaseLibToOpts(target)
+		targets = append(targets, *target)
+	}
+
+	return targets, filters
 }
 
 func ModifyDefaultTarget(opts *GreaseLibTargetOpts) int {
