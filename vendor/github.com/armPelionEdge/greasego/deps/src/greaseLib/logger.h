@@ -4261,6 +4261,7 @@ protected:
 	friend void ::_greaseLib_handle_stderrFd_cb(uv_poll_t *handle, int status, int events);
 	friend GreaseLibTargetOpts* ::GreaseLib_new_GreaseLibTargetOpts(void);
 	friend GreaseLibTargetOpts* ::GreaseLib_init_GreaseLibTargetOpts(GreaseLibTargetOpts *);
+	friend GreaseLibTargetOpts* ::GreaseLib_get_GreaseLibTargetOpts(GreaseLibTargetOpts *, uint32_t target_id);
 	friend void ::GreaseLib_cleanup_GreaseLibBuf(GreaseLibBuf *b);
 #endif
 
