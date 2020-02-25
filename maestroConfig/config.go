@@ -469,8 +469,40 @@ func ConvertLevelStringToUint32Mask(levels string) uint32 {
 	return ret
 }
 
+func ConvertLevelUint32MaskToString(mask uint32) string {
+	if mask == uint32(greasego.GREASE_ALL_LEVELS) {
+		return "all"
+	}
+
+	var ret string
+	for k, v := range greasego.DefaultLevelMap {
+		if v&mask == v {
+			if len(ret) > 0 {
+				ret += ","
+			}
+			ret += k
+		}
+	}
+
+	return ret
+}
+
 func ConvertTagStringToUint32(tag string) uint32 {
 	return greasego.DefaultTagMap[strings.TrimSpace(tag)]
+}
+
+func ConvertTagUint32ToString(tag uint32) string {
+	var ret string
+	for k, v := range greasego.DefaultTagMap {
+		if v&tag == v {
+			if len(ret) > 0 {
+				ret += ","
+			}
+			ret += k
+		}
+	}
+
+	return ret
 }
 
 func ConfigGetMinDiskSpaceScratch() uint64 {
