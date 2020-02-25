@@ -225,6 +225,7 @@ GreaseLibFilter *GreaseLib_init_GreaseLibFilter(GreaseLibFilter *);
 void GreaseLib_cleanup_GreaseLibFilter(GreaseLibFilter *filter);
 void GreaseLib_setvalue_GreaseLibFilter(GreaseLibFilter *opts,uint32_t flag,uint32_t val);
 
+LIB_METHOD_SYNC(getFilters,GreaseLibFilter **ret);
 LIB_METHOD_SYNC(addFilter,GreaseLibFilter *filter);
 LIB_METHOD_SYNC(disableFilter,GreaseLibFilter *filter);
 LIB_METHOD_SYNC(enableFilter,GreaseLibFilter *filter);

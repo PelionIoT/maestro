@@ -1069,6 +1069,66 @@ void GreaseLib_setvalue_GreaseLibFilter(GreaseLibFilter *opts,uint32_t flag,uint
 	}
 }
 
+LIB_METHOD_SYNC(getFilters, GreaseLibFilter **ret)
+{
+	int count;
+	GreaseLogger *logger = GreaseLogger::setupClass();
+	GreaseLibFilter *filters = NULL;
+	GreaseLibFilter *tmpfilters = NULL;
+	GreaseLibFilter *l;
+	GreaseLogger::Filter *r;
+
+	// add default filter
+	count = 1;
+	filters = (GreaseLibFilter *) ::realloc(filters, count * sizeof(*filters));
+	if (NULL == filters) {
+		return -ENOMEM;
+	}
+	l = &filters[count - 1];
+	r = &logger->defaultFilter;
+	l->id = r->id;
+	l->origin = r->origin;
+	l->tag = r->tag;
+	l->mask = r->levelMask;
+	l->target = r->targetId;
+
+	// add other filters
+	GreaseLogger::FilterHashTable::HashIterator iter(logger->filterHashTable);
+	while (!iter.atEnd()) {
+
+		GreaseLogger::FilterList *list = *iter.data();
+		for (int i = 0; i < MAX_IDENTICAL_FILTERS; ++i) {
+			if (list->list[i].id != 0) {
+				++count;
+				tmpfilters = (GreaseLibFilter *) ::realloc(filters, count * sizeof(*filters));
+				if (NULL == tmpfilters) {
+					::free(filters);
+					return -ENOMEM;
+				}
+				filters = tmpfilters;
+				l = &filters[count - 1];
+				r = &list->list[i];
+				l->id = r->id;
+				l->origin = r->origin;
+				l->tag = r->tag;
+				l->mask = r->levelMask;
+				l->target = r->targetId;
+			}
+		}
+
+		iter.getNext();
+	}
+
+	if (ret != NULL) {
+		*ret = filters;
+	} else {
+		::free(filters);
+		filters = NULL;
+	}
+
+	return count;
+}
+
 LIB_METHOD_SYNC(addFilter,GreaseLibFilter *filter) {
 	FilterId id;
 

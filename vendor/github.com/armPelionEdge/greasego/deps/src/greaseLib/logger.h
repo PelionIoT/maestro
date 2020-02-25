@@ -4248,6 +4248,7 @@ protected:
 	LIB_METHOD_FRIEND(addTarget,GreaseLibTargetOpts *opts);
 	LIB_METHOD_SYNC_FRIEND(maskOutByLevel, uint32_t val);
 	LIB_METHOD_SYNC_FRIEND(unmaskOutByLevel, uint32_t val);
+	LIB_METHOD_SYNC_FRIEND(getFilters, GreaseLibFilter **ret);
 	LIB_METHOD_SYNC_FRIEND(addFilter,GreaseLibFilter *filter);
 	LIB_METHOD_SYNC_FRIEND(modifyFilter,GreaseLibFilter *filter);
 	LIB_METHOD_SYNC_FRIEND(disableFilter,GreaseLibFilter *filter);
