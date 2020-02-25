@@ -727,6 +727,36 @@ void GreaseLib_set_flag_GreaseLibTargetOpts(GreaseLibTargetOpts *opts,uint32_t f
 	opts->flags |= flag;
 }
 
+GreaseLibTargetOpts *GreaseLib_get_GreaseLibTargetOpts(GreaseLibTargetOpts *ret, uint32_t target_id) {
+	GreaseLogger *l = GreaseLogger::setupClass();
+
+	GreaseLogger::logTarget *t = NULL;
+	if (!l->targets.find(target_id, t)) {
+		return NULL;
+	}
+
+	// clear the return struct
+	::memset(ret, 0, sizeof(*ret));
+
+	GreaseLogger::fileTarget *filetarget = dynamic_cast<GreaseLogger::fileTarget *>(t);
+	if (filetarget != NULL) {
+		ret->file = local_strdup_safe(filetarget->myPath);
+	}
+
+	GreaseLogger::ttyTarget *ttytarget = dynamic_cast<GreaseLogger::ttyTarget *>(t);
+	if (ttytarget != NULL) {
+		ret->tty = local_strdup_safe(ttytarget->ttyPath);
+	}
+
+#if 0
+	GreaseLogger::callbackTarget *callbacktarget = dynamic_cast<GreaseLogger::callbackTarget *>(t);
+	if (callback != NULL) {
+		ret->name = "callbacktarget"
+	}
+#endif
+
+	return ret;
+}
 
 LIB_METHOD_SYNC(modifyDefaultTarget,GreaseLibTargetOpts *opts) {
 	GreaseLogger *l = GreaseLogger::setupClass();

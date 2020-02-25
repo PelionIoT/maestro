@@ -180,7 +180,7 @@ void GreaseLib_set_flag_GreaseLibTargetFileOpts(GreaseLibTargetFileOpts *opts,ui
 GreaseLibTargetOpts *GreaseLib_new_GreaseLibTargetOpts();
 GreaseLibTargetOpts *GreaseLib_init_GreaseLibTargetOpts(GreaseLibTargetOpts *);
 void GreaseLib_set_flag_GreaseLibTargetOpts(GreaseLibTargetOpts *opts,uint32_t flag);
-
+GreaseLibTargetOpts *GreaseLib_get_GreaseLibTargetOpts(GreaseLibTargetOpts *ret, uint32_t target_id);
 void GreaseLib_cleanup_GreaseLibTargetOpts(GreaseLibTargetOpts *opts);
 void GreaseLib_set_string_GreaseLibTargetFileOpts(GreaseLibTargetFileOpts *opts,uint32_t flag,const char *s);
 
