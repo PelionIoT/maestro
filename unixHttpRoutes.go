@@ -207,9 +207,40 @@ func handlePutLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 
 func handleGetLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-	targetConfigs := make([]maestroSpecs.LogTarget, 0)
+	LogTargets := make([]maestroSpecs.LogTarget, 0)
 
-	body, err := json.Marshal(targetConfigs)
+	targets, filters := greasego.GetAllTargetsAndFilters()
+
+	// add all existing targets
+	for _, target := range targets {
+		var t maestroSpecs.LogTarget
+		if target.Name != nil {
+			t.Name = *target.Name
+		}
+		if target.File != nil {
+			t.File = *target.File
+		}
+		if target.TTY != nil {
+			t.TTY = *target.TTY
+		}
+		LogTargets = append(LogTargets, t)
+	}
+
+	// backfill the filters
+	for _, filter := range filters {
+		targetname := greasego.GetTargetName(filter.Target)
+		for i, target := range LogTargets {
+			if target.Name == targetname {
+				var f maestroSpecs.LogFilter
+				f.Target = target.Name
+				f.Tag = maestroConfig.ConvertTagUint32ToString(filter.Tag)
+				f.Levels = maestroConfig.ConvertLevelUint32MaskToString(filter.Mask)
+				LogTargets[i].Filters = append(LogTargets[i].Filters, f)
+			}
+		}
+	}
+
+	body, err := json.Marshal(LogTargets)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
