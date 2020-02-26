@@ -951,6 +951,7 @@ func ModifyFilter(opts *GreaseLibFilter) int {
 	return int(C.GreaseLib_modifyFilter(&opts._binding))
 }
 func DeleteFilter(opts *GreaseLibFilter) int {
+	C.GreaseLib_fillFilterId(&opts._binding)
 	return int(C.GreaseLib_deleteFilter(&opts._binding))
 }
 
