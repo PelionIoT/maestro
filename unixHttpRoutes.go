@@ -152,9 +152,9 @@ func processPutLogFilter(filterConfig maestroSpecs.LogFilter) error {
 		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
 	}
 
-	modified := greasego.ModifyFilter(filter)
-	if modified != 0 {
-		return errors.New("filter does not exist")
+	added := greasego.AddFilter(filter)
+	if added != 0 {
+		return errors.New("failed to add filter")
 	}
 
 	return nil
