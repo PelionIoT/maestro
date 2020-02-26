@@ -405,7 +405,7 @@ describe('Maestro API', function() {
      * DHCP tests
      **/
     describe('DHCP', function() {
-        it('should retrieve the active maestro config', function(done) {
+        it('should retrieve the active networking maestro config', function(done) {
             this.timeout(timeout);
             this.done = done;
             let command = Commands.list.maestro_shell_get;
@@ -445,6 +445,27 @@ describe('Maestro API', function() {
      * Logging tests
      **/
     describe('Logging', function() {
+        it('should retrieve the active logging maestro config', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+            let command = Commands.list.maestro_shell_get;
+            command = command.replace('{{url}}', '/log/target');
+            maestro_commands.run_shell(command, function(active_logging) {
+                let active_config = JSON.parse(active_logging);
+
+                let active_file = this.view.targets[1].file;
+                let active_filter = this.view.targets[1].filters[0].levels;
+                let file_arr = active_config.filter(function (el) {
+                    return el.File.includes(this);
+                }.bind(active_file));
+
+                assert.equal(file_arr[0].File, active_file);
+                assert.equal(file_arr[0].Filters[0].Levels, active_filter);
+
+                this.done();
+            }.bind(this));
+        });
+
         it('should change the change the log level of the file target', function(done) {
             this.timeout(timeout);
             this.done = done;
