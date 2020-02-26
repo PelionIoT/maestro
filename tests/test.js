@@ -283,55 +283,79 @@ describe('Maestro Config', function() {
     });
 });
 
-function maestro_api_set_log_target(ctx, levels)
+function maestro_api_delete_log_filter(ctx, target, filters, cb)
 {
-    let filters = []
-    let targetName = '/var/log/maestro/maestro.log';
-    for (var level in levels) {
-        filters.push({
-            levels: levels[level]
-        });
+    for (var filter in filters) {
+        // Formulate payload
+        let view = {Target: target, Levels: filters[filter].levels, Tag: ''};
+        let json_view = JSON.stringify(view);
+        json_view = json_view.replace(/"/g, '\\\"');
+        // Formulate command
+        let command = Commands.list.maestro_shell_delete;
+        command = command.replace('{{url}}', '/log/filter');
+        command = command.replace('{{payload}}', json_view);
+        // Delete log target levels
+        console.log(command);
+        maestro_commands.run_shell(command, function(result) {
+            this(result);
+        }.bind(cb));
     }
-    let view = [{
-        file: targetName,
-        name: targetName,
-        format_time: '[%ld:%d] ',
-        filters: filters
-    }];
-    let json_view = JSON.stringify(view);
-    json_view = json_view.replace(/"/g, '\\\"');
+}
 
-    let command = Commands.list.maestro_shell_put;
-    command = command.replace('{{url}}', '/log/target');
-    command = command.replace('{{payload}}', json_view);
+function maestro_api_post_log_filter(ctx, target, filters, cb)
+{
+    for (var filter in filters) {
+        // Formulate payload
+        let view = {Target: target, Levels: filters[filter], Tag: ''};
+        let json_view = JSON.stringify(view);
+        json_view = json_view.replace(/"/g, '\\\"');
+        // Formulate command
+        let command = Commands.list.maestro_shell_put;
+        command = command.replace('{{url}}', '/log/filter');
+        command = command.replace('{{payload}}', json_view);
 
-    // Change log target levels
-    maestro_commands.run_shell(command, function(result) {
+        // Delete log target levels
+        console.log(command);
+        maestro_commands.run_shell(command, function(result) {
+            this(result);
+        }.bind(cb));
+    }
+}
 
-        // Force all 4 levels into the logger to see if only the expected ones get outputted
-        maestro_commands.run_shell(Commands.list.send_logs, function(result) {
+function maestro_api_set_log_target(ctx, filters)
+{
 
-            // Get the log file
-            let command = Commands.list.get_logs;
-            command = command.replace('{{filename}}', this.targetName);
-            maestro_commands.run_shell(command, function(output) {
+    let orig_filters = ctx.view.targets[1].filters;
+    let orig_target = ctx.view.targets[1].file;
+    maestro_api_delete_log_filter(ctx, orig_target, orig_filters, function(result) {
 
-                // Check to see if the exepcted logs are in the log file
-                // Check to see if the non-expected logs are missing from the log file
-                let masterLevels = ['Info', 'Warn', 'Error', 'Debug', 'Success'];
-                for (var level in masterLevels) {
-                    if (this.levels.includes(masterLevels[level].toLowerCase()) || 'all' in this.levels) {
-                        assert(output.includes('debug log output - ' + masterLevels[level]), 'Log level ' + masterLevels[level] + ' not found in output log');
-                    } else {
-                        assert(!output.includes('debug log output - ' + masterLevels[level]),'Log level ' + masterLevels[level] + ' found in output log but should not be');
+        maestro_api_post_log_filter(this.ctx, this.target, this.filters, function(result) {
+
+            // Force all 4 levels into the logger to see if only the expected ones get outputted
+            maestro_commands.run_shell(Commands.list.send_logs, function(result) {
+
+                // Get the log file
+                let command = Commands.list.get_logs;
+                command = command.replace('{{filename}}', this.target);
+                maestro_commands.run_shell(command, function(output) {
+
+                    // Check to see if the exepcted logs are in the log file
+                    // Check to see if the non-expected logs are missing from the log file
+                    let masterLevels = ['Info', 'Warn', 'Error', 'Debug', 'Success'];
+                    for (var level in masterLevels) {
+                        if (this.filters.includes(masterLevels[level].toLowerCase()) || 'all' in this.filters) {
+                            assert(output.includes('debug log output - ' + masterLevels[level]), 'Log level ' + masterLevels[level] + ' not found in output log');
+                        } else {
+                            assert(!output.includes('debug log output - ' + masterLevels[level]),'Log level ' + masterLevels[level] + ' found in output log but should not be');
+                        }
                     }
-                }
 
-                // Quit the test
-                this.ctx.done();
+                    // Quit the test
+                    this.ctx.done();
+                }.bind(this));
             }.bind(this));
-        }.bind(this));
-    }.bind({ctx: ctx, targetName: targetName, levels: levels}));
+        }.bind(this));   
+    }.bind({target: orig_target, ctx: ctx, filters: filters}));
 }
 
 function maestro_api_set_ip_address(ctx, interface, ip_address)
