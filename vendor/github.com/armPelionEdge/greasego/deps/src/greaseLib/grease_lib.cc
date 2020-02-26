@@ -1162,6 +1162,22 @@ LIB_METHOD_SYNC(addFilter,GreaseLibFilter *filter) {
 
 }
 
+LIB_METHOD_SYNC(fillFilterId, GreaseLibFilter *filter) {
+	if (!filter) {
+		return GREASE_INVALID_PARAMS;
+	}
+
+	GreaseLogger::Filter *f = NULL;
+	GreaseLogger *l = GreaseLogger::setupClass();
+
+	if (l->_lookupFilter(filter->origin, filter->tag, filter->target, filter->mask, f)) {
+		filter->id = f->id;
+		return GREASE_LIB_OK;
+	}
+
+	return GREASE_LIB_NOT_FOUND;
+}
+
 LIB_METHOD_SYNC(modifyFilter, GreaseLibFilter *filter) {
 	if (!filter) {
 		return GREASE_INVALID_PARAMS;
