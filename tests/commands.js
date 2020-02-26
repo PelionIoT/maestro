@@ -58,6 +58,7 @@ module.exports = class Commands {
 
             maestro_shell_get: 'vagrant ssh -c "sudo curl -XGET --unix-socket /tmp/maestroapi.sock http:{{url}}"',
             maestro_shell_put: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
+            maestro_shell_delete: 'vagrant ssh -c "sudo curl -XDELETE --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
 
             devicedb_commit: 'vagrant ssh -c \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG -value \'\\\'\'{"name":"vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG","body":"{\\\"config_commit\\\":true}"}\'\\\'',
             devicedb_put: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_ID -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh'
