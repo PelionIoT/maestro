@@ -846,6 +846,18 @@ protected:
 			}
 			return ret;
 		}
+
+		inline bool find(TargetId target_id, LevelMask level, Filter *&filter) {
+			bool ret = false;
+			for(int n=0;n<MAX_IDENTICAL_FILTERS;n++) {
+				if(list[n].targetId == target_id && list[n].levelMask == level) {
+					filter = &list[n];
+					ret = true;
+					break;
+				}
+			}
+			return ret;
+		}
 	};
 
 
@@ -4112,6 +4124,24 @@ protected:
 		return modified;
 	}
 
+	bool _lookupFilter(OriginId origin, TagId tag, TargetId target, LevelMask level, Filter *&filter) {
+		uint64_t hash = filterhash(tag, origin);
+		FilterList *list = NULL;
+		Filter *found = NULL;
+
+		if (!filterHashTable.find(hash, list)) {
+			return false;
+		}
+
+		list->find(target, level, found);
+		if (!found) {
+			return false;
+		}
+
+		filter = found;
+		return true;
+    }
+
 	bool _lookupFilter(OriginId origin, TagId tag, FilterId id, Filter *&filter) {
 		uint64_t hash = filterhash(tag,origin);
 		bool ret = false;
@@ -4251,6 +4281,7 @@ protected:
 	LIB_METHOD_SYNC_FRIEND(getFilters, GreaseLibFilter **ret);
 	LIB_METHOD_SYNC_FRIEND(addFilter,GreaseLibFilter *filter);
 	LIB_METHOD_SYNC_FRIEND(modifyFilter,GreaseLibFilter *filter);
+	LIB_METHOD_SYNC_FRIEND(fillFilterId,GreaseLibFilter *filter);
 	LIB_METHOD_SYNC_FRIEND(disableFilter,GreaseLibFilter *filter);
 	LIB_METHOD_SYNC_FRIEND(enableFilter,GreaseLibFilter *filter);
 	LIB_METHOD_SYNC_FRIEND(deleteFilter,GreaseLibFilter *filter);

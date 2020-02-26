@@ -230,6 +230,7 @@ LIB_METHOD_SYNC(addFilter,GreaseLibFilter *filter);
 LIB_METHOD_SYNC(disableFilter,GreaseLibFilter *filter);
 LIB_METHOD_SYNC(enableFilter,GreaseLibFilter *filter);
 LIB_METHOD_SYNC(modifyFilter,GreaseLibFilter *filter);
+LIB_METHOD_SYNC(fillFilterId,GreaseLibFilter *filter);
 LIB_METHOD_SYNC(deleteFilter,GreaseLibFilter *filter);
 //LIB_METHOD_SYNC(modifyDefaultTarget,GreaseLibTargetOpts *opts);
 
