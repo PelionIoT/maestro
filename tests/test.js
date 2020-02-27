@@ -283,132 +283,37 @@ describe('Maestro Config', function() {
     });
 });
 
-function maestro_api_delete_log_filter(ctx, target, filters, cb)
-{
-    for (var filter in filters) {
-        // Formulate payload
-        let view = {Target: target, Levels: filters[filter].levels, Tag: ''};
-        let json_view = JSON.stringify(view);
-        json_view = json_view.replace(/"/g, '\\\"');
-        // Formulate command
-        let command = Commands.list.maestro_shell_delete;
-        command = command.replace('{{url}}', '/log/filter');
-        command = command.replace('{{payload}}', json_view);
-        // Delete log target levels
-        console.log(command);
-        maestro_commands.run_shell(command, function(result) {
-            this(result);
-        }.bind(cb));
-    }
-}
-
-function maestro_api_post_log_filter(ctx, target, filters, cb)
-{
-    for (var filter in filters) {
-        // Formulate payload
-        let view = {Target: target, Levels: filters[filter], Tag: ''};
-        let json_view = JSON.stringify(view);
-        json_view = json_view.replace(/"/g, '\\\"');
-        // Formulate command
-        let command = Commands.list.maestro_shell_put;
-        command = command.replace('{{url}}', '/log/filter');
-        command = command.replace('{{payload}}', json_view);
-
-        // Delete log target levels
-        console.log(command);
-        maestro_commands.run_shell(command, function(result) {
-            this(result);
-        }.bind(cb));
-    }
-}
-
-function maestro_api_set_log_target(ctx, filters)
-{
-
-    let orig_filters = ctx.view.targets[1].filters;
-    let orig_target = ctx.view.targets[1].file;
-    maestro_api_delete_log_filter(ctx, orig_target, orig_filters, function(result) {
-
-        maestro_api_post_log_filter(this.ctx, this.target, this.filters, function(result) {
-
-            // Force all 4 levels into the logger to see if only the expected ones get outputted
-            maestro_commands.run_shell(Commands.list.send_logs, function(result) {
-
-                // Get the log file
-                let command = Commands.list.get_logs;
-                command = command.replace('{{filename}}', this.target);
-                maestro_commands.run_shell(command, function(output) {
-
-                    // Check to see if the exepcted logs are in the log file
-                    // Check to see if the non-expected logs are missing from the log file
-                    let masterLevels = ['Info', 'Warn', 'Error', 'Debug', 'Success'];
-                    for (var level in masterLevels) {
-                        if (this.filters.includes(masterLevels[level].toLowerCase()) || 'all' in this.filters) {
-                            assert(output.includes('debug log output - ' + masterLevels[level]), 'Log level ' + masterLevels[level] + ' not found in output log');
-                        } else {
-                            assert(!output.includes('debug log output - ' + masterLevels[level]),'Log level ' + masterLevels[level] + ' found in output log but should not be');
-                        }
-                    }
-
-                    // Quit the test
-                    this.ctx.done();
-                }.bind(this));
-            }.bind(this));
-        }.bind(this));   
-    }.bind({target: orig_target, ctx: ctx, filters: filters}));
-}
-
-function maestro_api_set_ip_address(ctx, interface, ip_address)
-{
-    let view = [{
-        dhcpv4: false,
-        if_name: interface,
-        ipv4_addr: ip_address,
-        ipv4_mask: 24,
-        clear_addresses: true
-    }];
-    let json_view = JSON.stringify(view);
-    json_view = json_view.replace(/"/g, '\\\"');
-
-    let command = Commands.list.maestro_shell_put;
-    command = command.replace('{{url}}', '/net/interfaces');
-    command = command.replace('{{payload}}', json_view);
-
-    maestro_commands.run_shell(command, function(result) {
-        maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
-            assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
-            this.ctx.done();
-        }.bind(this));
-    }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
-}
-
 describe('Maestro API', function() {
 
     before(function(done) {
         this.timeout(timeout);
+        this.done = done;
         // Flush the IP table to get a clean slate
-        maestro_commands.run_shell(Commands.list.ip_flush, null);
+        maestro_commands.run_shell(Commands.list.ip_flush, function() {
 
-        // Create the config
-        this.view = {
-            network: {
-                interfaces: [
-                    {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
-                    {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
-                ]
-            },
-            sys_stats: {
-                vm_stats: {every: '15s', name: 'vm'},
-                disk_stats: {every: '15s', name: 'disk'}
-            },
-            targets: [
-                {name: 'toCloud', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'all'}]},
-                {file: '/var/log/maestro/maestro.log', name: '/var/log/maestro/maestro.log', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'all'}]},
-            ],
-            config_end: true
-        };
-        maestro_commands.maestro_workflow(YAML.stringify(this.view), null, null);
-        setTimeout(done, 5000);
+            // Create the config
+            this.view = {
+                network: {
+                    interfaces: [
+                        {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
+                        {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
+                    ]
+                },
+                sys_stats: {
+                    vm_stats: {every: '15s', name: 'vm'},
+                    disk_stats: {every: '15s', name: 'disk'}
+                },
+                targets: [
+                    {name: 'toCloud', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'all'}]},
+                    {file: '/var/log/maestro/maestro.log', name: '/var/log/maestro/maestro.log', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'error'}]},
+                ],
+                config_end: true
+            };
+            this.file_target = this.view.targets[1].file;
+            this.file_target_default_filter = this.view.targets[1].filters[0].levels;
+            maestro_commands.maestro_workflow(YAML.stringify(this.view), null, null);
+            setTimeout(this.done, 5000);
+        }.bind(this));
     });
 
     after(function(done) {
@@ -452,6 +357,30 @@ describe('Maestro API', function() {
             }.bind(this));
         });
 
+        function maestro_api_set_ip_address(ctx, interface, ip_address)
+        {
+            let view = [{
+                dhcpv4: false,
+                if_name: interface,
+                ipv4_addr: ip_address,
+                ipv4_mask: 24,
+                clear_addresses: true
+            }];
+            let json_view = JSON.stringify(view);
+            json_view = json_view.replace(/"/g, '\\\"');
+
+            let command = Commands.list.maestro_shell_put;
+            command = command.replace('{{url}}', '/net/interfaces');
+            command = command.replace('{{payload}}', json_view);
+
+            maestro_commands.run_shell(command, function(result) {
+                maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
+                    assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
+                    this.ctx.done();
+                }.bind(this));
+            }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
+        }
+
         it('should change the IP address of the first network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
@@ -469,6 +398,13 @@ describe('Maestro API', function() {
      * Logging tests
      **/
     describe('Logging', function() {
+
+        beforeEach(function(done) {
+            this.timeout(timeout);
+            let command = Commands.list.remove_logs.replace('{{filename}}', '/var/log/maestro/maestro.log*');
+            maestro_commands.run_shell(command, done);
+        });
+
         it('should retrieve the active logging maestro config', function(done) {
             this.timeout(timeout);
             this.done = done;
@@ -477,8 +413,8 @@ describe('Maestro API', function() {
             maestro_commands.run_shell(command, function(active_logging) {
                 let active_config = JSON.parse(active_logging);
 
-                let active_file = this.view.targets[1].file;
-                let active_filter = this.view.targets[1].filters[0].levels;
+                let active_file = this.file_target;
+                let active_filter = this.file_target_default_filter;
                 let file_arr = active_config.filter(function (el) {
                     return el.File.includes(this);
                 }.bind(active_file));
@@ -490,10 +426,42 @@ describe('Maestro API', function() {
             }.bind(this));
         });
 
-        it('should change the change the log level of the file target', function(done) {
+        it('should add the warn filter to the file log target', function(done) {
             this.timeout(timeout);
             this.done = done;
-            maestro_api_set_log_target(this, ['warn']);
+
+            maestro_commands.maestro_api_post_log_filter(this.file_target, ['warn'], function(result) {
+                maestro_commands.maestro_api_verify_log_filters(this.file_target, ['warn', this.file_target_default_filter], this.done);
+            }.bind(this));
+        });
+
+        it('should delete the error filter from the file log target', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+
+            maestro_commands.maestro_api_delete_log_filter(this.file_target, [this.file_target_default_filter], function(result) {
+                maestro_commands.maestro_api_verify_log_filters(this.file_target, ['warn'], this.done);
+            }.bind(this));
+        });
+
+        it('should delete the warn filter and add the info filter to the file log target', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+
+            maestro_commands.maestro_api_delete_log_filter(this.file_target, ['warn'], function(result) {
+                maestro_commands.maestro_api_post_log_filter(this.file_target, ['info'], function(result) {
+                    maestro_commands.maestro_api_verify_log_filters(this.file_target, ['info'], this.done);
+                }.bind(this));
+            }.bind(this));
+        });
+
+        it('should set the all filter for the file log target', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+
+            maestro_commands.maestro_api_post_log_filter(this.file_target, ['all'], function(result) {
+                maestro_commands.maestro_api_verify_log_filters(this.file_target, ['all'], this.done);
+            }.bind(this));
         });
     });
 });
