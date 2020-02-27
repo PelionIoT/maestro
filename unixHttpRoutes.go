@@ -83,10 +83,10 @@ func AddProcessRoutes(router *httprouter.Router) {
 	router.GET("/net/events", handleSubscribeNetworkEvents)
 	router.GET("/net/events/:subscription", handleGetLatestNetworkEvents)
 
-	router.PUT("/log/filter", handlePutLogFilter)
+	router.POST("/log/filter", handlePostLogFilter)
 	router.DELETE("/log/filter", handleDeleteLogFilter)
 
-	router.PUT("/log/target", handlePutLogTarget)
+	router.POST("/log/target", handlePostLogTarget)
 	router.GET("/log/target", handleGetLogTarget)
 
 	router.GET("/alive", handleAlive)
@@ -130,7 +130,7 @@ func handleAlive(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	defer r.Body.Close()
 }
 
-func processPutLogFilter(filterConfig maestroSpecs.LogFilter) error {
+func processPostLogFilter(filterConfig maestroSpecs.LogFilter) error {
 	targId := greasego.GetTargetId(filterConfig.Target)
 	if targId == 0 {
 		return errors.New("target does not exist")
@@ -160,7 +160,7 @@ func processPutLogFilter(filterConfig maestroSpecs.LogFilter) error {
 	return nil
 }
 
-func handlePutLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func handlePostLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -176,7 +176,7 @@ func handlePutLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		return
 	}
 
-	err = processPutLogFilter(filterConfig)
+	err = processPostLogFilter(filterConfig)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
@@ -186,7 +186,7 @@ func handlePutLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	w.WriteHeader(http.StatusOK)
 }
 
-func handlePutLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func handlePostLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -222,7 +222,7 @@ func handlePutLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 					target.Name, filter.Target)))
 				return
 			}
-			err = processPutLogFilter(filter)
+			err = processPostLogFilter(filter)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
