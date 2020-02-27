@@ -93,11 +93,6 @@ func main() {
 			fileLog.Error("debug log output - Error")
 			fileLog.Debug("debug log output - Debug")
 			fileLog.Success("debug log output - Success")
-			Log.MaestroSuccess("debug log output - MaestroSuccess")
-			Log.MaestroDebug("debug log output - MaestroDebug")
-			Log.MaestroInfo("debug log output - MaestroInfo")
-			Log.MaestroError("debug log output - MaestroError")
-			Log.MaestroWarn("debug log output - MaestroWarn")
         }
     }()
 
