@@ -49,7 +49,7 @@ module.exports = class Commands {
             send_maestro_config: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
 
             check_file_existence: 'vagrant ssh -c "sudo ls {{filename}}"',
-            remove_logs: 'vagrant ssh -c "sudo rm -rf {{filename}}"',
+            remove_logs: 'vagrant ssh -c "echo | sudo tee {{filename}}"',
             get_logs: 'vagrant ssh -c "sudo tail -100 {{filename}}"',
             send_logs: 'vagrant ssh -c "sudo killall -USR1 maestro"',
 
@@ -58,6 +58,7 @@ module.exports = class Commands {
 
             maestro_shell_get: 'vagrant ssh -c "sudo curl -XGET --unix-socket /tmp/maestroapi.sock http:{{url}}"',
             maestro_shell_put: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
+            maestro_shell_post: 'vagrant ssh -c "sudo curl -XPOST --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
             maestro_shell_delete: 'vagrant ssh -c "sudo curl -XDELETE --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
 
             devicedb_commit: 'vagrant ssh -c \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG -value \'\\\'\'{"name":"vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG","body":"{\\\"config_commit\\\":true}"}\'\\\'',
@@ -223,6 +224,69 @@ module.exports = class Commands {
 
             this.ctx.run_shell(command, this.callback);
         }.bind({ctx: this, device_id: device_id, site_id: site_id, callback: callback}));
+    }
+
+    maestro_api_verify_log_filters(target, filters, cb)
+    {
+        // Force all 4 levels into the logger to see if only the expected ones get outputted
+        this.run_shell(Commands.list.send_logs, function(result) {
+            setTimeout(function() {
+                // Get the log file
+                let command = Commands.list.get_logs;
+                command = command.replace('{{filename}}', this.target);
+                this.ctx.run_shell(command, function(output) {
+
+                    // Check to see if the exepcted logs are in the log file
+                    // Check to see if the non-expected logs are missing from the log file
+                    let masterLevels = ['Info', 'Warn', 'Error', 'Debug', 'Success'];
+                    for (var level in masterLevels) {
+                        if (this.filters.includes(masterLevels[level].toLowerCase()) || this.filters.includes('all')) {
+                            assert(output.search('debug log output - ' + masterLevels[level]) >= 0, 'Log level ' + masterLevels[level] + ' not found in output log');
+                        } else {
+                            assert(output.search('debug log output - ' + masterLevels[level]) === -1, 'Log level ' + masterLevels[level] + ' found in output log but should not be');
+                        }
+                    }
+                    this.cb();
+                }.bind(this));
+            }.bind(this), 5000);
+        }.bind({ctx: this, cb: cb, filters: filters, target: target}));
+    }
+
+    maestro_api_delete_log_filter(target, filters, cb)
+    {
+        for (var filter in filters) {
+            // Formulate payload
+            let view = {Target: target, Levels: filters[filter].levels, Tag: ''};
+            let json_view = JSON.stringify(view);
+            json_view = json_view.replace(/"/g, '\\\"');
+            // Formulate command
+            let command = Commands.list.maestro_shell_delete;
+            command = command.replace('{{url}}', '/log/filter');
+            command = command.replace('{{payload}}', json_view);
+            // Delete log target levels
+            this.run_shell(command, function(result) {
+                this(result);
+            }.bind(cb));
+        }
+    }
+
+    maestro_api_post_log_filter(target, filters, cb)
+    {
+        for (var filter in filters) {
+            // Formulate payload
+            let view = {Target: target, Levels: filters[filter], Tag: ''};
+            let json_view = JSON.stringify(view);
+            json_view = json_view.replace(/"/g, '\\\"');
+            // Formulate command
+            let command = Commands.list.maestro_shell_post;
+            command = command.replace('{{url}}', '/log/filter');
+            command = command.replace('{{payload}}', json_view);
+
+            // Delete log target levels
+            this.run_shell(command, function(result) {
+                this(result);
+            }.bind(cb));
+        }
     }
 
     /**
