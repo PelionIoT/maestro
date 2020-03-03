@@ -40,6 +40,7 @@ void greasego_setSelfOriginLabel(char *s) ;
 void greasego_childClosedFDCallback (GreaseLibError *err, int stream_type, int fd);
 void zero_meta( logMeta *m );
 
+void greasego_reset_all_logMetas();
 
 extern logMeta go_meta_info;
 extern logMeta go_meta_warning;
