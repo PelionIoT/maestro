@@ -939,20 +939,30 @@ func convertFilterToCGreaseLib(opts *GreaseLibFilter) {
 
 func AddFilter(opts *GreaseLibFilter) int {
 	convertFilterToCGreaseLib(opts)
-	return int(C.GreaseLib_addFilter(&opts._binding))
+	ret := int(C.GreaseLib_addFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func DisableFilter(opts *GreaseLibFilter) int {
-	return int(C.GreaseLib_disableFilter(&opts._binding))
+	ret := int(C.GreaseLib_disableFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func EnableFilter(opts *GreaseLibFilter) int {
-	return int(C.GreaseLib_enableFilter(&opts._binding))
+	ret := int(C.GreaseLib_enableFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func ModifyFilter(opts *GreaseLibFilter) int {
-	return int(C.GreaseLib_modifyFilter(&opts._binding))
+	ret := int(C.GreaseLib_modifyFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func DeleteFilter(opts *GreaseLibFilter) int {
 	C.GreaseLib_fillFilterId(&opts._binding)
-	return int(C.GreaseLib_deleteFilter(&opts._binding))
+	ret := int(C.GreaseLib_deleteFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 
 const GREASE_LIB_SINK_UNIXDGRAM uint32 = 0x1

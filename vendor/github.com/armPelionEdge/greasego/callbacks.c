@@ -168,3 +168,18 @@ logMeta go_self_meta_success = {
 		.target = 0,
 		.extras = 0,
 		__DEFAULT_LOG_META_PRIVATE };
+
+void greasego_reset_all_logMetas()
+{
+	LOG_META_RESET_CACHE(go_meta_info);
+	LOG_META_RESET_CACHE(go_meta_warning);
+	LOG_META_RESET_CACHE(go_meta_error);
+	LOG_META_RESET_CACHE(go_meta_debug);
+	LOG_META_RESET_CACHE(go_meta_success);
+
+	LOG_META_RESET_CACHE(go_self_meta_info);
+	LOG_META_RESET_CACHE(go_self_meta_warning);
+	LOG_META_RESET_CACHE(go_self_meta_error);
+	LOG_META_RESET_CACHE(go_self_meta_debug);
+	LOG_META_RESET_CACHE(go_self_meta_success);
+}
