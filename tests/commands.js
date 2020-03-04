@@ -51,7 +51,7 @@ module.exports = class Commands {
             check_file_existence: 'vagrant ssh -c "sudo ls {{filename}}"',
             remove_logs: 'vagrant ssh -c "echo | sudo tee {{filename}}"',
             get_logs: 'vagrant ssh -c "sudo tail -100 {{filename}}"',
-            send_logs: 'vagrant ssh -c "sudo killall -USR1 maestro"',
+            send_logs: 'vagrant ssh -c \'echo "test - Error" | systemd-cat -p err; echo "test - Info" | systemd-cat -p info; echo "test - Warn" | systemd-cat -p warning; echo "test - Debug" | systemd-cat -p debug\'',
 
             maestro_identity_get_cert: 'vagrant ssh -c "cat ' + maestro_certs + '/device_cert.pem"',
             maestro_identity_get_key: 'vagrant ssh -c "cat ' + maestro_certs + '/device_private_key.pem"',
@@ -238,12 +238,12 @@ module.exports = class Commands {
 
                     // Check to see if the exepcted logs are in the log file
                     // Check to see if the non-expected logs are missing from the log file
-                    let masterLevels = ['Info', 'Warn', 'Error', 'Debug', 'Success'];
+                    let masterLevels = ['Info', 'Warn', 'Error', 'Debug'];
                     for (var level in masterLevels) {
                         if (this.filters.includes(masterLevels[level].toLowerCase()) || this.filters.includes('all')) {
-                            assert(output.search('debug log output - ' + masterLevels[level]) >= 0, 'Log level ' + masterLevels[level] + ' not found in output log');
+                            assert(output.search('test - ' + masterLevels[level]) >= 0, 'Log level ' + masterLevels[level] + ' not found in output log');
                         } else {
-                            assert(output.search('debug log output - ' + masterLevels[level]) === -1, 'Log level ' + masterLevels[level] + ' found in output log but should not be');
+                            assert(output.search('test - ' + masterLevels[level]) === -1, 'Log level ' + masterLevels[level] + ' found in output log but should not be');
                         }
                     }
                     this.cb();
@@ -256,14 +256,14 @@ module.exports = class Commands {
     {
         for (var filter in filters) {
             // Formulate payload
-            let view = {Target: target, Levels: filters[filter].levels, Tag: ''};
+            let view = {Target: target, Levels: filters[filter], Tag: ''};
             let json_view = JSON.stringify(view);
             json_view = json_view.replace(/"/g, '\\\"');
             // Formulate command
             let command = Commands.list.maestro_shell_delete;
             command = command.replace('{{url}}', '/log/filter');
             command = command.replace('{{payload}}', json_view);
-            // Delete log target levels
+            // DELETE log target levels
             this.run_shell(command, function(result) {
                 this(result);
             }.bind(cb));
@@ -282,7 +282,7 @@ module.exports = class Commands {
             command = command.replace('{{url}}', '/log/filter');
             command = command.replace('{{payload}}', json_view);
 
-            // Delete log target levels
+            // PUT log target levels
             this.run_shell(command, function(result) {
                 this(result);
             }.bind(cb));
