@@ -19,8 +19,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 
 	//	"reflect"
 	"net/http"
@@ -33,6 +35,7 @@ import (
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
 	Log "github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/logconfig"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/maestroutils"
 	"github.com/armPelionEdge/maestro/mdns"
@@ -79,6 +82,23 @@ func main() {
 	}
 
 	log.Info("maestro starting.")
+
+	// Debug function that runs on USR1 signal
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGUSR1)
+		for {
+			<-c
+			fmt.Println("[*] SIGUSR1 received")
+
+			fmt.Println("    maestro version: maestroutils.Version()")
+			fmt.Println("    meta vars: {{VARNAME}} = [[VALUE]]")
+			dict := maestroConfig.GetGlobalConfigDictionary()
+			for varname, val := range dict.Map {
+				fmt.Printf("        {{%s}} = [[%s]]\n", varname, val)
+			}
+		}
+	}()
 
 	configFlag := flag.String("config", "./maestro.config", "Config path")
 	dumpMetaVars := flag.Bool("dump_meta_vars", false, "Dump config file meta variables only")
@@ -556,6 +576,14 @@ func main() {
 		log.Errorf("Error starting networking subsystem! %s\n", neterr.Error())
 	} else {
 		go bringUpIfs()
+	}
+
+	logerr := logconfig.InitLogManager(config.Targets, config.DDBConnConfig)
+	if logerr != nil {
+		Log.MaestroErrorf("Error starting log subsystem! %s\n", logerr.Error())
+		log.Errorf("Error starting log subsystem! %s\n", logerr.Error())
+	} else {
+		//wtf do we do here?
 	}
 
 	/*********************************************/
