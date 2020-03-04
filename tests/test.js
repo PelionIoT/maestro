@@ -293,6 +293,7 @@ describe('Maestro API', function() {
 
             // Create the config
             this.view = {
+                sysLogSocket: '/run/systemd/journal/syslog',
                 network: {
                     interfaces: [
                         {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
