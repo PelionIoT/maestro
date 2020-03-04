@@ -19,8 +19,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 
 	//	"reflect"
 	"net/http"
@@ -79,6 +81,29 @@ func main() {
 	}
 
 	log.Info("maestro starting.")
+
+	// Debug function that runs on USR1 signal
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGUSR1)
+		for {
+			<-c
+			fmt.Println("[*] SIGUSR1 received")
+			// add all types of log messages here
+			fileLog.Info("debug log output - Info")
+			fileLog.Warn("debug log output - Warn")
+			fileLog.Error("debug log output - Error")
+			fileLog.Debug("debug log output - Debug")
+			fileLog.Success("debug log output - Success")
+
+			fmt.Println("    maestro version: maestroutils.Version()")
+			fmt.Println("    meta vars: {{VARNAME}} = [[VALUE]]")
+			dict := maestroConfig.GetGlobalConfigDictionary()
+			for varname, val := range dict.Map {
+				fmt.Printf("        {{%s}} = [[%s]]\n", varname, val)
+			}
+		}
+	}()
 
 	configFlag := flag.String("config", "./maestro.config", "Config path")
 	dumpMetaVars := flag.Bool("dump_meta_vars", false, "Dump config file meta variables only")
