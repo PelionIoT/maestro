@@ -61,8 +61,8 @@ module.exports = class Commands {
             maestro_shell_post: 'vagrant ssh -c "sudo curl -XPOST --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
             maestro_shell_delete: 'vagrant ssh -c "sudo curl -XDELETE --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
 
-            devicedb_commit: 'vagrant ssh -c \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG -value \'\\\'\'{"name":"vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_COMMIT_FLAG","body":"{\\\"config_commit\\\":true}"}\'\\\'',
-            devicedb_put: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.MAESTRO_NETWORK_CONFIG_ID -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh'
+            devicedb_commit: 'vagrant ssh -c \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.{{commit_flag}} -value \'\\\'\'{"name":"vagrant.{{relay_id}}.{{commit_flag}}","body":"{\\\"config_commit\\\":true}"}\'\\\'',
+            devicedb_put: 'echo \'devicedb cluster put -site {{site_id}} -bucket lww -key vagrant.{{relay_id}}.{{key}} -value \'\\\'\'{{payload}}\'\\\' | vagrant ssh'
         };
     }
 
@@ -204,7 +204,7 @@ module.exports = class Commands {
      * @param {Object} payload - Javascript dictionary containing the payload to send to devicedb
      * @param {callback} callback - Callback to run when the devicedb command is complete
      **/
-    devicedb_command(device_id, site_id, key, payload, callback)
+    devicedb_command(device_id, site_id, key, commit_flag, payload, callback)
     {
         let body_string = JSON.stringify(payload);
         // Create the master view
@@ -219,15 +219,19 @@ module.exports = class Commands {
         command = command.replace('{{payload}}', json_view);
         command = command.replace(/{{relay_id}}/g, device_id);
         command = command.replace(/{{site_id}}/g, site_id);
+        command = command.replace(/{{key}}/g, key);
+        console.log(command);
 
         this.run_shell(command, function(result) {
 
             let command = Commands.list.devicedb_commit;
             command = command.replace(/{{relay_id}}/g, this.device_id);
             command = command.replace(/{{site_id}}/g, this.site_id);
+            command = command.replace(/{{commit_flag}}/g, this.commit_flag);
+            console.log(command);
 
             this.ctx.run_shell(command, this.callback);
-        }.bind({ctx: this, device_id: device_id, site_id: site_id, callback: callback}));
+        }.bind({ctx: this, device_id: device_id, site_id: site_id, callback: callback, commit_flag: commit_flag}));
     }
 
     maestro_api_verify_log_filters(target, filters, cb)
@@ -291,6 +295,85 @@ module.exports = class Commands {
                 this(result);
             }.bind(cb));
         }
+    }
+
+    maestro_api_set_ip_address(ctx, iface, ip_address)
+    {
+        let view = [{
+            dhcpv4: false,
+            if_name: iface,
+            ipv4_addr: ip_address,
+            ipv4_mask: 24,
+            clear_addresses: true
+        }];
+        let json_view = JSON.stringify(view);
+        json_view = json_view.replace(/"/g, '\\\"');
+
+        let command = Commands.list.maestro_shell_put;
+        command = command.replace('{{url}}', '/net/interfaces');
+        command = command.replace('{{payload}}', json_view);
+
+        this.run_shell(command, function(result) {
+            this.maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
+                assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
+                this.ctx.done();
+            }.bind(this));
+        }.bind({interface: iface, ip_address: ip_address, ctx: ctx, maestro_commands: this}));
+    }
+
+    devicedb_set_ip_address(ctx, iface, ip_address)
+    {
+        // Base view but needs to contain ALL of the interfaces
+        let body = {
+            interfaces: [{
+                if_name: "eth1",
+            },{
+                if_name: "eth2"
+            }]
+        };
+        // Find the interface that we need to modify
+        var index = body.interfaces.findIndex(function (el) {
+            return el.if_name == this;
+        }.bind(iface));
+        // Change the specific interface we are interested in
+        if (index !== -1) {
+            body.interfaces[index] = {
+                if_name: iface,
+                dhcpv4: false,
+                ipv4_addr: ip_address,
+                ipv4_mask: 24,
+                clear_addresses: true,
+                existing: "override"
+            };
+        }
+
+        let key = 'MAESTRO_NETWORK_CONFIG_ID';
+        let commit = 'MAESTRO_NETWORK_CONFIG_COMMIT_FLAG';
+        this.devicedb_command(ctx.device_id, ctx.site_id, key, commit, body, function(output) {
+            setTimeout(function() {
+                this.maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
+                    assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
+                    this.ctx.done();
+                }.bind(this));
+            }.bind(this), 5000);
+        }.bind({interface: iface, ip_address: ip_address, ctx: ctx, maestro_commands: this}));
+    }
+
+    devicedb_set_log_filter(ctx, file, filter, cb)
+    {
+        // Base view but needs to contain ALL of the interfaces
+        let body = [{
+            file: file,
+            format_time: "\"timestamp\":%ld%03d, ",
+            filters: []}
+        ];
+        for (var item in filter) {
+            body[0].filters.push({levels: filter[item]});
+        }
+
+        let key = 'MAESTRO_LOG_CONFIG_ID';
+        let commit = 'MAESTRO_LOG_CONFIG_COMMIT_FLAG';
+        this.devicedb_command(ctx.device_id, ctx.site_id, key, commit, body, cb);
     }
 
     /**
