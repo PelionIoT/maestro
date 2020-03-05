@@ -362,41 +362,16 @@ describe('Maestro API', function() {
             }.bind(this));
         });
 
-        function maestro_api_set_ip_address(ctx, interface, ip_address)
-        {
-            let view = [{
-                dhcpv4: false,
-                if_name: interface,
-                ipv4_addr: ip_address,
-                ipv4_mask: 24,
-                clear_addresses: true
-            }];
-            let json_view = JSON.stringify(view);
-            json_view = json_view.replace(/"/g, '\\\"');
-
-            let command = Commands.list.maestro_shell_put;
-            command = command.replace('{{url}}', '/net/interfaces');
-            command = command.replace('{{payload}}', json_view);
-
-            maestro_commands.run_shell(command, function(result) {
-                maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip,interface_up) {
-                    assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
-                    assert(interface_up, 'Interface ' + this.interface + ' not UP');
-                    this.ctx.done();
-                }.bind(this));
-            }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
-        }
-
         it('should change the IP address of the first network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            maestro_api_set_ip_address(this, 'eth1', '10.234.234.234');
+            maestro_commands.maestro_api_set_ip_address(this, 'eth1', '10.234.234.234');
         });
 
         it('should change the IP address of the second network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            maestro_api_set_ip_address(this, 'eth2', '10.229.229.229');
+            maestro_commands.maestro_api_set_ip_address(this, 'eth2', '10.229.229.229');
         });
     });
 
@@ -472,44 +447,6 @@ describe('Maestro API', function() {
     });
 });
 
-function devicedb_set_ip_address(ctx, interface, ip_address)
-{
-    // Base view but needs to contain ALL of the interfaces
-    let body = {
-        interfaces: [{
-            if_name: "eth1",
-        },{
-            if_name: "eth2"
-        }]
-    };
-    // Find the interface that we need to modify
-    var index = body.interfaces.findIndex(function (el) {
-        return el.if_name == this;
-    }.bind(interface));
-    // Change the specific interface we are interested in
-    if (index !== -1) {
-        body.interfaces[index] = {
-            if_name: interface,
-            dhcpv4: false,
-            ipv4_addr: ip_address,
-            ipv4_mask: 24,
-            clear_addresses: true,
-            existing: "override"
-        };
-    }
-
-    let key = 'MAESTRO_NETWORK_CONFIG_ID';
-    maestro_commands.devicedb_command(ctx.device_id, ctx.site_id, key, body, function(output) {
-        setTimeout(function() {
-            maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip,interface_up) {
-                assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
-                assert(interface_up, 'Interface ' + this.interface + ' not UP');
-                this.ctx.done();
-            }.bind(this));
-        }.bind(this), 5000);
-    }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
-}
-
 describe('DeviceDB', function() {
 
     before(function(done) {
@@ -532,6 +469,7 @@ describe('DeviceDB', function() {
 
                     // Create the config
                     let view = {
+                        sysLogSocket: '/run/systemd/journal/syslog',
                         network: {
                             interfaces: [
                                 {if_name: 'eth1', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.77.77.77', ipv4_mask: 24},
@@ -545,8 +483,13 @@ describe('DeviceDB', function() {
                             relay_id: device_id,
                             ca_chain: Commands.devicedb_src + '/hack/certs/myCA.pem'
                         },
+                        targets: [
+                            {file: '/var/log/maestro/maestro.log', format_time: "\"timestamp\":%ld%03d, ", filters: [{levels: 'error'}]},
+                        ],
                         config_end: true
                     };
+                    this.file_target = view.targets[0].file;
+                    this.file_target_default_filter = view.targets[0].filters[0].levels;
 
                     maestro_commands.maestro_workflow(YAML.stringify(view), null, null);
                     setTimeout(this.done, timeout);
@@ -576,25 +519,25 @@ describe('DeviceDB', function() {
         it('should set the IP address of the first network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            devicedb_set_ip_address(this, 'eth1', '10.122.122.122');
+            maestro_commands.devicedb_set_ip_address(this, 'eth1', '10.122.122.122');
         });
 
         it('should change the IP address of the first network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            devicedb_set_ip_address(this, 'eth1', '10.234.234.234');
+            maestro_commands.devicedb_set_ip_address(this, 'eth1', '10.234.234.234');
         });
 
         it('should set the IP address of the second network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            devicedb_set_ip_address(this, 'eth2', '10.125.125.125');
+            maestro_commands.devicedb_set_ip_address(this, 'eth1', '10.125.125.125');
         });
 
         it('should change the IP address of the second network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            devicedb_set_ip_address(this, 'eth2', '10.222.222.222');
+            maestro_commands.devicedb_set_ip_address(this, 'eth2', '10.222.222.222');
         });
     });
 
@@ -603,6 +546,19 @@ describe('DeviceDB', function() {
      **/
     describe('Logging', function() {
 
+        beforeEach(function(done) {
+            this.timeout(timeout);
+            let command = Commands.list.remove_logs.replace('{{filename}}', '/var/log/maestro/maestro.log*');
+            maestro_commands.run_shell(command, done);
+        });
+
+        it('should add the warn filter to the file log target', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+            maestro_commands.devicedb_set_log_filter(this, this.file_target, ['warn'], function(result) {
+                maestro_commands.maestro_api_verify_log_filters(this.file_target, ['warn', this.file_target_default_filter], this.done);
+            }.bind(this));
+        });
     });
 });
 
