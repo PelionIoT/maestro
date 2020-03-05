@@ -16,7 +16,6 @@ import (
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/netlink"
@@ -164,7 +163,6 @@ type logManagerInstance struct {
 	interfaceThreadCountMutex sync.Mutex
 	threadCountChan           chan logThreadMessage
 	logConfig                 []maestroSpecs.LogTarget
-	waitForDeviceDB           bool
 
 	//Configs to be used for connecting to devicedb
 	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
@@ -266,7 +264,6 @@ func newLogManagerInstance() (ret *logManagerInstance) {
 	ret.indexToName = hashmap.New(10)
 	ret.watcherWorkChannel = make(chan logThreadMessage, 10) // use a buffered channel
 	ret.threadCountChan = make(chan logThreadMessage)
-	ret.waitForDeviceDB = true
 	// ret.resetDNSBuffer()
 	//go ret.watchInterfaces()
 	return
@@ -628,19 +625,6 @@ func (this *logManagerInstance) setupTargets() (err error) {
 	return
 }
 
-//This function calls the setupInterfaces with the current config and then start connection with devicedb by calling initDeviceDBConfig
-//Note that call to initDeviceDBConfig is done as a go routine.
-func (this *logManagerInstance) SetupExistingTargets() (err error) {
-	/*log.MaestroInfof("LogManager: Setup the intfs using initial boot config first: %v:%v\n", this.logConfig, this.logConfig.Interfaces)
-	//Setup the intfs using initial boot config first
-	this.setupInterfaces()*/
-
-	//Try setup the device using DeviceDB config now
-	go this.initDeviceDBConfig()
-
-	return
-}
-
 //Constants used in the logic for connecting to devicedb
 const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = (24 * 60 * 60)        //24 hours
 const LOOP_WAIT_TIME_INCREMENT_WINDOW int = (6 * 60)             //6 minutes which is the exponential retry backoff window
@@ -654,43 +638,26 @@ func (this *logManagerInstance) initDeviceDBConfig() {
 	var totalWaitTime int = 0
 	var loopWaitTime int = INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 	var err error
-	var pid int = -1
-	var devicedbrunning bool = false
+	log.MaestroWarnf("initDeviceDBConfig: connecting to devicedb\n")
+	err = this.SetupDeviceDBConfig()
 
-	if this.waitForDeviceDB {
-		log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb process/job\n")
-		for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-			//First wait for devicedb to start
-			devicedbrunning, pid = processes.IsJobActive(DEVICEDB_JOB_NAME)
-			log.MaestroWarnf("initDeviceDBConfig: devicedbrunning: %v, pid: %d\n", devicedbrunning, pid)
-			if devicedbrunning {
-				//Service is started, but wait for some seconds for the port to be up and running
-				time.Sleep(time.Second * 15)
-				break
-			} else {
-				time.Sleep(time.Second * time.Duration(loopWaitTime))
-				totalWaitTime += loopWaitTime
-				//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
-				if totalWaitTime > LOOP_WAIT_TIME_INCREMENT_WINDOW {
-					loopWaitTime = INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
-				}
-			}
+	//After 24 hours just assume its never going to come up stop waiting for it and break the loop
+	for (err != nil) && (totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS) {
+		log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb to connect\n")
+		time.Sleep(time.Second * time.Duration(loopWaitTime))
+		totalWaitTime += loopWaitTime
+		//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
+		if totalWaitTime > LOOP_WAIT_TIME_INCREMENT_WINDOW {
+			loopWaitTime = INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 		}
-
-		//After 24 hours just assume its never going to come up stop waiting for it and break the loop
-		if totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-			log.MaestroErrorf("initDeviceDBConfig: devicedb is not running, cannot fetch config from devicedb")
-		}
+		err = this.SetupDeviceDBConfig()
 	}
 
-	if (devicedbrunning && pid > 0) || (!this.waitForDeviceDB) {
-		log.MaestroWarnf("initDeviceDBConfig: connecting to devicedb\n")
-		err = this.SetupDeviceDBConfig()
-		if err != nil {
-			log.MaestroErrorf("initDeviceDBConfig: error setting up config using devicedb: %v", err)
-		} else {
-			log.MaestroWarnf("initDeviceDBConfig: successfully connected to devicedb\n")
-		}
+	if totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+		log.MaestroErrorf("initDeviceDBConfig: devicedb is not connected, cannot fetch config from devicedb")
+	}
+	if err == nil {
+		log.MaestroWarnf("initDeviceDBConfig: successfully connected to devicedb\n")
 	}
 }
 
@@ -834,6 +801,8 @@ func InitLogManager(logconfig []maestroSpecs.LogTarget, ddbconfig *maestroConfig
 	} else {
 		return errors.New("LogManager: No log configuration set, unable to cofigure log")
 	}
+
+	go inst.initDeviceDBConfig()
 
 	return
 }
