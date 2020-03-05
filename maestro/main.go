@@ -35,6 +35,7 @@ import (
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
 	Log "github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/logconfig"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/maestroutils"
 	"github.com/armPelionEdge/maestro/mdns"
@@ -89,12 +90,6 @@ func main() {
 		for {
 			<-c
 			fmt.Println("[*] SIGUSR1 received")
-			// add all types of log messages here
-			fileLog.Info("debug log output - Info")
-			fileLog.Warn("debug log output - Warn")
-			fileLog.Error("debug log output - Error")
-			fileLog.Debug("debug log output - Debug")
-			fileLog.Success("debug log output - Success")
 
 			fmt.Println("    maestro version: maestroutils.Version()")
 			fmt.Println("    meta vars: {{VARNAME}} = [[VALUE]]")
@@ -581,6 +576,14 @@ func main() {
 		log.Errorf("Error starting networking subsystem! %s\n", neterr.Error())
 	} else {
 		go bringUpIfs()
+	}
+
+	logerr := logconfig.InitLogManager(config.Targets, config.DDBConnConfig)
+	if logerr != nil {
+		Log.MaestroErrorf("Error starting log subsystem! %s\n", logerr.Error())
+		log.Errorf("Error starting log subsystem! %s\n", logerr.Error())
+	} else {
+		//wtf do we do here?
 	}
 
 	/*********************************************/
