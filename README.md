@@ -133,6 +133,10 @@ npm test # Run mocha test suite
 
 ## Additional Features/Information
 
+### Maestro Configuration
+
+To view details on how to configure Maestro, see [Maestro Config](docs/maestro_config.md)
+
 ### DeviceDB
 
 In order to test additional maestro functionality, the vagrant VM automatically installs and runs DeviceDB Edge and DeviceDB Cloud in the background. See [DeviceDB](https://github.com/armPelionEdge/devicedb) for more information.
