@@ -1,4 +1,4 @@
-package log
+package logconfig
 
 // Copyright (c) 2018, Arm Limited and affiliates.
 // SPDX-License-Identifier: Apache-2.0
@@ -18,7 +18,6 @@ package log
 import (
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/armPelionEdge/maestro/log"
 )
@@ -51,7 +50,7 @@ func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
 		case "target":
 			instance.TargetConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
 		case "levels":
-			instance.LevelConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
+			instance.LevelsConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
 		case "tag":
 			instance.TagConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
 		case "pre":
@@ -68,7 +67,7 @@ func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
 
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
 // if there is at least one change to report
-func (cfgHook NetworkConfigChangeHook) ChangesStart(configgroup string) {
+func (cfgHook LogConfigChangeHook) ChangesStart(configgroup string) {
 	log.MaestroInfof("ConfigChangeHook:ChangesStart: %s\n", configgroup)
 	if configChangeRequestChan == nil {
 		configChangeRequestChan = make(chan ConfigChangeInfo, 100)
@@ -79,7 +78,7 @@ func (cfgHook NetworkConfigChangeHook) ChangesStart(configgroup string) {
 // SawChange is called whenever a field changes. It will be called only once for each field which is changed.
 // It will always be called after ChangesStart is called
 // If SawChange return true, then the value of futvalue will replace the value of current value
-func (cfgHook NetworkConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
+func (cfgHook LogConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
 	log.MaestroInfof("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 	if configChangeRequestChan != nil {
 		fieldnames := strings.Split(fieldchanged, ".")
@@ -94,7 +93,7 @@ func (cfgHook NetworkConfigChangeHook) SawChange(configgroup string, fieldchange
 
 // ChangesComplete is called when all changes for a specific configgroup tagname
 // If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
-func (cfgHook NetworkConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
+func (cfgHook LogConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
 	log.MaestroInfof("ConfigChangeHook:ChangesComplete: %s\n", configgroup)
 	return false //return false as we would apply only those we successfully processed
 }
@@ -106,6 +105,31 @@ func (cfgHook NetworkConfigChangeHook) ChangesComplete(configgroup string) (acce
 //Function to process Dhcp config change
 func (inst *logManagerInstance) TargetConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("TargetConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+}
+
+//Function to process levels config change
+func (inst *logManagerInstance) LevelsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("LevelsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+}
+
+//Function to process tag config change
+func (inst *logManagerInstance) TagConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("TagConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+}
+
+//Function to process pre config change
+func (inst *logManagerInstance) PreConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("PreConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+}
+
+//Function to process post config change
+func (inst *logManagerInstance) PostConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("PostConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+}
+
+//Function to process post-fmt-pre-msg config change
+func (inst *logManagerInstance) PostFmtPreMsgConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("PostFmtPreMsgConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -121,26 +145,26 @@ var configApplyRequestChan chan bool = nil
 //receives an updated config it submits the config and sets up the interfaces based
 //on new configuration
 func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
-	for applyChange := range jobConfigApplyRequestChan {
+	/*	for applyChange := range jobConfigApplyRequestChan {
 		log.MaestroInfof("ConfigApplyHandler::Received a apply change message: %v\n", applyChange)
 		if applyChange {
 			instance = GetInstance()
 			log.MaestroInfof("ConfigApplyHandler::Processing apply change: %v\n", instance.CurrConfigCommit.ConfigCommitFlag)
-			instance.submitConfig(instance.networkConfig)
+			instance.submitConfig(instance.logConfig)
 			//Setup the intfs using new config
 			instance.setupInterfaces()
 			instance.CurrConfigCommit.ConfigCommitFlag = false
 			instance.CurrConfigCommit.LastUpdateTimestamp = time.Now().Format(time.RFC850)
 			instance.CurrConfigCommit.TotalCommitCountFromBoot = instance.CurrConfigCommit.TotalCommitCountFromBoot + 1
 			//Now write out the updated commit config
-			err := instance.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&instance.CurrConfigCommit)
+			err := instance.ddbConfigClient.Config(DDB_LOG_CONFIG_COMMIT_FLAG).Put(&instance.CurrConfigCommit)
 			if err == nil {
 				log.MaestroInfof("Updating commit config object to devicedb succeeded.\n")
 			} else {
 				log.MaestroErrorf("Unable to update commit config object to devicedb\n")
 			}
 		}
-	}
+	}*/
 }
 
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
