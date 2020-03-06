@@ -4,7 +4,7 @@
 // This same on-going connection can be used for the server to 'ride back' for commands
 //
 
-package maestro
+package log
 
 // Copyright (c) 2018, Arm Limited and affiliates.
 // SPDX-License-Identifier: Apache-2.0
