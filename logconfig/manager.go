@@ -8,17 +8,19 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/armPelionEdge/hashmap"
+	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestro/wwrmi"
 	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/netlink"
 	"github.com/armPelionEdge/stow"
 	"github.com/boltdb/bolt"
 )
@@ -52,8 +54,6 @@ import (
 const (
 	LOG_PREFIX = "LogManager: "
 )
-
-type NetlinkAddr netlink.Addr
 
 // internal wrapper, used to store log settings
 type LogData struct {
@@ -125,10 +125,6 @@ type logThreadMessage struct {
 	logname string // sometimes used
 }
 
-func init() {
-	//	arp.SetupLog(nmLogDebugf, nmLogErrorf, nmLogSuccessf)
-}
-
 type ConfigCommit struct {
 	// Set this flag to true for the changes to commit, if this flag is false
 	// the changes to configuration on these structs will not acted upon
@@ -144,18 +140,13 @@ type ConfigCommit struct {
 	TotalCommitCountFromBoot int `yaml:"config_commit" json:"total_commit_count_from_boot" netgroup:"config_commit"`
 }
 
-// initialized in init()
+// initialized in InitLogManager()
 type logManagerInstance struct {
 	// for persistence
 	db          *bolt.DB
 	logConfigDB *stow.Store
-	// internal structures - thread safe hashmaps
-	byInterfaceName *hashmap.HashMap // map of identifier to struct -> 'eth2':&LogData{}
-	indexToName     *hashmap.HashMap
 
 	watcherWorkChannel chan logThreadMessage
-
-	newInterfaceMutex sync.Mutex
 
 	// mostly used for testing
 	threadCountEnable         bool
@@ -164,18 +155,11 @@ type logManagerInstance struct {
 	threadCountChan           chan logThreadMessage
 	logConfig                 []maestroSpecs.LogTarget
 
-	//Configs to be used for connecting to devicedb
+	// Configs to be used for connecting to devicedb
 	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
 	ddbConfigMonitor *maestroConfig.DDBMonitor
 	ddbConfigClient  *maestroConfig.DDBRelayConfigClient
 	CurrConfigCommit ConfigCommit
-
-	// DNS related
-	writeDNS bool // if true, then DNS will be written out once interfaces are processed
-	// a buffer used to amalgamate all the DNS servers provided from various sources
-	// (typically a single interface however)
-	// a map of interface name to dnsBufs
-	dnsPerInterface sync.Map
 }
 
 const DDB_LOG_CONFIG_NAME string = "MAESTRO_LOG_CONFIG_ID"
@@ -260,8 +244,6 @@ func (this *logManagerInstance) StorageClosed(instance storage.MaestroDBStorageI
 
 func newLogManagerInstance() (ret *logManagerInstance) {
 	ret = new(logManagerInstance)
-	ret.byInterfaceName = hashmap.New(10)
-	ret.indexToName = hashmap.New(10)
 	ret.watcherWorkChannel = make(chan logThreadMessage, 10) // use a buffered channel
 	ret.threadCountChan = make(chan logThreadMessage)
 	// ret.resetDNSBuffer()
@@ -512,14 +494,6 @@ func (this *logManagerInstance) getOrNewTargetData(target string) (ret *LogData)
 	return
 }
 
-func (this *logManagerInstance) getInterfaceData(ifname string) (ret *LogData) {
-	pdata, ok := this.byInterfaceName.GetStringKey(ifname)
-	if ok {
-		ret = (*LogData)(pdata)
-	}
-	return
-}
-
 // loads all existing data from the DB, for an interface
 // If one or more interfaces data have problems, it will keep loading
 // If reading the DB fails completely, it will error out
@@ -551,16 +525,19 @@ func (this *logManagerInstance) loadAllLogData() (err error) {
 }
 
 func (this *logManagerInstance) DoesTargetHaveValidConfig(ifname string) (err error, ok bool, logconfig []maestroSpecs.LogTarget) {
-	ifdata := this.getInterfaceData(ifname)
-	if ifdata != nil && ifdata.StoredLogconfig != nil {
-		logconfig = ifdata.StoredLogconfig
-		ok, s := validateLogConfig(logconfig)
-		if !ok {
-			err = errors.New("Config failed validation: " + s)
-		}
-	} else {
-		err = errors.New("No config")
-	}
+	//ifdata := this.getInterfaceData(ifname)
+	//if ifdata != nil && ifdata.StoredLogconfig != nil {
+	//	logconfig = ifdata.StoredLogconfig
+	//	ok, s := validateLogConfig(logconfig)
+	//	if !ok {
+	//		err = errors.New("Config failed validation: " + s)
+	//	}
+	//} else {
+	//	err = errors.New("No config")
+	//}
+	err = nil
+	ok = true
+	logconfig = nil
 	return
 }
 
@@ -785,22 +762,154 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 	return
 }
 
+func GetLogLibVersion() string {
+	return greasego.GetGreaseLibVersion()
+}
+
 // InitLogManager be called on startup.
 // LogTarget will come from config file
 // Storage should be started already.
-func InitLogManager(logconfig []maestroSpecs.LogTarget, ddbconfig *maestroConfig.DeviceDBConnConfig) (err error) {
-	log.MaestroInfof("LogManager: Initializing %v %v\n", logconfig, ddbconfig)
-	inst := GetInstance()
-	inst.logConfig = logconfig
-	inst.ddbConnConfig = ddbconfig
+func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 
-	//Setup the config with the given log config
-	if inst.logConfig != nil {
-		log.MaestroInfof("LogManager: Submit config read from config file\n")
-		inst.submitConfig(inst.logConfig)
-	} else {
-		return errors.New("LogManager: No log configuration set, unable to cofigure log")
+	inst := GetInstance()
+	inst.logConfig = config.Targets
+	inst.ddbConnConfig = config.DDBConnConfig
+
+	log.MaestroInfof("LogManager: Initializing %v %v\n", inst.logConfig, inst.ddbConnConfig)
+
+	greasego.StartGreaseLib(func() {
+		debugging.DEBUG_OUT("Grease start cb: Got to here 1\n")
+	})
+	greasego.SetupStandardLevels()
+	greasego.SetupStandardTags()
+
+	log.SetGoLoggerReady()
+
+	if config.LinuxKernelLog && config.LinuxKernelLogLegacy {
+		return errors.New("Invalid Config: You can't have both linuxKernelLog: true AND linuxKernelLogLegacy: true. Choose one")
 	}
+	if config.LinuxKernelLog {
+		kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG2, nil)
+		greasego.AddSink(kernelSink)
+	}
+	if config.LinuxKernelLogLegacy {
+		kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG, nil)
+		greasego.AddSink(kernelSink)
+	}
+
+	unixLogSocket := config.GetUnixLogSocket()
+	debugging.DEBUG_OUT("UnixLogSocket: %s\n", unixLogSocket)
+	unixSockSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_UNIXDGRAM, &unixLogSocket)
+	greasego.AddSink(unixSockSink)
+
+	syslogSock := config.GetSyslogSocket()
+	if len(syslogSock) > 0 {
+		syslogSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_SYSLOGDGRAM, &syslogSock)
+		greasego.AddSink(syslogSink)
+	}
+
+	// First, setup the internal maestro logging system to deal with toCloud target
+	// This requires creating the default Symphony client:
+	var symphony_client *wwrmi.Client
+	var symphony_err error
+	if config.Symphony != nil {
+		symphony_client, symphony_err = wwrmi.GetMainClient(config.Symphony)
+	} else {
+		fmt.Printf("Symphony / RMI API server not configured.\n")
+	}
+
+	debugging.DEBUG_OUT("targets:", len(config.Targets))
+	for n := 0; n < len(config.Targets); n++ {
+		if len(config.Targets[n].File) > 0 { // honor any substitution vars for the File targets
+			config.Targets[n].File = maestroConfig.GetInterpolatedConfigString(config.Targets[n].File)
+		}
+		opts := greasego.NewGreaseLibTargetOpts()
+		greasego.AssignFromStruct(opts, config.Targets[n]) //, reflect.TypeOf(config.Targets[n]))
+
+		if config.Targets[n].Flag_json_escape_strings {
+			greasego.TargetOptsSetFlags(opts, greasego.GREASE_JSON_ESCAPE_STRINGS)
+		}
+
+		debugging.DEBUG_OUT("%+v\n", opts.FileOpts)
+		debugging.DEBUG_OUT("%+v\n", opts)
+		debugging.DEBUG_OUT("%+v\n", *opts.Format_time)
+
+		if strings.Compare(config.Targets[n].Name, "toCloud") == 0 {
+			fmt.Printf("\nFound toCloud target-------->\n")
+			opts.NumBanks = defaults.NUMBER_BANKS_WEBLOG
+			//			DEBUG(_count := 0)
+			if config.Symphony != nil && symphony_client != nil && symphony_err == nil {
+				opts.TargetCB = wwrmi.TargetCB
+			} else {
+				log.MaestroError("Log: 'toCloud' target is enabled, but Symphony API is not configured. Will not work.")
+				// skip this target
+				continue
+			}
+
+			// func(err *greasego.GreaseError, data *greasego.TargetCallbackData){
+			// 	DEBUG(_count++)
+			// 	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
+			// 	if(err != nil) {
+			// 		fmt.Printf("ERROR in toCloud target CB %s\n", err.Str)
+			// 	} else {
+			// 		buf := data.GetBufferAsSlice()
+			// 		DEBUG(s := string(buf))
+			// 		debugging.DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,s);
+			// 		client.SubmitLogs(data,buf)
+			// 	}
+			// }
+		}
+
+		func(n int, opts *greasego.GreaseLibTargetOpts) {
+			greasego.AddTarget(opts, func(err *greasego.GreaseError, optsId int, targId uint32) {
+				debugging.DEBUG_OUT("IN CALLBACK %d\n", optsId)
+				if err != nil {
+					fmt.Printf("ERROR on creating target: %s\n", err.Str)
+				} else {
+					// after the Target is added, we can setup the Filters for it
+					if len(config.Targets[n].Filters) > 0 {
+						for l := 0; l < len(config.Targets[n].Filters); l++ {
+							debugging.DEBUG_OUT("Have filter %+v\n", config.Targets[n].Filters[l])
+							filter := greasego.NewGreaseLibFilter()
+							filter.Target = targId
+							// handle the strings:
+							greasego.AssignFromStruct(filter, config.Targets[n].Filters[l]) //, reflect.TypeOf(config.Targets[n].Filters[l]))
+							greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, targId)
+							if len(config.Targets[n].Filters[l].Levels) > 0 {
+								mask := maestroConfig.ConvertLevelStringToUint32Mask(config.Targets[n].Filters[l].Levels)
+								greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
+							}
+							if len(config.Targets[n].Filters[l].Tag) > 0 {
+								tag := maestroConfig.ConvertTagStringToUint32(config.Targets[n].Filters[l].Tag)
+								greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
+							}
+							debugging.DEBUG_OUT("Filter -----------> %+v\n", filter)
+							filterid := greasego.AddFilter(filter)
+							debugging.DEBUG_OUT("Filter ID: %d\n", filterid)
+						}
+					} else {
+						// by default, send all traffic to any target
+
+					}
+				}
+			})
+		}(n, opts) // use anonymous function to preserve 'n' before callback completes
+
+	}
+
+	// should not start workers until after greasego is setup
+	if config.Symphony != nil {
+		if symphony_err != nil {
+			log.MaestroErrorf("Symphony / RMI client is not configured correctly or has failed: %s\n", symphony_err.Error())
+		} else {
+			symphony_client.StartWorkers()
+			log.MaestroSuccess("Maestro RMI workers started")
+			log.MaestroInfo("Symphony / RMI client workers started.")
+		}
+	}
+
+	client := log.NewSymphonyClient("http://127.0.0.1:9443/submitLog/1", config.ClientId, defaults.NUMBER_BANKS_WEBLOG, 30*time.Second)
+	client.Start()
 
 	go inst.initDeviceDBConfig()
 
