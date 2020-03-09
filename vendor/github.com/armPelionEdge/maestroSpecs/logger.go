@@ -36,7 +36,6 @@ type Logger interface {
 }
 
 type LogConfigPayload struct {
-
 	Targets []*LogTarget `yaml:"targets" json:"targets"`
 }
 
@@ -64,6 +63,7 @@ type LogTarget struct {
 	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" greaseAssign:"Format_pre_msg" log_group:"format"`
 	Name                     string                           `yaml:"name,omitempty" greaseAssign:"Name" log_group:"name"`
 	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings"`
+	Existing                 string                           `yaml:"existing" json:"existing" log_group:"config_opts"`
 }
 
 type LogFormat struct {
