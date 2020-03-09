@@ -673,7 +673,7 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 		}
 
 		//Config for log
-		var ddbLogConfig []maestroSpecs.LogTarget
+		var ddbLogConfig maestroSpecs.LogConfigPayload
 
 		//Create a config analyzer object, required for registering the config change hook and diff the config objects.
 		configLogAna := maestroSpecs.NewConfigAnalyzer(DDB_LOG_CONFIG_CONFIG_GROUP_ID)
@@ -685,8 +685,12 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 			this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
 			err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Get(&ddbLogConfig)
 			if err != nil {
+				for _, target := range this.logConfig {
+					target := target
+					ddbLogConfig.Targets = append(ddbLogConfig.Targets, &target)
+				}
 				log.MaestroWarnf("LogManager: No log config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config.\n", err)
-				err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Put(this.logConfig)
+				err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Put(&ddbLogConfig)
 				if err != nil {
 					log.MaestroErrorf("LogManager: Unable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err)
 					err_updated := errors.New(fmt.Sprintf("\nUnable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err))
@@ -694,32 +698,28 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 				}
 			} else {
 				//We found a config in devicedb, lets try to use and reconfigure log if its an updated one
-				log.MaestroInfof("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig)
-				identical, _, _, err := configLogAna.DiffChanges(this.logConfig, ddbLogConfig)
+				log.MaestroInfof("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig.Targets)
+				log.MaestroInfof("MRAY DiffChanges being called\n")
+				fmt.Printf("MRAY DiffChanges being called\n")
+				var temp maestroSpecs.LogConfigPayload
+				for _, target := range this.logConfig {
+					target := target
+					temp.Targets = append(temp.Targets, &target)
+				}
+				identical, _, _, err := configLogAna.DiffChanges(temp, ddbLogConfig)
 				if !identical && (err == nil) {
 					//The configs are different, lets go ahead reconfigure the intfs
 					log.MaestroDebugf("LogManager: New log config found from devicedb, reconfigure nework using new config\n")
-					this.logConfig = ddbLogConfig
-					this.submitConfig(this.logConfig)
-					//Setup the intfs using new config
-					this.setupTargets()
-					//Set the hostname again as we reconfigured the log
-					log.MaestroWarnf("LogManager: Again setting hostname: %s\n", this.ddbConnConfig.RelayId)
-					syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
+					this.logConfig = make([]maestroSpecs.LogTarget, len(ddbLogConfig.Targets))
+					for i, target := range ddbLogConfig.Targets {
+						this.logConfig[i] = *target
+					}
+					// this.submitConfig(this.logConfig)
+					// //Setup the intfs using new config
+					// this.setupTargets()
 				} else {
 					log.MaestroInfof("LogManager: New log config found from devicedb, but its same as boot config, no need to re-configure\n")
 				}
-			}
-			//Since we are booting set the Network config commit flag to false
-			log.MaestroWarnf("LogManager: Setting Network config commit flag to false\n")
-			this.CurrConfigCommit.ConfigCommitFlag = false
-			this.CurrConfigCommit.LastUpdateTimestamp = ""
-			this.CurrConfigCommit.TotalCommitCountFromBoot = 0
-			err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
-			if err != nil {
-				log.MaestroErrorf("LogManager: Unable to put log commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
-				err_updated := errors.New(fmt.Sprintf("\nUnable to put log commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
-				return err_updated
 			}
 
 			//Now start a monitor for the log config in devicedb
@@ -737,22 +737,16 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 				configLogAna.AddHook("opts", logConfigChangeHook)
 
 				//Add monitor for this config
-				var origLogConfig, updatedLogConfig []maestroSpecs.LogTarget
+				var origLogConfig, updatedLogConfig maestroSpecs.LogConfigPayload
 				//Provide a copy of current log config monitor to Config monitor, not the actual config we use, this would prevent config monitor
 				//directly updating the running config(this.logConfig).
-				origLogConfig = this.logConfig
+				for _, target := range this.logConfig {
+					target := target
+					origLogConfig.Targets = append(origLogConfig.Targets, &target)
+				}
 
 				//Adding monitor config
 				this.ddbConfigMonitor.AddMonitorConfig(&origLogConfig, &updatedLogConfig, DDB_LOG_CONFIG_NAME, configLogAna)
-
-				//Add config change hook for all property groups, we can use the same interface
-				var commitConfigChangeHook CommitConfigChangeHook
-				configLogAna.AddHook("config_commit", commitConfigChangeHook)
-
-				//Add monitor for this object
-				var updatedConfigCommit ConfigCommit
-				log.MaestroInfof("LogManager: Adding monitor for config commit object\n")
-				this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_LOG_CONFIG_COMMIT_FLAG, configLogAna)
 			}
 		}
 	} else {

@@ -35,6 +35,11 @@ type Logger interface {
 	Debugf(format string, a ...interface{})
 }
 
+type LogConfigPayload struct {
+
+	Targets []*LogTarget `yaml:"targets" json:"targets"`
+}
+
 type LogRotate struct {
 	MaxFiles      uint32 `yaml:"max_files,omitempty" greaseAssign:"Max_files"`
 	RotateOnStart bool   `yaml:"rotate_on_start,omitempty" greaseAssign:"Rotate_on_start"`
