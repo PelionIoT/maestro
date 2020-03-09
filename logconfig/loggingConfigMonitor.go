@@ -51,18 +51,14 @@ func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
 	for configChange := range jobConfigChangeChan {
 		log.MaestroInfof("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
 		switch configChange.configgroup {
-		case "target":
+		case "name":
 			instance.TargetConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "levels":
-			instance.LevelsConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "tag":
-			instance.TagConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "pre":
-			instance.PreConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "post":
-			instance.PostConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "post-fmt-pre-msg":
-			instance.PostFmtPreMsgConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
+		case "filters":
+			instance.FiltersConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
+		case "format":
+			instance.FormatConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
+		case "opts":
+			instance.OptsConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
 		default:
 			log.MaestroWarnf("\nConfigChangeHook:Unknown field or group: %s:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
 		}
@@ -139,34 +135,50 @@ func AddLogFilter(filterConfig maestroSpecs.LogFilter) error {
 // Functions to process the parameters which are changed
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//Function to process Dhcp config change
+//Function to process Target config change
 func (inst *logManagerInstance) TargetConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("TargetConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
-//Function to process levels config change
-func (inst *logManagerInstance) LevelsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	log.MaestroInfof("LevelsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+//Function to process filter config change
+func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("FiltersConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	filterslen := reflect.ValueOf(futvalue).Len()
+
+	targId := greasego.GetTargetId(inst.logConfig[index].Name)
+	if targId == 0 {
+		log.MaestroErrorf("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfig[index].Name)
+		return
+	}
+
+	// FIXME: the incoming filter config completely replaces any existing config which is known
+	//     as "replace" behavior for the "Existing" flag.  Do we need to handle "override" flag?
+
+	// clear the existing array
+	inst.logConfig[index].Filters = make([]maestroSpecs.LogFilter, filterslen)
+
+	for i := 0; i < filterslen; i++ {
+		inst.logConfig[index].Filters[i].Levels = reflect.ValueOf(futvalue).Index(i).FieldByName("Levels").String()
+		inst.logConfig[index].Filters[i].Tag = reflect.ValueOf(futvalue).Index(i).FieldByName("Tag").String()
+		inst.logConfig[index].Filters[i].Pre = reflect.ValueOf(futvalue).Index(i).FieldByName("Pre").String()
+		inst.logConfig[index].Filters[i].Post = reflect.ValueOf(futvalue).Index(i).FieldByName("Post").String()
+		inst.logConfig[index].Filters[i].PostFmtPreMsg = reflect.ValueOf(futvalue).Index(i).FieldByName("PostFmtPreMsg").String()
+
+		// configure greasego
+		AddLogFilter(inst.logConfig[index].Filters[i])
+
+		// FIXME: push the new config to maestroDB here?
+	}
 }
 
-//Function to process tag config change
-func (inst *logManagerInstance) TagConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	log.MaestroInfof("TagConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+//Function to process format config change
+func (inst *logManagerInstance) FormatConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("FormatConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
-//Function to process pre config change
-func (inst *logManagerInstance) PreConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	log.MaestroInfof("PreConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-}
-
-//Function to process post config change
-func (inst *logManagerInstance) PostConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	log.MaestroInfof("PostConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-}
-
-//Function to process post-fmt-pre-msg config change
-func (inst *logManagerInstance) PostFmtPreMsgConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	log.MaestroInfof("PostFmtPreMsgConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+//Function to process opts config change
+func (inst *logManagerInstance) OptsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	log.MaestroInfof("OptsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

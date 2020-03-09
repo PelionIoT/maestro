@@ -153,7 +153,9 @@ type logManagerInstance struct {
 	interfaceThreadCount      int
 	interfaceThreadCountMutex sync.Mutex
 	threadCountChan           chan logThreadMessage
-	logConfig                 []maestroSpecs.LogTarget
+
+	// current config state
+	logConfig []maestroSpecs.LogTarget
 
 	// Configs to be used for connecting to devicedb
 	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
@@ -729,12 +731,10 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 				var logConfigChangeHook LogConfigChangeHook
 
 				//log target keys
-				configLogAna.AddHook("target", logConfigChangeHook)
-				configLogAna.AddHook("levels", logConfigChangeHook)
-				configLogAna.AddHook("tag", logConfigChangeHook)
-				configLogAna.AddHook("pre", logConfigChangeHook)
-				configLogAna.AddHook("post", logConfigChangeHook)
-				configLogAna.AddHook("post-fmt-pre-msg", logConfigChangeHook)
+				configLogAna.AddHook("name", logConfigChangeHook)
+				configLogAna.AddHook("filters", logConfigChangeHook)
+				configLogAna.AddHook("format", logConfigChangeHook)
+				configLogAna.AddHook("opts", logConfigChangeHook)
 
 				//Add monitor for this config
 				var origLogConfig, updatedLogConfig []maestroSpecs.LogTarget
