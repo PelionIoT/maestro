@@ -16,10 +16,14 @@ package logconfig
 // limitations under the License.
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 
+	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/maestroConfig"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 type LogConfigChangeHook struct {
@@ -96,6 +100,39 @@ func (cfgHook LogConfigChangeHook) SawChange(configgroup string, fieldchanged st
 func (cfgHook LogConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
 	log.MaestroInfof("ConfigChangeHook:ChangesComplete: %s\n", configgroup)
 	return false //return false as we would apply only those we successfully processed
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Helper functions
+////////////////////////////////////////////////////////////////////////////////////////////////////
+func AddLogFilter(filterConfig maestroSpecs.LogFilter) error {
+	targId := greasego.GetTargetId(filterConfig.Target)
+	if targId == 0 {
+		return errors.New("target does not exist")
+	}
+
+	filter := greasego.NewGreaseLibFilter()
+	greasego.AssignFromStruct(filter, filterConfig)
+
+	filter.Target = targId
+	greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, filter.Target)
+
+	if len(filterConfig.Levels) > 0 {
+		mask := maestroConfig.ConvertLevelStringToUint32Mask(filterConfig.Levels)
+		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
+	}
+
+	if len(filterConfig.Tag) > 0 {
+		tag := maestroConfig.ConvertTagStringToUint32(filterConfig.Tag)
+		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
+	}
+
+	added := greasego.AddFilter(filter)
+	if added != 0 {
+		return errors.New("failed to add filter")
+	}
+
+	return nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
