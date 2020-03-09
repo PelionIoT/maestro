@@ -43,21 +43,21 @@ type LogRotate struct {
 }
 
 type LogTarget struct {
-	File                     string                           `yaml:"file,omitempty" greaseAssign:"File"`
-	TTY                      string                           `yaml:"tty,omitempty" greaseAssign:"TTY"`
-	Format                   LogFormat                        `yaml:"format,omitempty"`
-	Filters                  []LogFilter                      `yaml:"filters"`
-	Rotate                   LogRotate                        `yaml:"rotate,omitempty" greaseAssign:"FileOpts"`
-	ExampleFileOpts          greasego.GreaseLibTargetFileOpts `greaseType:"FileOpts"`
-	Delim                    string                           `yaml:"delim,omitempty" greaseAssign:"Delim"`
-	FormatPre                string                           `yaml:"format_pre,omitempty" greaseAssign:"Format_pre"`
-	FormatTime               string                           `yaml:"format_time,omitempty" greaseAssign:"Format_time"`
-	FormatLevel              string                           `yaml:"format_level,omitempty" greaseAssign:"Format_level"`
-	FormatTag                string                           `yaml:"format_tag,omitempty" greaseAssign:"Format_tag"`
-	FormatOrigin             string                           `yaml:"format_origin,omitempty" greaseAssign:"Format_origin"`
-	FormatPost               string                           `yaml:"format_post,omitempty" greaseAssign:"Format_post"`
-	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" greaseAssign:"Format_pre_msg"`
-	Name                     string                           `yaml:"name,omitempty" greaseAssign:"Name"`
+	File                     string                           `yaml:"file,omitempty" greaseAssign:"File" log_group:"name"`
+	TTY                      string                           `yaml:"tty,omitempty" greaseAssign:"TTY" log_group:"name"`
+	Format                   LogFormat                        `yaml:"format,omitempty" log_group:"format"`
+	Filters                  []LogFilter                      `yaml:"filters" log_group:"filters"`
+	Rotate                   LogRotate                        `yaml:"rotate,omitempty" greaseAssign:"FileOpts" log_group:"opts"`
+	ExampleFileOpts          greasego.GreaseLibTargetFileOpts `greaseType:"FileOpts" log_group:"opts"`
+	Delim                    string                           `yaml:"delim,omitempty" greaseAssign:"Delim" log_group:"format"`
+	FormatPre                string                           `yaml:"format_pre,omitempty" greaseAssign:"Format_pre" log_group:"format"`
+	FormatTime               string                           `yaml:"format_time,omitempty" greaseAssign:"Format_time" log_group:"format"`
+	FormatLevel              string                           `yaml:"format_level,omitempty" greaseAssign:"Format_level" log_group:"format"`
+	FormatTag                string                           `yaml:"format_tag,omitempty" greaseAssign:"Format_tag" log_group:"format"`
+	FormatOrigin             string                           `yaml:"format_origin,omitempty" greaseAssign:"Format_origin" log_group:"format"`
+	FormatPost               string                           `yaml:"format_post,omitempty" greaseAssign:"Format_post" log_group:"format"`
+	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" greaseAssign:"Format_pre_msg" log_group:"format"`
+	Name                     string                           `yaml:"name,omitempty" greaseAssign:"Name" log_group:"name"`
 	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings"`
 }
 
