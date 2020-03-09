@@ -12,8 +12,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/armPelionEdge/greasego"
+	"github.com/armPelionEdge/hashmap"
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
@@ -146,6 +148,9 @@ type logManagerInstance struct {
 	db          *bolt.DB
 	logConfigDB *stow.Store
 
+	byLogName   *hashmap.HashMap // map of identifier to struct -> 'eth2':&networkInterfaceData{}
+	indexToName *hashmap.HashMap
+
 	watcherWorkChannel chan logThreadMessage
 
 	// mostly used for testing
@@ -216,17 +221,10 @@ func (this *logManagerInstance) waitForActiveLogThreads(timeout_seconds int) (wa
 
 // impl storage.StorageUser interface
 func (this *logManagerInstance) StorageInit(instance storage.MaestroDBStorageInterface) {
-	gob.Register(&maestroSpecs.NetIfConfigPayload{})
+	gob.Register(&maestroSpecs.LogTarget{})
 	gob.Register(&LogData{})
 	this.logConfigDB = stow.NewStore(instance.GetDb(), []byte(c_DB_NAME))
 }
-
-// // called when the DB is open and ready
-// StorageReady(instance MaestroDBStorageInterface)
-// // called when the DB is initialized
-// StorageInit(instance MaestroDBStorageInterface)
-// // called when storage is closed
-// StorageClosed(instance MaestroDBStorageInterface)
 
 func (this *logManagerInstance) StorageReady(instance storage.MaestroDBStorageInterface) {
 	this.db = instance.GetDb()
@@ -240,16 +238,11 @@ func (this *logManagerInstance) StorageClosed(instance storage.MaestroDBStorageI
 
 }
 
-// func (inst *logManagerInstance) resetDNSBuffer() {
-// 	inst.dnsResolvConf = bytes.NewBufferString(dnsTemplateFile)
-// }
-
 func newLogManagerInstance() (ret *logManagerInstance) {
 	ret = new(logManagerInstance)
 	ret.watcherWorkChannel = make(chan logThreadMessage, 10) // use a buffered channel
 	ret.threadCountChan = make(chan logThreadMessage)
-	// ret.resetDNSBuffer()
-	//go ret.watchInterfaces()
+
 	return
 }
 
@@ -271,7 +264,7 @@ func (this *LogData) setRunningConfig(logconfig []maestroSpecs.LogTarget) (ret *
 	return
 }
 
-func validateLogConfig(logconf []maestroSpecs.LogTarget) (ok bool, problem string) {
+func validateLogConfig(logconf maestroSpecs.LogTarget) (ok bool, problem string) {
 	ok = true
 	/*if len(logconf.IfName) < 1 {
 		ok = false
@@ -282,7 +275,7 @@ func validateLogConfig(logconf []maestroSpecs.LogTarget) (ok bool, problem strin
 
 // to be ran on startup, or new interface creation
 //
-func resetLogDataFromStoredConfig(logdata *LogData) error {
+func resetLogDataFromStoredConfig(logtarget maestroSpecs.LogTarget) error {
 	/*var logconf []maestroSpecs.LogTarget
 
 	logconf = nil
@@ -301,245 +294,81 @@ func resetLogDataFromStoredConfig(logdata *LogData) error {
 	return nil
 }
 
-func updateIfConfigFromStored(logdata *LogData) (ok bool, err error) {
-	if logdata.StoredLogconfig != nil {
-		ok = true
-	} else {
-		log.MaestroError("LogManager: CRITICAL updateIfConfigFromStored encountered nil StoredLogconfig")
-		ok = false
-		err = errors.New("No StoredLogconfig")
-	}
-	return
-}
-
-func (this *logManagerInstance) resetLinks() {
-	log.MaestroDebugf("LogManager: resetLinks: reset all log links\n")
-	//This function brings all the intfs down and puts everything back in pristine state
-	/*for item := range this.byInterfaceName.Iter() {
-		if item.Value == nil {
-			debugging.DEBUG_OUT("LogManager: resetLinks: Invalid Entry in hashmap - have null value pointer\n")
-			continue
-		}
-		ifname := "<interface name>"
-		ifname, _ = item.Key.(string)
-		log.MaestroDebugf("LogManager: found existing key for if [%s]\n", ifname)
-		if item.Value != nil {
-			ifdata := (*LogData)(item.Value)
-			//First kill the DHCP routine if its running
-			if ifdata.dhcpRunning {
-				log.MaestroDebugf("LogManager: resetLinks: Stopping DHCP routine for if %s\n", ifname)
-				ifdata.dhcpWorkerControl <- logThreadMessage{cmd: stop_and_release_IP}
-				// wait on that shutdown
-				<-ifdata.dhcpWaitOnShutdown
-				//Set the flag
-				ifdata.dhcpRunning = false
-			}
-			//ifdata := (*LogData)(item.Value)
-			log.MaestroDebugf("LogManager: Remove the interface config/settings from hashmap for if [%s]\n", ifname)
-			//Clear/Remove the interface config/settings from hashmap
-			link, err := GetInterfaceLink(ifname, -1)
-			if err == nil && link != nil {
-				ifname = link.Attrs().Name
-				// ok - need to bring interface down to set Mac
-				log.MaestroDebugf("LogManager: resetLinks: bringing if %s down\n", ifname)
-				err2 := netlink.LinkSetDown(link)
-				if err2 != nil {
-					log.MaestroErrorf("LogManager: resetLinks: failed to bring if %s down - %s\n", ifname, err2.Error())
-				}
-				//Now we can remove the entry from hashmap
-				this.byInterfaceName.Del(item.Key)
-			}
-		}
-	}*/
-}
-
 func (this *logManagerInstance) submitConfig(config []maestroSpecs.LogTarget) {
 	this.logConfig = config
 
-	//reset all current config if this function is called again
-	this.resetLinks()
-
-	// NOTE: this is only for the config file initial start
-	// NOTE: the database must already be loaded and read
-	// should only be called once. Is only called by InitLogManager()
-	/*	for _, logconf := range config.Interfaces {
-		log.MaestroInfof("LogManager: submitConfig: if %s\n", logconf.IfName)
-		// look in database
-		conf_ok, problem := validateLogConfig(logconf)
+	debugging.DEBUG_OUT("targets:", len(config))
+	for n := 0; n < len(config); n++ {
+		conf_ok, problem := validateLogConfig(config[n])
 		if !conf_ok {
-			log.MaestroErrorf("LogManager: Interface config problem: \"%s\"  Skipping interface config.\n", problem)
+			log.MaestroErrorf("LogManager: Target config problem: \"%s\"  Skipping interface config.\n", problem)
 			continue
 		}
-		ifname := logconf.IfName
-		debugging.DEBUG_OUT("------> ifname: [%s]\n", ifname)
-		var storedlogconfig LogData
-		err := this.logConfigDB.Get(ifname, &storedlogconfig)
-		if err != nil {
-			log.MaestroInfof("LogManager: submitConfig: Get failed: %v\n", err)
-			if err != stow.ErrNotFound {
-				log.MaestroErrorf("LogManager: problem with database on if %s - Get: %s\n", ifname, err.Error())
-			} else {
-				// ret = new(LogData)
-				// ret.IfName = logconf.IfName
-				newconf := newIfData(logconf.IfName, logconf)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(newconf))
-				err = this.commitInterfaceData(ifname)
-				if err != nil {
-					log.MaestroErrorf("LogManager: Problem (1) storing config for interface [%s]: %s\n", logconf.IfName, err)
-				}
-				// // ret.RunningLogconfig = new(maestroSpecs.NetIfConfigPayload)
-				// // ret.RunningLogconfig.IfName = ifname
-				// ret.StoredLogconfig = new(maestroSpecs.NetIfConfigPayload)
-				// ret.StoredLogconfig.IfName = ifname
+		targetname := config[n].Name
 
-				// this.byInterfaceName.Set(ifname,unsafe.Pointer(ret))
-				// this.commitInterfaceData(ifname)
-				// // this.byInterfaceName.Set(ifname,unsafe.Pointer(ret))
+		var storedconfig maestroSpecs.LogTarget
+		err := this.logConfigDB.Get(targetname, &storedconfig)
+		if err != nil {
+			log.MaestroInfof("LogManager: sumbitConfig: Get failed: %v\n", err)
+			if err != stow.ErrNotFound {
+				log.MaestroErrorf("LogManager: problem with database on if %s - Get: %s\n", targetname, err.Error())
+			} else {
+				//cache our local copy. Do we need to do this anymore?
+				this.byLogName.Set(targetname, unsafe.Pointer(&config[n]))
+				//write this out to the DB
+				err := this.logConfigDB.Put(targetname, config[n])
+				if err != nil {
+					log.MaestroErrorf("LogManager: Problem (1) storing config for interface [%s]: %s\n", config[n].Name, err)
+				}
 			}
 		} else {
 			// entry existed, so override
-			if logconf.Existing == "replace" {
-				// same as above, brand new
-				newconf := newIfData(logconf.IfName, logconf)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(newconf))
-				err = this.commitInterfaceData(ifname)
+			if config[n].Existing == "replace" || config[n].Existing == "override" {
+				// do i need to do this?
+				this.byLogName.Set(targetname, unsafe.Pointer(&config[n]))
+				//write this out to the DB
+				err := this.logConfigDB.Put(targetname, config[n])
 				if err != nil {
-					log.MaestroErrorf("LogManager: Problem (2) storing config for interface [%s]: %s\n", logconf.IfName, err)
+					log.MaestroErrorf("LogManager: Problem (2) storing config for interface [%s]: %s\n", config[n].Name, err)
 				} else {
-					log.MaestroInfof("LogManager: interface [%s] - setting \"replace\"\n", logconf.IfName)
+					log.MaestroInfof("LogManager: log target [%s] - setting \"replace\"\n", config[n].Name)
 				}
 
-			} else if logconf.Existing == "override" {
-				debugging.DEBUG_OUT("logconfig: %+v\n", logconf)
-				// override fields where the incoming config has data
-				if storedlogconfig.StoredLogconfig != nil {
-					debugging.DEBUG_OUT("merging...\n")
-					// structmutate.SetupUtilsLogs(func (format string, a ...interface{}) {
-					//     s := fmt.Sprintf(format, a...)
-					//     fmt.Printf("[debug-typeutils]  %s\n", s)
-					// },nil)
-					err = structmutate.MergeInStruct(storedlogconfig.StoredLogconfig, logconf)
-					if err != nil {
-						// should not happen
-						log.MaestroErrorf("LogManager: Failed to merge in config file data. %s\n", err.Error())
-					}
-				} else {
-					storedlogconfig.StoredLogconfig = logconf
-				}
-				debugging.DEBUG_OUT("storedlogconfig: %+v\n", storedlogconfig.StoredLogconfig)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(&storedlogconfig))
-				err = this.commitInterfaceData(ifname)
-				if err != nil {
-					log.MaestroErrorf("LogManager: Problem (3) storing config for interface [%s]: %s\n", logconf.IfName, err)
-				} else {
-					log.MaestroInfof("LogManager: interface [%s] - setting \"override\"\n", logconf.IfName)
-				}
-
-			} else { // else do nothingm db has priority
-				//                this.byInterfaceName.Set(ifname,unsafe.Pointer(ret))
+			} else {
+				// else do nothingm db has priority
 			}
 		}
-
-	}*/
-}
-
-func (this *logManagerInstance) getTargetFromDb(target string) (ret *LogData) {
-	err := this.logConfigDB.Get(target, ret)
-	if err != nil {
-		//            debugging.DEBUG_OUT("getOrNewInterfaceData: %s - error %s\n",ifname,err.Error())
-		if err != stow.ErrNotFound {
-			log.MaestroErrorf("LogManager: problem with database Get: %s\n", err.Error())
-		}
 	}
-	return
-}
-
-func (this *logManagerInstance) getOrNewTargetData(target string) (ret *LogData) {
-	/*this.newInterfaceMutex.Lock()
-	pdata, ok := this.byInterfaceName.GetStringKey(target)
-	if ok {
-		if pdata == nil {
-			ret = this.getIfFromDb(target)
-			if ret == nil {
-				ret = new(LogData)
-				ret.IfName = ifname
-				ret.RunningLogconfig = new(maestroSpecs.LogTarget)
-				ret.RunningLogconfig.IfName = target
-				ret.StoredLogconfig = new(maestroSpecs.LogTarget)
-				ret.StoredLogconfig.IfName = target
-			}
-		} else {
-			ret = (*LogData)(pdata)
-		}
-		this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
-		this.commitInterfaceData(ifname)
-		//        debugging.DEBUG_OUT("HERE getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
-	} else {
-		// ok, let's try the database
-		ret = this.getIfFromDb(ifname)
-		if ret == nil {
-			ret = new(LogData)
-			ret.IfName = ifname
-			ret.RunningLogconfig = new(maestroSpecs.NetIfConfigPayload)
-			ret.RunningLogconfig.IfName = ifname
-			ret.StoredLogconfig = new(maestroSpecs.NetIfConfigPayload)
-			ret.StoredLogconfig.IfName = ifname
-			this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
-			this.commitInterfaceData(ifname)
-		} else {
-			//            debugging.DEBUG_OUT("HERE(2) getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
-			// store in in-memory map
-			this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
-		}
-	}
-	this.newInterfaceMutex.Unlock()*/
-	return
 }
 
 // loads all existing data from the DB, for an interface
 // If one or more interfaces data have problems, it will keep loading
 // If reading the DB fails completely, it will error out
 func (this *logManagerInstance) loadAllLogData() (err error) {
-	/*var temp LogData
+	var temp LogData
 	this.logConfigDB.IterateIf(func(key []byte, val interface{}) bool {
-		ifname := string(key[:])
-		ifdata, ok := val.(*LogData)
+		logname := string(key[:])
+		logdata, ok := val.(maestroSpecs.LogTarget)
 		if ok {
-			err2 := resetLogDataFromStoredConfig(ifdata)
+			//this probably isn't even remotely necessary
+			err2 := resetLogDataFromStoredConfig(logdata)
 			if err2 == nil {
-				this.newInterfaceMutex.Lock()
+				//this.newInterfaceMutex.Lock()
 				// if there is an existing in-memory entry, overwrite it
-				log.MaestroInfof("LogManager:loadAllLogData: Loading config for: %s.\n", ifname)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(ifdata))
-				this.newInterfaceMutex.Unlock()
-				debugging.DEBUG_OUT("loadAllLogData() see if: %s --> %+v\n", ifname, ifdata)
+				log.MaestroInfof("LogManager:loadAllLogData: Loading config for: %s.\n", logname)
+				this.byLogName.Set(logname, unsafe.Pointer(&logdata))
+				//this.newInterfaceMutex.Unlock()
+				debugging.DEBUG_OUT("loadAllLogData() see if: %s --> %+v\n", logname, logdata)
 			} else {
-				log.MaestroErrorf("LogManager: Critical problem with interface [%s] config. Not loading config.\n", ifname)
+				log.MaestroErrorf("LogManager: Critical problem with interface [%s] config. Not loading config.\n", logname)
 			}
 		} else {
 			err = errors.New("Internal DB corruption")
-			debugging.DEBUG_OUT("LogManager: internal DB corruption - @if %s\n", ifname)
+			debugging.DEBUG_OUT("LogManager: internal DB corruption - @if %s\n", logname)
 			log.MaestroError("LogManager: internal DB corruption")
 		}
 		return true
-	}, &temp)*/
-	return
-}
-
-func (this *logManagerInstance) DoesTargetHaveValidConfig(ifname string) (err error, ok bool, logconfig []maestroSpecs.LogTarget) {
-	//ifdata := this.getInterfaceData(ifname)
-	//if ifdata != nil && ifdata.StoredLogconfig != nil {
-	//	logconfig = ifdata.StoredLogconfig
-	//	ok, s := validateLogConfig(logconfig)
-	//	if !ok {
-	//		err = errors.New("Config failed validation: " + s)
-	//	}
-	//} else {
-	//	err = errors.New("No config")
-	//}
-	err = nil
-	ok = true
-	logconfig = nil
+	}, &temp)
 	return
 }
 
@@ -547,60 +376,6 @@ func (this *logManagerInstance) SetTargetConfigByName(targetname string, logconf
 	/*targetdata := this.getOrNewInterfaceData(targetname)
 	targetdata.StoredLogconfig = logconfig
 	this.commitInterfaceData(targetname)*/
-	return
-}
-
-func (this *logManagerInstance) setupTargets() (err error) {
-	/*
-		for item := range this.byInterfaceName.Iter() {
-			if item.Value == nil {
-				debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
-				continue
-			}
-			ifname := "<interface name>"
-			ifname, _ = item.Key.(string)
-			log.MaestroDebugf("LogManager: see existing setup for if [%s]\n", ifname)
-			if item.Value != nil {
-				ifdata := (*LogData)(item.Value)
-
-				if ifdata == nil {
-					log.MaestroErrorf("LogManager: Interface [%s] does not have an interface data structure.\n", ifname)
-					continue
-				}
-
-				var logconfig []maestroSpecs.LogTarget
-
-				if ifdata.StoredLogconfig != nil {
-					logconfig = ifdata.StoredLogconfig
-				} else if ifdata.RunningLogconfig != nil {
-					log.MaestroWarnf("LogManager: unusual, StoredLogconfig for if [%s] is nil. using RunningLogconfig\n", ifname)
-					logconfig = ifdata.RunningLogconfig
-				} else {
-					log.MaestroErrorf("LogManager: unusual, StoredLogconfig & RunningLogconfig for if [%s] is nil. skipping interface setup\n", ifname)
-					continue
-				}
-
-				// create an Internal task and submit it
-				conf1 := new(maestroSpecs.LogTarget)
-				*conf1 = *logconfig
-
-				op := new(maestroSpecs.NetInterfaceOpPayload)
-				op.Type = maestroSpecs.OP_TYPE_NET_INTERFACE
-				op.Op = maestroSpecs.OP_UPDATE_ADDRESS
-				op.IfConfig = conf1
-				op.TaskId = "setup_existing_" + logconfig.IfName
-
-				task := new(tasks.MaestroTask)
-
-				task.Id = "setup_existing_" + logconfig.IfName
-				task.Src = "SetupExistingInterfaces"
-				task.Op = op
-
-				this.SubmitTask(task)
-
-			}
-		}
-	*/
 	return
 }
 
@@ -673,7 +448,7 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 		}
 
 		//Config for log
-		var ddbLogConfig []maestroSpecs.LogTarget
+		var ddbLogConfig maestroSpecs.LogConfigPayload
 
 		//Create a config analyzer object, required for registering the config change hook and diff the config objects.
 		configLogAna := maestroSpecs.NewConfigAnalyzer(DDB_LOG_CONFIG_CONFIG_GROUP_ID)
@@ -685,8 +460,12 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 			this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
 			err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Get(&ddbLogConfig)
 			if err != nil {
+				for _, target := range this.logConfig {
+					target := target
+					ddbLogConfig.Targets = append(ddbLogConfig.Targets, &target)
+				}
 				log.MaestroWarnf("LogManager: No log config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config.\n", err)
-				err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Put(this.logConfig)
+				err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Put(&ddbLogConfig)
 				if err != nil {
 					log.MaestroErrorf("LogManager: Unable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err)
 					err_updated := errors.New(fmt.Sprintf("\nUnable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err))
@@ -694,32 +473,28 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 				}
 			} else {
 				//We found a config in devicedb, lets try to use and reconfigure log if its an updated one
-				log.MaestroInfof("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig)
-				identical, _, _, err := configLogAna.DiffChanges(this.logConfig, ddbLogConfig)
+				log.MaestroInfof("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig.Targets)
+				log.MaestroInfof("MRAY DiffChanges being called\n")
+				fmt.Printf("MRAY DiffChanges being called\n")
+				var temp maestroSpecs.LogConfigPayload
+				for _, target := range this.logConfig {
+					target := target
+					temp.Targets = append(temp.Targets, &target)
+				}
+				identical, _, _, err := configLogAna.DiffChanges(temp, ddbLogConfig)
 				if !identical && (err == nil) {
 					//The configs are different, lets go ahead reconfigure the intfs
 					log.MaestroDebugf("LogManager: New log config found from devicedb, reconfigure nework using new config\n")
-					this.logConfig = ddbLogConfig
+					this.logConfig = make([]maestroSpecs.LogTarget, len(ddbLogConfig.Targets))
+					for i, target := range ddbLogConfig.Targets {
+						this.logConfig[i] = *target
+					}
 					this.submitConfig(this.logConfig)
-					//Setup the intfs using new config
-					this.setupTargets()
-					//Set the hostname again as we reconfigured the log
-					log.MaestroWarnf("LogManager: Again setting hostname: %s\n", this.ddbConnConfig.RelayId)
-					syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
+					// //Setup the intfs using new config
+					// this.setupTargets()
 				} else {
 					log.MaestroInfof("LogManager: New log config found from devicedb, but its same as boot config, no need to re-configure\n")
 				}
-			}
-			//Since we are booting set the Network config commit flag to false
-			log.MaestroWarnf("LogManager: Setting Network config commit flag to false\n")
-			this.CurrConfigCommit.ConfigCommitFlag = false
-			this.CurrConfigCommit.LastUpdateTimestamp = ""
-			this.CurrConfigCommit.TotalCommitCountFromBoot = 0
-			err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
-			if err != nil {
-				log.MaestroErrorf("LogManager: Unable to put log commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
-				err_updated := errors.New(fmt.Sprintf("\nUnable to put log commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
-				return err_updated
 			}
 
 			//Now start a monitor for the log config in devicedb
@@ -737,22 +512,16 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 				configLogAna.AddHook("opts", logConfigChangeHook)
 
 				//Add monitor for this config
-				var origLogConfig, updatedLogConfig []maestroSpecs.LogTarget
+				var origLogConfig, updatedLogConfig maestroSpecs.LogConfigPayload
 				//Provide a copy of current log config monitor to Config monitor, not the actual config we use, this would prevent config monitor
 				//directly updating the running config(this.logConfig).
-				origLogConfig = this.logConfig
+				for _, target := range this.logConfig {
+					target := target
+					origLogConfig.Targets = append(origLogConfig.Targets, &target)
+				}
 
 				//Adding monitor config
 				this.ddbConfigMonitor.AddMonitorConfig(&origLogConfig, &updatedLogConfig, DDB_LOG_CONFIG_NAME, configLogAna)
-
-				//Add config change hook for all property groups, we can use the same interface
-				var commitConfigChangeHook CommitConfigChangeHook
-				configLogAna.AddHook("config_commit", commitConfigChangeHook)
-
-				//Add monitor for this object
-				var updatedConfigCommit ConfigCommit
-				log.MaestroInfof("LogManager: Adding monitor for config commit object\n")
-				this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_LOG_CONFIG_COMMIT_FLAG, configLogAna)
 			}
 		}
 	} else {
