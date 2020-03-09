@@ -33,6 +33,7 @@ import (
 	. "github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestro/logconfig"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/networking"
 	"github.com/armPelionEdge/maestro/processes"
@@ -130,36 +131,6 @@ func handleAlive(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	defer r.Body.Close()
 }
 
-func processPostLogFilter(filterConfig maestroSpecs.LogFilter) error {
-	targId := greasego.GetTargetId(filterConfig.Target)
-	if targId == 0 {
-		return errors.New("target does not exist")
-	}
-
-	filter := greasego.NewGreaseLibFilter()
-	greasego.AssignFromStruct(filter, filterConfig)
-
-	filter.Target = targId
-	greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, filter.Target)
-
-	if len(filterConfig.Levels) > 0 {
-		mask := maestroConfig.ConvertLevelStringToUint32Mask(filterConfig.Levels)
-		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
-	}
-
-	if len(filterConfig.Tag) > 0 {
-		tag := maestroConfig.ConvertTagStringToUint32(filterConfig.Tag)
-		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
-	}
-
-	added := greasego.AddFilter(filter)
-	if added != 0 {
-		return errors.New("failed to add filter")
-	}
-
-	return nil
-}
-
 func handlePostLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -176,7 +147,7 @@ func handlePostLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		return
 	}
 
-	err = processPostLogFilter(filterConfig)
+	err = logconfig.AddLogFilter(filterConfig)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
@@ -222,7 +193,7 @@ func handlePostLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 					target.Name, filter.Target)))
 				return
 			}
-			err = processPostLogFilter(filter)
+			err = logconfig.AddLogFilter(filter)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
