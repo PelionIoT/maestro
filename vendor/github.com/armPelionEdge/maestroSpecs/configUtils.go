@@ -218,6 +218,10 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 				continue
 			}
 			if k == reflect.Struct {
+				// if the field isn't exported then skip it
+				if !fieldval.Addr().CanInterface() {
+					continue
+				}
 				// it is crtical to pass in as an Interface which is an Address
 				e := compareStruct(pre+field.Name, fieldval.Addr().Interface(), futval.Addr().Interface(), index)
 				if e != nil {
