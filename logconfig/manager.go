@@ -294,6 +294,21 @@ func resetLogDataFromStoredConfig(logtarget maestroSpecs.LogTarget) error {
 	return nil
 }
 
+func (this *logManagerInstance) submitConfigAndSync(config []maestroSpecs.LogTarget) {
+	this.submitConfig(config)
+	var ddbLogConfig maestroSpecs.LogConfigPayload
+
+	for _, target := range config {
+		target := target
+		ddbLogConfig.Targets = append(ddbLogConfig.Targets, &target)
+	}
+	log.MaestroWarnf("LogManager: Updating devicedb config.\n")
+	err := this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Put(&ddbLogConfig)
+	if err != nil {
+		log.MaestroErrorf("LogManager: Unable to put log config in devicedb err: %v\n", err)
+	}
+}
+
 func (this *logManagerInstance) submitConfig(config []maestroSpecs.LogTarget) {
 	this.logConfig = config
 
@@ -489,7 +504,7 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 					for i, target := range ddbLogConfig.Targets {
 						this.logConfig[i] = *target
 					}
-					this.submitConfig(this.logConfig)
+					this.submitConfigAndSync(this.logConfig)
 					// //Setup the intfs using new config
 					// this.setupTargets()
 				} else {

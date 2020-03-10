@@ -199,7 +199,7 @@ func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
 		if applyChange {
 			instance = GetInstance()
 			log.MaestroInfof("ConfigApplyHandler::Processing apply change: %v\n", instance.CurrConfigCommit.ConfigCommitFlag)
-			instance.submitConfig(instance.logConfig)
+			instance.submitConfigAndSync(instance.logConfig)
 			//Setup the intfs using new config
 			instance.setupInterfaces()
 			instance.CurrConfigCommit.ConfigCommitFlag = false
