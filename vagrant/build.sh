@@ -94,7 +94,7 @@ if [ ! -f maestro.config ]; then
     SYMPHONY_CLIENT_CRT=$(cat $MAESTRO_CERTS/device_cert.pem)
     SYMPHONY_CLIENT_KEY=$(cat $MAESTRO_CERTS/device_private_key.pem)
 
-    mv /tmp/maestro.config maestro.config
+    cp /vagrant/vagrant/maestro.config maestro.config
     sed -i "s|{{DEVICE_ID}}|$DEVICE_ID|g" maestro.config
     sed -i "s|{{DEVICEDB_SRC}}|$DEVICEDB_SRC|g" maestro.config
 
