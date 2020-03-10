@@ -36,7 +36,7 @@ type Logger interface {
 }
 
 type LogConfigPayload struct {
-	Targets []*LogTarget `yaml:"targets" json:"targets"`
+	Targets []*LogTarget `yaml:"targets" json:"targets" log_group:"targets"`
 }
 
 type LogRotate struct {
@@ -62,8 +62,8 @@ type LogTarget struct {
 	FormatPost               string                           `yaml:"format_post,omitempty" greaseAssign:"Format_post" log_group:"format"`
 	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" greaseAssign:"Format_pre_msg" log_group:"format"`
 	Name                     string                           `yaml:"name,omitempty" greaseAssign:"Name" log_group:"name"`
-	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings"`
-	Existing                 string                           `yaml:"existing" json:"existing" log_group:"config_opts"`
+	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings" log_group:"opts"`
+	Existing                 string                           `yaml:"existing" json:"existing" log_group:"opts"`
 }
 
 type LogFormat struct {
