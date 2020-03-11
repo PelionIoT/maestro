@@ -175,18 +175,40 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 	log.MaestroInfof("FiltersConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	filterslen := reflect.ValueOf(futvalue).Len()
 
+	// verify we have an existing target because we don't currently support adding new targets
+	if len(inst.logConfig) <= index {
+		log.MaestroErrorf("FiltersConfigChange: No targets exist.  Adding new targets is not supported.\n")
+		return
+	}
 	targId := greasego.GetTargetId(inst.logConfig[index].Name)
 	if targId == 0 {
 		log.MaestroErrorf("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfig[index].Name)
 		return
 	}
 
+	// if the existing target at index has a name and if the incoming filter specifies a target name,
+	// then verify the names match
+	if len(inst.logConfig[index].Name) > 0 {
+		for i := 0; i < filterslen; i++ {
+			target_name := reflect.ValueOf(futvalue).Index(i).FieldByName("Target").String()
+			if len(target_name) > 0 && (inst.logConfig[index].Name != target_name) {
+				log.MaestroErrorf("FiltersConfigChange: filter.Target.Name doesn't match existing target at index %d\n", index)
+				return
+			}
+		}
+	}
+
 	// FIXME: the incoming filter config completely replaces any existing config which is known
 	//     as "replace" behavior for the "Existing" flag.  Do we need to handle "override" flag?
 
-	// clear the existing array
+	// For "replace" behavior, we delete all existing filters for the given target
+	for _, filter := range inst.logConfig[index].Filters {
+		DeleteLogFilter(filter)
+	}
+	// now that all existing filters have been deleted, clear the local config array
 	inst.logConfig[index].Filters = make([]maestroSpecs.LogFilter, filterslen)
 
+	// create the new filters based on the incoming config in futvalue
 	for i := 0; i < filterslen; i++ {
 		inst.logConfig[index].Filters[i].Levels = reflect.ValueOf(futvalue).Index(i).FieldByName("Levels").String()
 		inst.logConfig[index].Filters[i].Tag = reflect.ValueOf(futvalue).Index(i).FieldByName("Tag").String()
