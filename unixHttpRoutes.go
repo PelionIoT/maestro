@@ -18,7 +18,6 @@ package maestro
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -251,36 +250,6 @@ func handleGetLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	w.Write(body)
 }
 
-func processDeleteLogFilter(filterConfig maestroSpecs.LogFilter) error {
-	targId := greasego.GetTargetId(filterConfig.Target)
-	if targId == 0 {
-		return errors.New("target does not exist")
-	}
-
-	filter := greasego.NewGreaseLibFilter()
-	greasego.AssignFromStruct(filter, filterConfig)
-
-	filter.Target = targId
-	greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, filter.Target)
-
-	if len(filterConfig.Levels) > 0 {
-		mask := maestroConfig.ConvertLevelStringToUint32Mask(filterConfig.Levels)
-		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
-	}
-
-	if len(filterConfig.Tag) > 0 {
-		tag := maestroConfig.ConvertTagStringToUint32(filterConfig.Tag)
-		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
-	}
-
-	removed := greasego.DeleteFilter(filter)
-	if removed != 0 {
-		return errors.New("failed to remove filter")
-	}
-
-	return nil
-}
-
 func handleDeleteLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -297,7 +266,7 @@ func handleDeleteLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 
-	err = processDeleteLogFilter(filterConfig)
+	err = logconfig.DeleteLogFilter(filterConfig)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
