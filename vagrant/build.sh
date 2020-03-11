@@ -43,6 +43,9 @@ DEBUG=1 DEBUG2=1 ./build.sh
 
 # Import GO project maestro-shell
 go get github.com/armPelionEdge/maestro-shell || true
+cd $MAESTRO_SRC/../maestro-shell
+./build-deps.sh
+go build
 go install github.com/armPelionEdge/maestro-shell
 
 # Generate identity certificates to use to connect to Pelion
