@@ -131,6 +131,36 @@ func AddLogFilter(filterConfig maestroSpecs.LogFilter) error {
 	return nil
 }
 
+func DeleteLogFilter(filterConfig maestroSpecs.LogFilter) error {
+	targId := greasego.GetTargetId(filterConfig.Target)
+	if targId == 0 {
+		return errors.New("target does not exist")
+	}
+
+	filter := greasego.NewGreaseLibFilter()
+	greasego.AssignFromStruct(filter, filterConfig)
+
+	filter.Target = targId
+	greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, filter.Target)
+
+	if len(filterConfig.Levels) > 0 {
+		mask := maestroConfig.ConvertLevelStringToUint32Mask(filterConfig.Levels)
+		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
+	}
+
+	if len(filterConfig.Tag) > 0 {
+		tag := maestroConfig.ConvertTagStringToUint32(filterConfig.Tag)
+		greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
+	}
+
+	removed := greasego.DeleteFilter(filter)
+	if removed != 0 {
+		return errors.New("failed to remove filter")
+	}
+
+	return nil
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Functions to process the parameters which are changed
 ////////////////////////////////////////////////////////////////////////////////////////////////////
