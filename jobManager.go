@@ -16,29 +16,28 @@ package maestro
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
+	"net/http"
+	"sync"
+
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/tasks"
 	"github.com/armPelionEdge/maestroSpecs"
-	//	"errors"
-	"net/http"
 )
 
 type jobManagerInstance struct {
 	// ticker *time.Ticker
 	// controlChan chan uint32
 	//	aggregateChan chan *imageop
-	jobops *hashmap.HashMap // taskId : imageop
+	jobops sync.Map // taskId : imageop
 }
 
 var JobManagerInstance *jobManagerInstance
 
 func init() {
 	JobManagerInstance = new(jobManagerInstance)
-	JobManagerInstance.jobops = hashmap.New(10)
 }
 
 // TODO - jobManager needs to be a TaskHandler... and Jobs should be started like any other Task

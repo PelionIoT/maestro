@@ -19,14 +19,14 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/boltdb/bolt"
-	"math/rand"
-	"sync"
-	"time"
-	"unsafe"
 )
 
 /******************************
@@ -183,10 +183,10 @@ func MakeEventChannel(id string, fanout bool, persistent bool) (ok bool, finalId
 			ok2 := true
 			for ok2 {
 				finalId = randStringBytes(5)
-				_, ok2 = channels.GetStringKey(finalId)
+				_, ok2 = channels.Load(finalId)
 			}
 		} else {
-			_, ok = channels.GetStringKey(id)
+			_, ok = channels.Load(id)
 			if ok {
 				// it's already made
 				return
@@ -196,7 +196,7 @@ func MakeEventChannel(id string, fanout bool, persistent bool) (ok bool, finalId
 		channel := newEventChannel(finalId, fanout)
 		ok = true
 
-		channels.Set(finalId, unsafe.Pointer(channel))
+		channels.Store(finalId, channel)
 	} else {
 		if instance != nil && instance.db != nil {
 			errouter := instance.db.Update(func(tx *bolt.Tx) error {
@@ -226,10 +226,10 @@ func MakeEventChannel(id string, fanout bool, persistent bool) (ok bool, finalId
 
 func makeSlaveChannel(master string, timeout int64) (finalId string, err error, subscription EventSubscription) {
 
-	masterp, ok2 := channels.GetStringKey(master)
+	masterp, ok2 := channels.Load(master)
 
 	if ok2 {
-		masterc := (*eventChannel)(masterp)
+		masterc := masterp.(*eventChannel)
 
 		channel := newSlaveChannel(finalId, masterc, timeout)
 
@@ -316,9 +316,9 @@ func makeSlaveChannel(master string, timeout int64) (finalId string, err error, 
 }
 
 func GetSubscription(channelname string, subscriptionid string) (ok bool, ret EventSubscription) {
-	mcp, ok2 := channels.GetStringKey(channelname)
+	mcp, ok2 := channels.Load(channelname)
 	if ok2 {
-		mc := (*eventChannel)(mcp)
+		mc := mcp.(*eventChannel)
 		ret, ok = mc.getSlaveByID(subscriptionid)
 		if !ok {
 			ret = nil
@@ -335,7 +335,7 @@ func GetSubscription(channelname string, subscriptionid string) (ok bool, ret Ev
 // subscribed to a specific Event Channel
 func SubscribeToChannel(name string, timeout int64) (ret EventSubscription, err error) {
 	// find the master channel:
-	_, ok2 := channels.GetStringKey(name)
+	_, ok2 := channels.Load(name)
 	if ok2 {
 		//		channel := (*eventChannel)(c)
 		_, _, ret = makeSlaveChannel(name, timeout)
@@ -383,6 +383,7 @@ func (channel *eventChannel) submitEvent(ev *MaestroEvent) (dropped bool, droppe
 				// no queue in master channel, all slaves use buffered standard channels
 				// slaves will get dropped events, only if their (individual) buffer fills up
 				select {
+
 				case slave.output <- dup_ev:
 					logEvent("submitEvent() (fanout) slave --> %s  %+v\n", channel.id, ev)
 				default:
@@ -400,6 +401,7 @@ func (channel *eventChannel) submitEvent(ev *MaestroEvent) (dropped bool, droppe
 				case slave.output <- dup_ev:
 					logEvent("submitEvent() slave --> %s   %+v\n", channel.id, ev)
 				default:
+
 					// if ok {
 					log.MaestroWarnf("EventManager - dropping an event on slave [%s] of channel %s\n", id, channel.id)
 					// } else {
@@ -431,9 +433,9 @@ func SubmitEvent(channelNames []string, data interface{}) (dropped bool, err err
 		if ev == nil {
 			ev = &MaestroEvent{Data: data, enqueTime: time.Now().UnixNano()}
 		}
-		c, ok2 := channels.GetStringKey(name)
+		c, ok2 := channels.Load(name)
 		if ok2 {
-			channel := (*eventChannel)(c)
+			channel := c.(*eventChannel)
 			drop, _ := channel.submitEvent(ev)
 			if drop {
 				dropped = true
@@ -456,17 +458,17 @@ func SubmitEvent(channelNames []string, data interface{}) (dropped bool, err err
 // for every channel name will get the events
 func BroadcastEvent(data interface{}) (dropped bool, err error) {
 	var ev *MaestroEvent
-
-	for kv := range channels.Iter() {
+	channels.Range(func(key, value interface{}) bool {
 		if ev == nil {
 			ev = &MaestroEvent{Data: data, enqueTime: time.Now().UnixNano()}
 		}
-		channel := (*eventChannel)(kv.Value)
+		channel := value.(*eventChannel)
 		drop, _ := channel.fifo.Push(ev)
 		if drop {
 			dropped = true
 		}
-	}
+		return true
+	})
 
 	return
 }
@@ -478,9 +480,9 @@ type MaestroEventBaton struct {
 }
 
 func (this *MaestroEventBaton) Close() (err error) {
-	c, ok := channels.GetStringKey(this.channelName)
+	c, ok := channels.Load(this.channelName)
 	if ok {
-		channel := (*eventChannel)(c)
+		channel := c.(*eventChannel)
 		channel.fifo.RemovePeeked(this.events, this.uid)
 	} else {
 		errout := newMaestroEventError("MaestroEventBaton has unknown channel: " + this.channelName)
@@ -494,9 +496,9 @@ func (this *MaestroEventBaton) Events() []*MaestroEvent {
 }
 
 func PullEvents(name string, max uint32) (err error, baton *MaestroEventBaton) {
-	c, ok := channels.GetStringKey(name)
+	c, ok := channels.Load(name)
 	if ok {
-		channel := (*eventChannel)(c)
+		channel := c.(*eventChannel)
 		baton = &MaestroEventBaton{channelName: name}
 		baton.events, baton.uid = channel.fifo.PeekBatch(max)
 	} else {

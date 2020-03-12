@@ -181,8 +181,10 @@ public:
 			::close(fd);
 		}
 	}
-	~fdRedirectorTicket() {
-		uv_poll_stop(&handle);
+	~fdRedirectorTicket() {		
+	uv_poll_stop(&handle);
+	close();
+	        
 	}
 	void startPoll(uv_poll_cb cb) {
 		uv_poll_start(&handle,UV_READABLE | UV_DISCONNECT, cb);
@@ -202,12 +204,12 @@ typedef TWlib::TW_KHash_32<int, fdRedirectorTicket *, TWlib::TW_Mutex, fd_int_eq
 fdRedirectTable *stdoutRedirectTable = NULL;
 fdRedirectTable *stderrRedirectTable = NULL;
 
-
 //DECL_LOG_META(_stdoutMeta,0,0,0);
 void _greaseLib_handle_stdoutFd_cb(uv_poll_t *handle, int status, int events) {
-	fdRedirectorTicket *r = (fdRedirectorTicket *) handle->data;
-	if(status == 0) {
-		if(r && (events & UV_READABLE)) {
+	fdRedirectorTicket *r = (fdRedirectorTicket *) handle->data;	
+
+if(status == 0) {
+if(r && (events & UV_READABLE)) {
 			DBG_OUT_LINE("level triggered\n");
 			GreaseLogger *l = GreaseLogger::setupClass();
 			GreaseLogger::singleLog *entry = NULL;
@@ -219,6 +221,7 @@ void _greaseLib_handle_stdoutFd_cb(uv_poll_t *handle, int status, int events) {
 					// ok, if read() returns 0 - then it's over:
 					// http://stackoverflow.com/questions/19871556/what-is-the-expected-behavior-for-epoll-wait-ing-on-the-read-end-of-a-closed-pip
 					rlen = ::read(r->fd,entry->buf.handle.base, entry->buf.handle.len);
+				
 					if(rlen > 0) {
 						entry->buf.used = rlen;
 						entry->meta.m.origin = r->origin;
@@ -229,22 +232,26 @@ void _greaseLib_handle_stdoutFd_cb(uv_poll_t *handle, int status, int events) {
 						entry->incRef();
 						l->_submitBuffer(entry);
 					} else if(rlen == 0) {
+					
 						// so, the stream has no more data and is closed:
-						r->close();
-						uv_poll_stop(&r->handle);
+						//r->close();
+						//uv_poll_stop(&r->handle);
 						l->_returnBuffer(entry);
 						if(r->cb) { r->cb(NULL,GREASE_PROCESS_STDOUT,r->fd); }
 						else if(defaultRedirectorClosedCB) {
 							defaultRedirectorClosedCB(NULL,GREASE_PROCESS_STDOUT,r->fd);
 						}
 					} else {
+					
 						l->_returnBuffer(entry);
 						// handle errors:
 						if(rlen == -1) {
+						 
 							// ignore these errno - they just mean no more data for now
 							if(errno != EAGAIN || errno != EWOULDBLOCK) {
 								ERROR_PERROR("read() failed: _greaseLib_handle_stdoutFd_cb",errno);
 							}
+						  break;
 						}
 					}
 				} else {
@@ -265,12 +272,14 @@ void _greaseLib_handle_stdoutFd_cb(uv_poll_t *handle, int status, int events) {
 
 void _greaseLib_handle_stderrFd_cb(uv_poll_t *handle, int status, int events) {
 	fdRedirectorTicket *r = (fdRedirectorTicket *) handle->data;
+
 	if(status == 0) {
 		if(r && (events & UV_READABLE)) {
 			GreaseLogger *l = GreaseLogger::setupClass();
 			GreaseLogger::singleLog *entry = NULL;
 			ssize_t rlen = 1;
 			while(rlen > 0) {
+				
 				// use the _grabInLogBuffer internal calls, to prevent
 				// extra memcpy()s
 				if(l->_grabInLogBuffer(entry) == GREASE_OK) {
@@ -286,8 +295,8 @@ void _greaseLib_handle_stderrFd_cb(uv_poll_t *handle, int status, int events) {
 						l->_submitBuffer(entry);
 					} else if(rlen == 0) {
 						// so, the stream has no more data and is closed:
-						r->close();
-						uv_poll_stop(&r->handle);
+						//r->close();
+						//uv_poll_stop(&r->handle);
 						l->_returnBuffer(entry);
 						if(r->cb) { r->cb(NULL,GREASE_PROCESS_STDERR,r->fd); }
 						else if(defaultRedirectorClosedCB) {
@@ -301,6 +310,7 @@ void _greaseLib_handle_stderrFd_cb(uv_poll_t *handle, int status, int events) {
 							if(errno != EAGAIN || errno != EWOULDBLOCK) {
 								ERROR_PERROR("read() failed: _greaseLib_handle_stdoutFd_cb",errno);
 							}
+						   break;
 						}
 					}
 				} else {
@@ -1473,6 +1483,7 @@ LIB_METHOD_SYNC(addFDForStdout,int fd, uint32_t originId, GreaseLibProcessClosed
 	} else {
 		stdoutRedirectTable->addReplace(fd,data,old);
 		if(old) {
+			
 			delete old;
 		}
 		data->startPoll(_greaseLib_handle_stdoutFd_cb);
@@ -1499,6 +1510,7 @@ LIB_METHOD_SYNC(addFDForStderr,int fd, uint32_t originId, GreaseLibProcessClosed
 	} else {
 		stderrRedirectTable->addReplace(fd,data,old);
 		if(old) {
+			
 			delete old;
 		}
 		data->startPoll(_greaseLib_handle_stderrFd_cb);
@@ -1510,7 +1522,7 @@ LIB_METHOD_SYNC(removeFDForStdout,int fd) {
 	fdRedirectorTicket *old = NULL;
 	stdoutRedirectTable->remove(fd,old);
 	if(old) {
-		old->close();
+		//old->close();
 		delete old;
 	}
 	return GREASE_LIB_OK;
@@ -1519,7 +1531,7 @@ LIB_METHOD_SYNC(removeFDForStderr,int fd) {
 	fdRedirectorTicket *old = NULL;
 	stderrRedirectTable->remove(fd,old);
 	if(old) {
-		old->close();
+		//old->close();
 		delete old;
 	}
 	return GREASE_LIB_OK;

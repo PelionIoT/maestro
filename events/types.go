@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
 )
 
 func debug_out(format string, a ...interface{}) {
@@ -61,7 +59,7 @@ type eventChannel struct {
 	stoppedTimeoutCheckerLatch sync.Mutex
 	timeoutCheckerRunning      bool
 	// this is a work around to avoid keys which were delete, but are still in the Iteration of the 'slaves' map
-	closedIds *hashmap.HashMap
+	closedIds sync.Map
 }
 
 func (evchan *eventChannel) stopTimeoutChecker() {
@@ -77,9 +75,7 @@ func (evchan *eventChannel) waitForStoppedTimeoutChecker() {
 }
 
 func (evchan *eventChannel) isSlaveDeleted(id string) (yes bool) {
-	if evchan.closedIds != nil {
-		_, yes = evchan.closedIds.GetStringKey(id)
-	}
+	_, yes = evchan.closedIds.Load(id)
 	return
 }
 
@@ -130,7 +126,6 @@ func (evchan *eventChannel) slaveTimeoutChecker() {
 				// for when a iterations (Range) call may be going on while
 				// we are also iterating (Range) here checking ideas.
 				// See: https://golang.org/pkg/sync/#Map.Range
-				evchan.closedIds = hashmap.New(10)
 				// look at slaves. see if they are due for expiration
 				now = time.Now().UnixNano()
 				// innerloop:
@@ -300,7 +295,7 @@ func (this *slaveChannel) GetID() string {
 	return this.id
 }
 
-var channels *hashmap.HashMap
+var channels sync.Map
 
 func newEventChannel(name string, fanout bool) (ret *eventChannel) {
 	ret = &eventChannel{fifo: nil, id: name}
@@ -335,5 +330,4 @@ func newSlaveChannel(name string, parent *eventChannel, timeout int64) (ret *sla
 }
 
 func init() {
-	channels = hashmap.New(10)
 }

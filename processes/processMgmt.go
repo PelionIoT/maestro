@@ -33,15 +33,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
-	"github.com/armPelionEdge/maestro/configMgr"
-	"github.com/armPelionEdge/maestro/configs"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/kardianos/osext" // not needed in go1.8 - see their README
-	"golang.org/x/sys/unix"
 	"os"
 	"regexp"
 	"strconv"
@@ -50,6 +41,15 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"github.com/armPelionEdge/greasego"
+	"github.com/armPelionEdge/maestro/configMgr"
+	"github.com/armPelionEdge/maestro/configs"
+	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestro/storage"
+	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/kardianos/osext" // not needed in go1.8 - see their README
+	"golang.org/x/sys/unix"
 )
 
 type ProcessStatsConfig interface {
@@ -196,65 +196,47 @@ type ProcessRecord struct {
 
 // returns a ProcessRecord by its PID (process ID)
 func GetTrackedProcessByPid(pid int) (ret *ProcessRecord, ok bool) {
-	var val unsafe.Pointer
-	val, ok = processIndexByPid.GetHashedKey(uintptr(pid))
-	if ok {
-		ret = (*ProcessRecord)(val)
-	}
-	//	ret, ok = processIndexByPid[pid]
+	var val interface{}
+	val, ok = processIndexByPid.Load(pid)
+	ret = val.(*ProcessRecord)
 	return
 }
 
 // creates a new ProcessRecord, stores it in the tracking map, and returns this new one
 // the old one - if for some rare reason a process with the same PID was already there
 func TrackNewProcessByPid(pid int) (ret *ProcessRecord, old *ProcessRecord) {
-	oldval, ok := processIndexByPid.GetHashedKey(uintptr(pid))
+	val, ok := processIndexByPid.Load(pid)
 	if ok {
-		old = (*ProcessRecord)(oldval)
+		old = val.(*ProcessRecord)
 	}
 	ret = new(ProcessRecord)
 	ret.Pid = pid
 	ret.Path = ""
-	processIndexByPid.SetHashedKey(uintptr(pid), unsafe.Pointer(ret))
-	// old = processIndexByPid[pid]
-	// processIndexByPid[pid] = ret
+	processIndexByPid.Store(pid, ret)
 	return
 }
 
 func RemoveTrackedProcessByPid(pid int) (ret *ProcessRecord) {
-	//	var ok bool
-	//	ret, ok = processIndexByPid[pid]
-	oldval, ok := processIndexByPid.GetHashedKey(uintptr(pid))
+	val, ok := processIndexByPid.Load(pid)
 	if ok {
-		ret = (*ProcessRecord)(oldval)
-		processIndexByPid.DelHashedKey(uintptr(pid))
-		//		delete(processIndexByPid,pid)
+		ret = val.(*ProcessRecord)
+		processIndexByPid.Delete(pid)
 	}
 	return
 }
 
 func ForEachTrackedProcess(cb func(int, *ProcessRecord)) {
-	for keyval := range processIndexByPid.Iter() {
-		key, ok := keyval.Key.(uintptr)
-		if ok {
-			cb(int(key), (*ProcessRecord)(keyval.Value))
-		}
-	}
-	// for pid, record := range processIndexByPid {
-	// 	cb(pid, record)
-	// }
-}
-
-func NumberOfTrackedProcesses() int {
-	//	return len(processIndexByPid)
-	return processIndexByPid.Len()
+	processIndexByPid.Range(func(key, value interface{}) bool {
+		cb(key.(int), value.(*ProcessRecord))
+		return true
+	})
 }
 
 //var processIndexByPid map[int]*ProcessRecord
-var processIndexByPid *hashmap.HashMap
+var processIndexByPid sync.Map
 
 // composite processes by their compositeId
-var compositeProcessesById *hashmap.HashMap
+var compositeProcessById sync.Map
 
 // enum JOB_STATUS
 const (
@@ -352,9 +334,9 @@ func (this *processStatus) setAllChildJobStatus(status int) {
 	this.mutex.Lock()
 	for child, _ := range this.childNames {
 		this.childNames[child] = status
-		val, ok := jobsByName.GetStringKey(child)
+		val, ok := jobsByName.Load(child)
 		if ok {
-			child_proc := (*processStatus)(val)
+			child_proc := val.(*processStatus)
 			child_proc.status = status
 			//			child_proc.setAllChildJobStatus(status)
 		} else {
@@ -368,9 +350,9 @@ func (this *processStatus) setAllChildJobStatus(status int) {
 func (status *processStatus) sendEventAndSetStatusForCompProcess(statuscode int, evcode int) {
 	for child, _ := range status.childNames {
 		status.childNames[child] = statuscode
-		val, ok := jobsByName.GetStringKey(child)
+		val, ok := jobsByName.Load(child)
 		if ok {
-			child_proc := (*processStatus)(val)
+			child_proc := val.(*processStatus)
 			child_proc.status = statuscode
 			jname := child_proc.job.GetJobName()
 			internalEv := newProcessEvent(jname, evcode)
@@ -480,9 +462,9 @@ func newShutdownEvent() (ret *processEvent) {
 
 // var containerTemplatesByName map[string]*ContainerTemplate
 // var jobsByName map[string]*processStatus
-var containerTemplatesByName *hashmap.HashMap
-var jobsByName *hashmap.HashMap
+var containerTemplatesByName sync.Map
 
+var jobsByName sync.Map
 var controlChan chan *processEvent
 var internalTicker *time.Ticker
 var statsConfig ProcessStatsConfig
@@ -519,7 +501,7 @@ type epollListener struct {
 	epfd                      int // the epoll() fd
 	//	event syscall.EpollEvent
 	events  [MaxEpollEvents]syscall.EpollEvent
-	fdToJob *hashmap.HashMap
+	fdToJob sync.Map
 }
 
 var mainEpollListener *epollListener
@@ -528,7 +510,6 @@ func newEpollListener() (ret *epollListener, e error) {
 	if epfd, e := syscall.EpollCreate1(0); e == nil {
 		ret = new(epollListener)
 		ret.epfd = epfd
-		ret.fdToJob = hashmap.New(10)
 	} else {
 		debugging.DEBUG_OUT("!!!!!!!!!!! Error creating epoll FD: %s\n", e.Error())
 	}
@@ -590,10 +571,10 @@ func (this *epollListener) listener() {
 				}
 			} else {
 				// it must be a process we are waiting for it's OK string
-				val, ok := this.fdToJob.GetHashedKey(uintptr(this.events[ev].Fd))
+				val, ok := this.fdToJob.Load(this.events[ev].Fd)
 				if ok {
 					process_ready := false
-					job := (*processStatus)(val)
+					job := val.(*processStatus)
 					var _p0 unsafe.Pointer
 					currlen := len(job.startMessageBuf)
 					remain := ok_message_len - currlen
@@ -671,7 +652,7 @@ func (this *epollListener) removeProcessFDListen(fd int) (e error) {
 	var event syscall.EpollEvent
 	event.Events = syscall.EPOLLIN
 	event.Fd = int32(fd)
-	this.fdToJob.DelHashedKey(uintptr(fd))
+	this.fdToJob.Delete(fd)
 	if e = syscall.EpollCtl(this.epfd, syscall.EPOLL_CTL_DEL, fd, &event); e != nil {
 		debugging.DEBUG_OUT("ERROR: epoll_ctl DEL: %+v\n", e)
 	}
@@ -685,7 +666,7 @@ func (this *epollListener) addProcessFDListen(fd int, job *processStatus) (e err
 	event.Events = syscall.EPOLLIN
 	event.Fd = int32(fd)
 	job.startMessageBuf = make([]rune, 0, len(process_OK_message))
-	this.fdToJob.SetHashedKey(uintptr(fd), unsafe.Pointer(job))
+	this.fdToJob.Store(fd, job)
 	if e = syscall.EpollCtl(this.epfd, syscall.EPOLL_CTL_ADD, fd, &event); e != nil {
 		debugging.DEBUG_OUT("ERROR: epoll_ctl: %+v\n", e)
 	}
@@ -701,14 +682,8 @@ func (this *epollListener) shutdownListener() {
 }
 
 func init() {
-	processIndexByPid = hashmap.New(10)
-	compositeProcessesById = hashmap.New(10)
 
 	atomic.StoreInt32(&monitorWorkerRunning, worker_stopped)
-
-	containerTemplatesByName = hashmap.New(10)
-
-	jobsByName = hashmap.New(10)
 
 	controlChan = make(chan *processEvent, 100) // buffer up to 100 events
 	re_this_dir = regexp.MustCompile(`\{\{thisdir\}\}`)
@@ -747,17 +722,18 @@ func init() {
 // If there are jobs - then it sends events to start those.
 func startStartableJobs(jobstarted string) {
 	debugging.DEBUG_OUT2("startStartableJobs()--->\n")
-	for job := range jobsByName.Iter() {
-		val := job.Value
+	jobsByName.Range(func(key, value interface{}) bool {
+		val := value
 		debugging.DEBUG_OUT("ITER %+v\n", val)
 		if val != nil {
-			j := (*processStatus)(val)
+			j := val.(*processStatus)
 			debugging.DEBUG_OUT2("ITER processStatus %+v\n", j)
 			if j.status == WAITING_FOR_DEPS {
 				StartJob(j.job.GetJobName())
 			}
 		}
-	}
+		return true
+	})
 
 }
 
@@ -853,7 +829,7 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 	proc_status.originLabelId = opts.GetOriginLabelId()
 
 	if errno != 0 {
-		proc_status.status = FAILED
+		proc_status.lockingSetStatus(FAILED)
 		proc_status.setAllChildJobStatus(FAILED)
 		next_ev := newProcessEventFromExisting(orig_event, internalEvent_job_failed)
 		controlChan <- next_ev
@@ -872,7 +848,7 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 			} else {
 				mainEpollListener.addProcessFDListen(stdoutfd, proc_status)
 			}
-			proc_status.status = STARTING
+			proc_status.lockingSetStatus(STARTING)
 			proc_status.setAllChildJobStatus(STARTING)
 
 			ev := new(ProcessEvent)
@@ -964,9 +940,9 @@ func _startCompositeProcessJobs(proc *processStatus, ev *processEvent) (err erro
 
 	if len(templName) > 0 {
 
-		val, ok := containerTemplatesByName.GetStringKey(templName)
+		val, ok := containerTemplatesByName.Load(templName)
 		if ok {
-			templStatus = (*containerStatus)(val)
+			templStatus = val.(*containerStatus)
 		} else {
 			joberr := new(JobError)
 			joberr.Code = JOBERROR_MISSING_CONTAINER_TEMPLATE
@@ -976,11 +952,9 @@ func _startCompositeProcessJobs(proc *processStatus, ev *processEvent) (err erro
 		}
 
 		// see if the master process is already running...
-		unsafep, ok := compositeProcessesById.GetStringKey(proc.compositeId)
-
+		unsafep, ok := compositeProcessById.Load(proc.compositeId)
 		if ok {
-
-			masterP = (*processStatus)(unsafep)
+			masterP = unsafep.(*processStatus)
 			if masterP.compositeContainerTemplate != templName {
 				joberr := new(JobError)
 				joberr.Code = JOBERROR_INVALID_CONFIG
@@ -990,14 +964,15 @@ func _startCompositeProcessJobs(proc *processStatus, ev *processEvent) (err erro
 			}
 
 			// find all jobs which use this composite ID
-			for el := range jobsByName.Iter() {
-				if el.Value != nil {
-					child := (*processStatus)(el.Value)
+			jobsByName.Range(func(key, value interface{}) bool {
+				if value != nil {
+					child := value.(*processStatus)
 					if child.compositeId == proc.compositeId {
 						childList = append(childList, child)
 					}
 				}
-			}
+				return true
+			})
 
 			_innerStart()
 			// if it is running, then shut it down.
@@ -1036,6 +1011,7 @@ func _startCompositeProcessJobs(proc *processStatus, ev *processEvent) (err erro
 func processEventsWorker() {
 	//	var counter uint32
 	//	counter = 0
+	time.Sleep(500 * time.Millisecond)
 	var err error
 	mainEpollListener, err = newEpollListener()
 	if err != nil {
@@ -1080,9 +1056,9 @@ eventLoop:
 			if ev.code == internalEvent_start_job {
 				debugging.DEBUG_OUT("************************>>>>>>>>>> Got internal event: internalEvent_start_job\n")
 				var proc_status *processStatus
-				val, ok := jobsByName.GetStringKey(ev.jobname)
+				val, ok := jobsByName.Load(ev.jobname)
 				if ok {
-					proc_status = (*processStatus)(val)
+					proc_status = val.(*processStatus)
 					debugging.DEBUG_OUT2("internal event 0\n")
 					debugging.DEBUG_OUT("        *** for job: %s\n", proc_status.job.GetJobName())
 
@@ -1102,7 +1078,7 @@ eventLoop:
 
 				} else {
 					proc_status = new(processStatus)
-					jobsByName.Set(ev.jobname, unsafe.Pointer(proc_status))
+					jobsByName.Store(ev.jobname, proc_status)
 				}
 
 				debugging.DEBUG_OUT2("internal event 1\n")
@@ -1147,9 +1123,9 @@ eventLoop:
 				procLogErrorf("Job %s died unexpectedly.\n", name)
 				// check Job settings to see if a restart should be done
 				// and how many restarts remain
-				val, ok := jobsByName.GetStringKey(ev.jobname)
+				val, ok := jobsByName.Load(ev.jobname)
 				if ok {
-					proc_status := (*processStatus)(val)
+					proc_status := val.(*processStatus)
 					if proc_status.job.IsRestart() {
 						debugging.DEBUG_OUT("job was restart-able: %s\n", name)
 						if proc_status.job.GetRestartLimit() == 0 {
@@ -1195,11 +1171,11 @@ eventLoop:
 			}
 
 			if ev.code == internalEvent_job_running {
-				val, ok := jobsByName.GetStringKey(ev.jobname)
+				val, ok := jobsByName.Load(ev.jobname)
 				if ok {
-					proc_status := (*processStatus)(val)
-					proc_status.status = RUNNING
-
+					proc_status := val.(*processStatus)
+					//proc_status.status = RUNNING
+					proc_status.lockingSetStatus(RUNNING)
 					ev2 := new(ProcessEvent)
 					ev2.Name = "job_running"
 					ev2.Pid = proc_status.pid
@@ -1460,9 +1436,9 @@ mainReapLoop:
 					// only do any of this, if there was a real exit
 					// not just that we saw a signal
 					if exited {
-						status_p, ok2 := jobsByName.GetStringKey(record.Job)
+						status_p, ok2 := jobsByName.Load(record.Job)
 						if ok2 {
-							status := (*processStatus)(status_p)
+							status := status_p.(*processStatus)
 							status.lock()
 							var internalEv *processEvent
 							if status.status == STOPPING {
@@ -1479,12 +1455,12 @@ mainReapLoop:
 							controlChan <- internalEv
 						} else {
 							// ok - maybe its a composite process instead:
-							status_p, ok2 := compositeProcessesById.GetStringKey(record.CompId)
+							status_p, ok2 := compositeProcessById.Load(record.CompId)
 							if ok2 {
 								debugging.DEBUG_OUT("Process PID %d was a composite process. Notifying all internal jobs.\n", pid)
 								procLogWarnf("Process PID %d was a composite process. Notifying all internal jobs.\n", pid)
 								//  Lookup in Composite table instead
-								status := (*processStatus)(status_p)
+								status := status_p.(*processStatus)
 								debugging.DEBUG_OUT("AT LOCK - comp process\n")
 								status.lock()
 								debugging.DEBUG_OUT("PAST LOCK - comp process\n")
@@ -1541,9 +1517,9 @@ mainReapLoop:
 func getMasterProcessDepends(compositeid string) (ok2 bool, ret []string) {
 	debugging.DEBUG_OUT("StartJob getMasterProcessDepends %s\n", compositeid)
 	if len(compositeid) > 0 {
-		existing, ok := compositeProcessesById.GetStringKey(compositeid)
+		existing, ok := compositeProcessById.Load(compositeid)
 		if ok {
-			masterP := (*processStatus)(existing)
+			masterP := existing.(*processStatus)
 			for dep, _ := range masterP.combinedDeps {
 				ret = append(ret, dep)
 			}
@@ -1580,13 +1556,11 @@ func _findMasterProcessAddChild(child maestroSpecs.JobDefinition) (masterP *proc
 
 	if len(compId) > 0 && len(childTemplate) > 0 {
 
-		existing, ok := compositeProcessesById.GetStringKey(compId)
+		existing, ok := compositeProcessById.Load(compId)
 		if ok {
-			masterP = (*processStatus)(existing)
-
+			masterP = existing.(*processStatus)
 			templName := masterP.compositeContainerTemplate
-			templP, ok2 := containerTemplatesByName.GetStringKey(templName)
-
+			templP, ok2 := containerTemplatesByName.Load(templName)
 			if !ok2 {
 				err := new(JobError)
 				err.Code = JOBERROR_INTERNAL_ERROR
@@ -1596,7 +1570,7 @@ func _findMasterProcessAddChild(child maestroSpecs.JobDefinition) (masterP *proc
 				return
 			}
 
-			templ := (*containerStatus)(templP)
+			templ := templP.(*containerStatus)
 			if templName != childTemplate {
 				err := new(JobError)
 				err.Code = JOBERROR_INVALID_CONFIG
@@ -1620,7 +1594,7 @@ func _findMasterProcessAddChild(child maestroSpecs.JobDefinition) (masterP *proc
 		} else {
 			// in this case, no Job using this particular compositeID has been seen yet
 
-			val, ok := containerTemplatesByName.GetStringKey(childTemplate)
+			val, ok := containerTemplatesByName.Load(childTemplate)
 			if !ok {
 				err := new(JobError)
 				err.Code = JOBERROR_MISSING_CONTAINER_TEMPLATE
@@ -1629,7 +1603,7 @@ func _findMasterProcessAddChild(child maestroSpecs.JobDefinition) (masterP *proc
 				reterr = err
 				return
 			} else {
-				templ := (*containerStatus)(val)
+				templ := val.(*containerStatus)
 				templ.uses++
 
 				masterP = new(processStatus)
@@ -1665,8 +1639,7 @@ func _findMasterProcessAddChild(child maestroSpecs.JobDefinition) (masterP *proc
 				// record that this JobName is a child
 				masterP.childNames[child.GetJobName()] = NEVER_RAN
 				// add to our master table
-				compositeProcessesById.Set(compId, unsafe.Pointer(masterP))
-
+				compositeProcessById.Store(compId, masterP)
 				// have not seen this composite ID before...
 				debugging.DEBUG_OUT("New composited ID for process seen: %s\n", child.GetCompositeId())
 			}
@@ -1700,9 +1673,9 @@ func RegisterMutableJob(job maestroSpecs.JobDefinition) (err error) {
 func _getJobDeps(job maestroSpecs.JobDefinition) (ret []string) {
 	depmap := make(map[string]bool)
 	templname := job.GetContainerTemplate()
-	val, ok := containerTemplatesByName.GetStringKey(templname)
+	val, ok := containerTemplatesByName.Load(templname)
 	if ok {
-		templ := (*containerStatus)(val)
+		templ := val.(*containerStatus)
 		if templ != nil {
 			deps := templ.container.GetDependsOn()
 			for _, dep := range deps {
@@ -1727,8 +1700,7 @@ func RegisterJobOverwrite(job maestroSpecs.JobDefinition) (err error) {
 	name := job.GetJobName()
 
 	debugging.DEBUG_OUT("RegisterJobOverwrite(%s)\n", name)
-	jobsByName.Set(name, unsafe.Pointer(entry))
-
+	jobsByName.Store(name, entry)
 	node := newDependencyNode(name, _getJobDeps(job)...)
 	globalDepGraph = append(globalDepGraph, node)
 	graphValidated = false
@@ -1740,8 +1712,7 @@ func RegisterJob(job maestroSpecs.JobDefinition) (err error) {
 	entry.job = job
 	entry.status = NEVER_RAN
 	name := job.GetJobName()
-	_, ok := jobsByName.GetStringKey(name)
-	//	_, ok := jobsByName[name]
+	_, ok := jobsByName.Load(name)
 	if ok {
 		joberr := new(JobError)
 		joberr.Code = JOBERROR_DUPLICATE_JOB
@@ -1749,7 +1720,7 @@ func RegisterJob(job maestroSpecs.JobDefinition) (err error) {
 		err = joberr
 	} else {
 		debugging.DEBUG_OUT("RegisterJob(%s)\n", name)
-		jobsByName.Set(name, unsafe.Pointer(entry))
+		jobsByName.Store(name, entry)
 		//		jobsByName[name] = entry
 	}
 	node := newDependencyNode(name, job.GetDependsOn()...)
@@ -1762,20 +1733,20 @@ func RegisterContainer(cont maestroSpecs.ContainerTemplate) (err error) {
 	entry := new(containerStatus)
 	entry.container = cont
 	name := cont.GetName()
-	_, ok := containerTemplatesByName.GetStringKey(name)
+	_, ok := containerTemplatesByName.Load(name)
 	if ok {
 		cerr := new(ContainerError)
 		cerr.Code = CONTAINERERROR_DUPLICATE
 		cerr.ContainerName = name
 		err = cerr
 	} else {
-		containerTemplatesByName.Set(name, unsafe.Pointer(entry))
+		containerTemplatesByName.Store(name, entry)
 	}
 	return
 }
 
 type _jobStatusData struct {
-	jobsByName *hashmap.HashMap
+	jobsByName sync.Map
 }
 
 type JobStatusData interface {
@@ -1795,15 +1766,14 @@ func (data *_jobStatusData) MarshalJSON() (outjson []byte, err error) {
 	//    // each job...
 	// }
 	n := 0
-	for job := range data.jobsByName.Iter() {
-		val := job.Value
-		key := job.Key
+	jobsByName.Range(func(key, value interface{}) bool {
+		val := value
 		debugging.DEBUG_OUT("ITER %+v\n", val)
 		if n > 0 {
 			buffer.WriteString(",")
 		}
 		if val != nil {
-			j := (*processStatus)(val)
+			j := val.(*processStatus)
 			name, ok2 := key.(string)
 			if ok2 {
 				buffer.WriteString(fmt.Sprintf("\"%s\":{", name))
@@ -1838,7 +1808,8 @@ func (data *_jobStatusData) MarshalJSON() (outjson []byte, err error) {
 			}
 		}
 		n++
-	}
+		return true
+	})
 
 	buffer.WriteString("}")
 	outjson = buffer.Bytes()
@@ -1860,28 +1831,29 @@ func GetJobStatus() (data JobStatusData, err error) {
 
 //Returns true, pid if the job specified by jobname is active
 func IsJobActive(jobname string) (status bool, pid int) {
-	var data *_jobStatusData 
-	data = &_jobStatusData{
-		jobsByName: jobsByName,
-	}
-
+	var ret_pid int
+	ret_pid = -1
 	//Parse the jobStatusData to figure if the job is active
-	for job := range data.jobsByName.Iter() {
-		val := job.Value
-		key := job.Key
+	jobsByName.Range(func(key, value interface{}) bool {
+		val := value
 		fmt.Printf("\n%v: %+v\n", key, val)
 		if val != nil {
-			j := (*processStatus)(val)
+			j := val.(*processStatus)
 			name, ok2 := key.(string)
 			fmt.Printf("\nname: %+v\n", name)
 			debugging.DEBUG_OUT("\nname: %+v\n", name)
 
 			if ok2 && name == jobname {
-				if(j.status == RUNNING) {
-					return true, j.pid
+				if j.status == RUNNING {
+					ret_pid = j.pid
+					return false
 				}
 			}
 		}
+		return true
+	})
+	if ret_pid != -1 {
+		return true, ret_pid
 	}
 
 	return false, -1
@@ -1890,7 +1862,7 @@ func IsJobActive(jobname string) (status bool, pid int) {
 func ValidateJobs() error {
 	// validate that dependencies exist for all jobs which are registered
 	outGraph, err := resolveDependencyGraph(globalDepGraph, func(name string) bool {
-		_, ok := jobsByName.GetStringKey(name)
+		_, ok := jobsByName.Load(name)
 		return ok
 	})
 	if err == nil {
@@ -1898,11 +1870,13 @@ func ValidateJobs() error {
 	} else {
 		return err
 	}
+	var err1 error
+	err1 = nil
 	// validate that ContainerTemplates exist for all jobs which reference on
-	for job := range jobsByName.Iter() {
-		val := job.Value
+	jobsByName.Range(func(key, value interface{}) bool {
+		val := value
 		if val != nil {
-			j := (*processStatus)(val)
+			j := val.(*processStatus)
 			template := j.job.GetContainerTemplate()
 			j.compositeId = j.job.GetCompositeId()
 			confname := j.job.GetConfigName()
@@ -1922,7 +1896,8 @@ func ValidateJobs() error {
 				err.Code = JOBERROR_INVALID_CONFIG
 				err.JobName = j.job.GetJobName()
 				err.Aux = "can't set both .compositeId (config composite ID) and .message (message for process) at the same time"
-				return err
+				err1 = err
+				return false
 			}
 
 			if len(j.compositeId) > 0 {
@@ -1932,7 +1907,8 @@ func ValidateJobs() error {
 					// check to make sure container type matches existing master Process container type
 					_, err := _findMasterProcessAddChild(j.job)
 					if err != nil {
-						return err
+						err1 = err
+						return false
 					}
 
 				} else {
@@ -1940,7 +1916,8 @@ func ValidateJobs() error {
 					err.Code = JOBERROR_INVALID_CONFIG
 					err.JobName = j.job.GetJobName()
 					err.Aux = "A CompositeID was stated for the process, but it has no ContainerTemplate. Template required."
-					return err
+					err1 = err
+					return false
 				}
 			} else {
 				// otherwise, this is a single process.
@@ -1956,15 +1933,16 @@ func ValidateJobs() error {
 				j.usesOKString = j.job.UsesOkString()
 				j.deferRunningStatus = j.job.GetDeferRunningStatus()
 				if len(template) > 0 {
-					val, ok := containerTemplatesByName.GetStringKey(template)
+					val, ok := containerTemplatesByName.Load(template)
 					if !ok {
 						err := new(JobError)
 						err.Code = JOBERROR_MISSING_CONTAINER_TEMPLATE
 						err.JobName = j.job.GetJobName()
 						err.Aux = "needed container '" + template + "'"
-						return err
+						err1 = err
+						return false
 					} else {
-						templ := (*containerStatus)(val)
+						templ := val.(*containerStatus)
 						templ.uses++
 						exec_cmd := templ.container.GetExecCmd()
 						if len(exec_cmd) > 0 {
@@ -2003,6 +1981,10 @@ func ValidateJobs() error {
 			// 	return err
 			// }
 		}
+		return true
+	})
+	if err1 != nil {
+		return err1
 	}
 	return nil
 }
@@ -2018,10 +2000,10 @@ func RestartJob(name string) (errout error) {
 func StartJob(name string) (errout error) {
 	//	job, ok := jobsByName[name]
 	debugging.DEBUG_OUT2("StartJob(" + name + ")\n")
-	jobval, ok := jobsByName.GetStringKey(name)
+	jobval, ok := jobsByName.Load(name)
 	if ok {
 		debugging.DEBUG_OUT2("StartJob(" + name + ") 1\n")
-		job := (*processStatus)(jobval)
+		job := jobval.(*processStatus)
 		if job.status == RUNNING || job.status == STARTING {
 			debugging.DEBUG_OUT2("StartJob("+name+") already running %d\n", job.status)
 			return
@@ -2040,7 +2022,7 @@ func StartJob(name string) (errout error) {
 		needdeps := false
 		debugging.DEBUG_OUT2("StartJob(" + name + ") 1.3\n")
 		for _, dep := range deps {
-			dep_status_val, ok := jobsByName.GetStringKey(dep)
+			dep_status_val, ok := jobsByName.Load(dep)
 			debugging.DEBUG_OUT2("StartJob(" + name + ") 1.3.1\n")
 			if !ok {
 				err := new(JobError)
@@ -2052,7 +2034,7 @@ func StartJob(name string) (errout error) {
 				return
 			} else {
 				debugging.DEBUG_OUT2("StartJob(" + name + ") 1.3.2\n")
-				dep_status := (*processStatus)(dep_status_val)
+				dep_status := dep_status_val.(*processStatus)
 				// if this dependency is not running, then we need to
 				// request a start first
 				if dep_status.status != RUNNING {
@@ -2100,15 +2082,16 @@ func StartJob(name string) (errout error) {
 }
 
 func StartAllAutoStartJobs() {
-	for job := range jobsByName.Iter() {
-		val := job.Value
+	jobsByName.Range(func(key, value interface{}) bool {
+		val := value
 		debugging.DEBUG_OUT("ITER %+v\n", val)
 		if val != nil {
-			j := (*processStatus)(val)
+			j := val.(*processStatus)
 			debugging.DEBUG_OUT("ITER processStatus %+v\n", j)
 			if j.status == NEVER_RAN {
 				StartJob(j.job.GetJobName())
 			}
 		}
-	}
+		return true
+	})
 }
