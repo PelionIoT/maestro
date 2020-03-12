@@ -42,9 +42,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"unsafe"
 
-	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
@@ -218,9 +216,8 @@ type networkManagerInstance struct {
 	db              *bolt.DB
 	networkConfigDB *stow.Store
 	// internal structures - thread safe hashmaps
-	byInterfaceName *hashmap.HashMap // map of identifier to struct -> 'eth2':&networkInterfaceData{}
-	indexToName     *hashmap.HashMap
-
+	byInterfaceName    sync.Map // map of identifier to struct -> 'eth2':&networkInterfaceData{}
+	indexToName        sync.Map
 	watcherWorkChannel chan networkThreadMessage
 
 	newInterfaceMutex sync.Mutex
@@ -461,20 +458,19 @@ func (this *networkManagerInstance) SetInterfacesAsJson(data []byte) error {
 func (this *networkManagerInstance) GetInterfacesAsJson(enabled_only bool, up_only bool) ([]byte, error) {
 	ifs := make([]*NetworkInterfaceData, 0)
 
-	for item := range this.byInterfaceName.Iter() {
-		if item.Value == nil {
+	this.byInterfaceName.Range(func(key, value interface{}) bool {
+		if value == nil {
 			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
-			continue
+			return true
 		}
 		// ifname := "<interface name>"
 		// ifname, _ = item.Key.(string)
 
-		// if item.Value != nil {
-		ifdata := (*NetworkInterfaceData)(item.Value)
+		ifdata := value.(*NetworkInterfaceData)
 		ifs = append(ifs, ifdata)
 		log.MaestroDebugf("NetworkManager: GetInterfacesAsJson: found if [%s]\n", ifdata.IfName)
-		// }
-	}
+		return true
+	})
 
 	return json.Marshal(ifs)
 }
@@ -485,8 +481,6 @@ func (this *networkManagerInstance) GetInterfacesAsJson(enabled_only bool, up_on
 
 func newNetworkManagerInstance() (ret *networkManagerInstance) {
 	ret = new(networkManagerInstance)
-	ret.byInterfaceName = hashmap.New(10)
-	ret.indexToName = hashmap.New(10)
 	ret.watcherWorkChannel = make(chan networkThreadMessage, 10) // use a buffered channel
 	ret.threadCountChan = make(chan networkThreadMessage)
 	ret.waitForDeviceDB = true
@@ -574,16 +568,16 @@ func updateIfConfigFromStored(netdata *NetworkInterfaceData) (ok bool, err error
 func (this *networkManagerInstance) resetLinks() {
 	log.MaestroDebugf("NetworkManager: resetLinks: reset all network links\n")
 	//This function brings all the intfs down and puts everything back in pristine state
-	for item := range this.byInterfaceName.Iter() {
-		if item.Value == nil {
+	this.byInterfaceName.Range(func(key, value interface{}) bool {
+		if value == nil {
 			debugging.DEBUG_OUT("NetworkManager: resetLinks: Invalid Entry in hashmap - have null value pointer\n")
-			continue
+			return true
 		}
 		ifname := "<interface name>"
-		ifname, _ = item.Key.(string)
+		ifname, _ = key.(string)
 		log.MaestroDebugf("NetworkManager: found existing key for if [%s]\n", ifname)
-		if item.Value != nil {
-			ifdata := (*NetworkInterfaceData)(item.Value)
+		if value != nil {
+			ifdata := value.(*NetworkInterfaceData)
 			//First kill the DHCP routine if its running
 			if ifdata.dhcpRunning {
 				log.MaestroDebugf("NetworkManager: resetLinks: Stopping DHCP routine for if %s\n", ifname)
@@ -606,10 +600,11 @@ func (this *networkManagerInstance) resetLinks() {
 					log.MaestroErrorf("NetworkManager: resetLinks: failed to bring if %s down - %s\n", ifname, err2.Error())
 				}
 				//Now we can remove the entry from hashmap
-				this.byInterfaceName.Del(item.Key)
+				this.byInterfaceName.Delete(key)
 			}
 		}
-	}
+		return true
+	})
 }
 
 func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkConfigPayload) {
@@ -641,7 +636,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				// ret = new(NetworkInterfaceData)
 				// ret.IfName = ifconf.IfName
 				newconf := newIfData(ifconf.IfName, ifconf)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(newconf))
+				this.byInterfaceName.Store(ifname, newconf)
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
 					log.MaestroErrorf("NetworkManager: Problem (1) storing config for interface [%s]: %s\n", ifconf.IfName, err)
@@ -660,7 +655,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 			if ifconf.Existing == "replace" {
 				// same as above, brand new
 				newconf := newIfData(ifconf.IfName, ifconf)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(newconf))
+				this.byInterfaceName.Store(ifname, newconf)
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
 					log.MaestroErrorf("NetworkManager: Problem (2) storing config for interface [%s]: %s\n", ifconf.IfName, err)
@@ -686,7 +681,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 					storedifconfig.StoredIfconfig = ifconf
 				}
 				debugging.DEBUG_OUT("storedifconfig: %+v\n", storedifconfig.StoredIfconfig)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(&storedifconfig))
+				this.byInterfaceName.Store(ifname, &storedifconfig)
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
 					log.MaestroErrorf("NetworkManager: Problem (3) storing config for interface [%s]: %s\n", ifconf.IfName, err)
@@ -715,7 +710,7 @@ func (this *networkManagerInstance) getIfFromDb(ifname string) (ret *NetworkInte
 
 func (this *networkManagerInstance) getOrNewInterfaceData(ifname string) (ret *NetworkInterfaceData) {
 	this.newInterfaceMutex.Lock()
-	pdata, ok := this.byInterfaceName.GetStringKey(ifname)
+	pdata, ok := this.byInterfaceName.Load(ifname)
 	if ok {
 		if pdata == nil {
 			ret = this.getIfFromDb(ifname)
@@ -728,9 +723,9 @@ func (this *networkManagerInstance) getOrNewInterfaceData(ifname string) (ret *N
 				ret.StoredIfconfig.IfName = ifname
 			}
 		} else {
-			ret = (*NetworkInterfaceData)(pdata)
+			ret = pdata.(*NetworkInterfaceData)
 		}
-		this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
+		this.byInterfaceName.Store(ifname, ret)
 		this.commitInterfaceData(ifname)
 		//        debugging.DEBUG_OUT("HERE getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
 	} else {
@@ -743,12 +738,12 @@ func (this *networkManagerInstance) getOrNewInterfaceData(ifname string) (ret *N
 			ret.RunningIfconfig.IfName = ifname
 			ret.StoredIfconfig = new(maestroSpecs.NetIfConfigPayload)
 			ret.StoredIfconfig.IfName = ifname
-			this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
+			this.byInterfaceName.Store(ifname, ret)
 			this.commitInterfaceData(ifname)
 		} else {
 			//            debugging.DEBUG_OUT("HERE(2) getOrNewInterfaceData ---------*********************-------------- %s: %+v\n",ifname,ret)
 			// store in in-memory map
-			this.byInterfaceName.Set(ifname, unsafe.Pointer(ret))
+			this.byInterfaceName.Store(ifname, ret)
 		}
 	}
 	this.newInterfaceMutex.Unlock()
@@ -756,9 +751,9 @@ func (this *networkManagerInstance) getOrNewInterfaceData(ifname string) (ret *N
 }
 
 func (this *networkManagerInstance) getInterfaceData(ifname string) (ret *NetworkInterfaceData) {
-	pdata, ok := this.byInterfaceName.GetStringKey(ifname)
+	pdata, ok := this.byInterfaceName.Load(ifname)
 	if ok {
-		ret = (*NetworkInterfaceData)(pdata)
+		ret = pdata.(*NetworkInterfaceData)
 	}
 	return
 }
@@ -777,7 +772,7 @@ func (this *networkManagerInstance) loadAllInterfaceData() (err error) {
 				this.newInterfaceMutex.Lock()
 				// if there is an existing in-memory entry, overwrite it
 				log.MaestroInfof("NetworkManager:loadAllInterfaceData: Loading config for: %s.\n", ifname)
-				this.byInterfaceName.Set(ifname, unsafe.Pointer(ifdata))
+				this.byInterfaceName.Store(ifname, ifdata)
 				this.newInterfaceMutex.Unlock()
 				debugging.DEBUG_OUT("loadAllInterfaceData() see if: %s --> %+v\n", ifname, ifdata)
 			} else {
@@ -816,20 +811,20 @@ func (this *networkManagerInstance) SetInterfaceConfigByName(ifname string, ifco
 
 func (this *networkManagerInstance) setupInterfaces() (err error) {
 
-	for item := range this.byInterfaceName.Iter() {
-		if item.Value == nil {
+	this.byInterfaceName.Range(func(key, value interface{}) bool {
+		if value == nil {
 			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
-			continue
+			return true
 		}
 		ifname := "<interface name>"
-		ifname, _ = item.Key.(string)
+		//ifname, _ = item.Key.(string)
+		ifname, _ = key.(string)
 		log.MaestroDebugf("NetworkManager: see existing setup for if [%s]\n", ifname)
-		if item.Value != nil {
-			ifdata := (*NetworkInterfaceData)(item.Value)
-
+		if value != nil {
+			ifdata := value.(*NetworkInterfaceData)
 			if ifdata == nil {
 				log.MaestroErrorf("NetworkManager: Interface [%s] does not have an interface data structure.\n", ifname)
-				continue
+				return true
 			}
 
 			var ifconfig *maestroSpecs.NetIfConfigPayload
@@ -841,7 +836,7 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 				ifconfig = ifdata.RunningIfconfig
 			} else {
 				log.MaestroErrorf("NetworkManager: unusual, StoredIfconfig & RunningIfconfig for if [%s] is nil. skipping interface setup\n", ifname)
-				continue
+				return true
 			}
 
 			// if ifconfig == nil {
@@ -874,7 +869,8 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 			this.SubmitTask(task)
 
 		}
-	}
+		return true
+	})
 
 	return
 }
@@ -1078,9 +1074,9 @@ var ErrNoInterface = errors.New("no interface")
 
 // writes the interface data back to the database
 func (mgr *networkManagerInstance) commitInterfaceData(ifname string) error {
-	pdata, ok := mgr.byInterfaceName.GetStringKey(ifname)
+	pdata, ok := mgr.byInterfaceName.Load(ifname)
 	if ok {
-		ifdata := (*NetworkInterfaceData)(pdata)
+		ifdata := pdata.(*NetworkInterfaceData)
 		err := mgr.networkConfigDB.Put(ifname, ifdata)
 		debugging.DEBUG_OUT("NetworkManager: --> commitInterfaceData() for [%s]\n", ifname)
 		return err
@@ -1693,12 +1689,12 @@ Outer:
 			}
 			// add an interface to the watch list
 			if work.cmd == start_watch_interface {
-				pdata, ok := mgr.byInterfaceName.GetStringKey(work.ifname)
+				pdata, ok := mgr.byInterfaceName.Load(work.ifname)
 				if ok {
 					if pdata == nil {
 						nmLogErrorf("watchInterfaces() - got nil on lookup of <%s>\n", work.ifname)
 					} else {
-						ifdata := (*NetworkInterfaceData)(pdata)
+						ifdata := pdata.(*NetworkInterfaceData)
 						if ifdata.interfaceChange == nil {
 							ifdata.stopInterfaceMonitor = make(chan struct{})
 							ifdata.interfaceChange = make(chan networkThreadMessage)
@@ -1717,12 +1713,12 @@ Outer:
 				}
 			}
 			if work.cmd == stop_watch_interface {
-				pdata, ok := mgr.byInterfaceName.GetStringKey(work.ifname)
+				pdata, ok := mgr.byInterfaceName.Load(work.ifname)
 				if ok {
 					if pdata == nil {
 						nmLogErrorf("watchInterfaces() (stop_watch_interface) - got nil on lookup of <%s>\n", work.ifname)
 					} else {
-						ifdata := (*NetworkInterfaceData)(pdata)
+						ifdata := pdata.(*NetworkInterfaceData)
 						if ifdata.stopInterfaceMonitor != nil {
 							close(ifdata.stopInterfaceMonitor)
 							ifdata.stopInterfaceMonitor = nil

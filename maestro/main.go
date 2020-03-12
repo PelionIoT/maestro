@@ -21,7 +21,11 @@ import (
 	"os"
 	"strings"
 	"sync"
+
 	//	"reflect"
+	"net/http"
+	"time"
+
 	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/httprouter"
 	. "github.com/armPelionEdge/maestro"
@@ -43,8 +47,7 @@ import (
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestroSpecs/templates"
 	"github.com/op/go-logging"
-	"net/http"
-	"time"
+
 	// Platforms
 	"github.com/armPelionEdge/maestro/platforms"
 	// platform_rp200 "github.com/armPelionEdge/maestro/platforms/rp200"
@@ -85,7 +88,6 @@ func main() {
 	flag.Parse()
 
 	debugging.DebugPprof(*debugServerFlag)
-
 	if *debugMemory {
 		debugging.DumpMemStats()
 		go debugging.RuntimeMemStats(300)
@@ -556,7 +558,6 @@ func main() {
 		go bringUpIfs()
 	}
 
-
 	/*********************************************/
 	/*               Jobs startup                */
 	/*********************************************/
@@ -613,7 +614,7 @@ func main() {
 	}
 
 	Log.SetGoLoggerReady() // internal logging
-
+	time.Sleep(2000 * time.Millisecond)
 	router := httprouter.New()
 	router.GET("/", Index)
 	router.GET("/hello/:name", Hello)
