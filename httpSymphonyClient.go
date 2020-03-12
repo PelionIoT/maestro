@@ -24,12 +24,13 @@ package maestro
 import (
 	"bytes"
 	"fmt"
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/maestro/debugging"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/armPelionEdge/greasego"
+	"github.com/armPelionEdge/maestro/debugging"
 	//	DEBUG("runtime")
 )
 
