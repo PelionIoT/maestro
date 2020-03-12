@@ -17,7 +17,13 @@ package maestro
 
 import (
 	"archive/zip"
-	"github.com/armPelionEdge/hashmap" // thread-safe, fast hashmaps
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
@@ -25,12 +31,6 @@ import (
 	"github.com/armPelionEdge/maestro/tasks"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/cavaliercoder/grab"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"time"
-	"unsafe"
 )
 
 var mgrImagePath string
@@ -63,18 +63,17 @@ func ImageManagerGetInstance() *ImageManagerInstance {
 	if imgInstance == nil {
 		imgInstance = new(ImageManagerInstance)
 		imgInstance.ticker = time.NewTicker(500 * time.Millisecond)
-		setupHashmapsInstance()
 		imgInstance.controlChan = make(chan uint32, 100)
 	}
 	return imgInstance
 }
 
 func init() {
-	imageDB = hashmap.New(10)
 }
 
 // quick DB - FIXME - this needs to use the storage driver
-var imageDB *hashmap.HashMap // appName to StoredImageEntry
+
+var imageDB sync.Map // appName to StoredImageEntry
 
 type StoredImageEntry struct {
 	appName    string
@@ -94,14 +93,14 @@ func (this *ImageManagerInstance) registerImage(op *imageop) {
 	image.version = op.version
 	image.location = op.finalDir
 	// FIXME what to do about entrypoint??
-	imageDB.Set(op.appName, unsafe.Pointer(image))
+	imageDB.Store(op.appName, image)
 	debugging.DEBUG_OUT("ImageManagerInstance stored image \"%s\"\n", op.appName)
 }
 
 func (this *ImageManagerInstance) LookupImage(appname string) (ret *StoredImageEntry, ok bool) {
-	val, ok := imageDB.GetStringKey(appname)
+	val, ok := imageDB.Load(appname)
 	if ok {
-		ret = (*StoredImageEntry)(val)
+		ret = val.(*StoredImageEntry)
 	}
 	return
 }
@@ -174,7 +173,7 @@ func (this *ImageManagerInstance) initImageDownload(task *tasks.MaestroTask) (er
 			// set the final destination path
 			imgop.finalDir = mgrImagePath + "/" + imgop.imageDef.GetJobName()
 
-			this.imageops.Set(task.Id, unsafe.Pointer(imgop))
+			this.imageops.Store(task.Id, imgop)
 		} else {
 			err = new(maestroSpecs.APIError)
 			err.HttpStatusCode = 400
@@ -194,10 +193,9 @@ func (this *ImageManagerInstance) initImageDownload(task *tasks.MaestroTask) (er
 // download thread loop
 func (this *ImageManagerInstance) doDownload(task *tasks.MaestroTask) {
 
-	imgp, ok := this.imageops.GetStringKey(task.Id)
-
+	imgp, ok := this.imageops.Load(task.Id)
 	if ok {
-		img := (*imageop)(imgp)
+		img := imgp.(*imageop)
 		img.client = grab.NewClient()
 		var reqErr error
 		img.req, reqErr = grab.NewRequest(img.tempDir, img.imageDef.GetURL())
@@ -336,10 +334,9 @@ func unzipArchive(src, dest string, cb unzipCB) {
 
 // this unzips the archive, and places it into it's destination directory
 func (this *ImageManagerInstance) relocateImage(task *tasks.MaestroTask) {
-	imgp, ok := this.imageops.GetStringKey(task.Id)
-
+	imgp, ok := this.imageops.Load(task.Id)
 	if ok {
-		img := (*imageop)(imgp)
+		img := imgp.(*imageop)
 		// we need to determine the file name for the downloaded image. It should be a single compressed file.
 		exists, err := pathExists(img.finalDir)
 		if exists {
@@ -392,10 +389,9 @@ func (this *ImageManagerInstance) relocateImage(task *tasks.MaestroTask) {
 }
 
 func (this *ImageManagerInstance) cleanupTrash(task *tasks.MaestroTask) {
-	imgp, ok := this.imageops.GetStringKey(task.Id)
-
+	imgp, ok := this.imageops.Load(task.Id)
 	if ok {
-		img := (*imageop)(imgp)
+		img := imgp.(*imageop)
 		err := os.RemoveAll(img.tempDir)
 		if err != nil {
 			log.MaestroErrorf("Image Manager: Error attempting to remove temp dir: %s\n", img.tempDir)

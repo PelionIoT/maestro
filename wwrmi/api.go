@@ -735,7 +735,6 @@ func (client *Client) postLogs() (err error) {
 	client.sentBytes = 0
 	req, err = http.NewRequest("POST", client.postLogsUrl, client)
 	if err != nil {
-		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
 		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
 		return
 	}
@@ -745,7 +744,6 @@ func (client *Client) postLogs() (err error) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		log.MaestroErrorf("Error on POST request: %s\n", err.Error())
 		debugging.DEBUG_OUT("RMI ERROR: %s\n", err.Error())
 		return
 	}

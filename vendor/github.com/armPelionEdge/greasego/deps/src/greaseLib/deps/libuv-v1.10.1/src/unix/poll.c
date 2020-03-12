@@ -108,9 +108,10 @@ int uv_poll_init_socket(uv_loop_t* loop, uv_poll_t* handle,
 
 
 static void uv__poll_stop(uv_poll_t* handle) {
-  uv__io_stop(handle->loop,
-              &handle->io_watcher,
-              POLLIN | POLLOUT | UV__POLLRDHUP);
+uv__io_close(handle->loop,&handle->io_watcher);
+//  uv__io_stop(handle->loop,
+ //             &handle->io_watcher,
+ //             POLLIN | POLLOUT | UV__POLLRDHUP);
   uv__handle_stop(handle);
 }
 

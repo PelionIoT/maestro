@@ -18,6 +18,9 @@ package tasks
 import (
 	"encoding/gob"
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
@@ -25,10 +28,6 @@ import (
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/stow"
 	"github.com/boltdb/bolt"
-	"github.com/satori/go.uuid"
-	"sync"
-	"time"
-	"unsafe"
 )
 
 const TASK_COMPLETE_STEP = ^uint32(0)
@@ -163,20 +162,20 @@ type metaTaskData struct {
 }
 
 func doesMetaExist(id string) (ret bool) {
-	_, ret = metaTasks.GetStringKey(id)
+	_, ret = metaTasks.Load(id)
 	return
 }
 
 // returns metaData with Lock!!
 func getMetaTaskData(id string) (ret *metaTaskData) {
-	pmeta, ok := metaTasks.GetStringKey(id)
+	pmeta, ok := metaTasks.Load(id)
 	if ok {
-		ret = (*metaTaskData)(pmeta)
+		ret = pmeta.(*metaTaskData)
 		ret.mutex.Lock()
 	} else {
 		ret = new(metaTaskData)
 		ret.mutex.Lock()
-		metaTasks.Set(id, unsafe.Pointer(ret))
+		metaTasks.Store(id, ret)
 	}
 	return
 }
@@ -224,7 +223,6 @@ func getInstance() *taskManagerInstance {
 	if instance == nil {
 		instance = new(taskManagerInstance)
 		storage.RegisterStorageUser(instance)
-		setupHashmaps()
 		internalTicker = time.NewTicker(time.Second * time.Duration(defaults.TASK_MANAGER_CLEAR_INTERVAL))
 		controlChan = make(chan *controlToken, 100) // buffer up to 100 events
 	}
@@ -334,7 +332,7 @@ func ValidateTask(task *MaestroTask) (err error) {
 		// batch tasks don't have an Op
 		if !task.batchTask {
 			// check to see if there is a handler for the Op type:
-			_handler, ok := handlers.GetStringKey(task.Op.GetType())
+			_handler, ok := handlers.Load(task.Op.GetType())
 			if !ok {
 				apierror := new(maestroSpecs.APIError)
 				apierror.ErrorString = "no task handler"
@@ -343,7 +341,7 @@ func ValidateTask(task *MaestroTask) (err error) {
 				err = apierror
 				return
 			} else {
-				handler := (*TaskHandler)(_handler)
+				handler := _handler.(*TaskHandler)
 				err = (*handler).ValidateTask(task)
 				if err != nil {
 					return
@@ -412,7 +410,7 @@ func EnqueTask(task *MaestroTask, ackHandler AckHandler, persistent bool) (err e
 			task.persistent = true
 			err = getInstance().upsertTask(task)
 		}
-		tasks.Set(task.Id, unsafe.Pointer(task))
+		tasks.Store(task.Id, task)
 		if err == nil {
 			controlChan <- newControlTokenNewTask(&task.Id)
 		}
@@ -436,7 +434,7 @@ func EnqueTasks(thesetasks []*MaestroTask, persistent bool) (err error) {
 			task.enqueTime = now
 			err = getInstance().upsertTask(task)
 		}
-		tasks.Set(task.Id, unsafe.Pointer(task))
+		tasks.Store(task.Id, task)
 		if err != nil {
 			return
 		}
@@ -507,13 +505,13 @@ func MarkTaskStepAsExecuting(id string) {
 // the Step field
 func IterateTask(id string, cb UpdateTaskCB) (err error) {
 	debugging.DEBUG_OUT(" TASK>>>>>> IterateTask(\"%s\")\n", id)
-	ptask, ok := tasks.GetStringKey(id)
+	ptask, ok := tasks.Load(id)
 	if instance == nil || instance.db == nil {
 		err = errors.New("task db not ready")
 		return
 	}
 	if ok {
-		task := (*MaestroTask)(ptask)
+		task := ptask.(*MaestroTask)
 		meta := getMetaTaskData(id)
 		meta.stepExecuting = false
 		meta.runawayCheck = 0
@@ -527,7 +525,7 @@ func IterateTask(id string, cb UpdateTaskCB) (err error) {
 			})
 			if err == nil {
 				// update in memory map
-				tasks.Set(task.Id, unsafe.Pointer(newtask))
+				tasks.Store(task.Id, newtask)
 			}
 		} else {
 			if cb != nil {
@@ -544,9 +542,9 @@ func IterateTask(id string, cb UpdateTaskCB) (err error) {
 }
 
 func CompleteTask(id string) (err error) {
-	ptask, ok := tasks.GetStringKey(id)
+	ptask, ok := tasks.Load(id)
 	if ok {
-		task := (*MaestroTask)(ptask)
+		task := ptask.(*MaestroTask)
 		if task.persistent {
 			err, newtask := getInstance().updateTaskById(id, func(t *MaestroTask) {
 				unmarkAsRunning(t.Id)
@@ -555,7 +553,7 @@ func CompleteTask(id string) (err error) {
 			})
 			if err == nil {
 				// update in memory map
-				tasks.Set(task.Id, unsafe.Pointer(newtask))
+				tasks.Store(task.Id, newtask)
 			}
 		} else {
 			unmarkAsRunning(task.Id)
@@ -571,9 +569,9 @@ func CompleteTask(id string) (err error) {
 }
 
 func FailTask(id string, cause *maestroSpecs.APIError) (err error) {
-	ptask, ok := tasks.GetStringKey(id)
+	ptask, ok := tasks.Load(id)
 	if ok {
-		task := (*MaestroTask)(ptask)
+		task := ptask.(*MaestroTask)
 		if task.persistent {
 			err, newtask := instance.updateTaskById(id, func(t *MaestroTask) {
 				//				t.Step = TASK_COMPLETE_STEP
@@ -583,7 +581,7 @@ func FailTask(id string, cause *maestroSpecs.APIError) (err error) {
 			})
 			if err == nil {
 				// update in memory map
-				tasks.Set(task.Id, unsafe.Pointer(newtask))
+				tasks.Store(task.Id, newtask)
 			}
 		} else {
 			markAsFailed(task.Id)
@@ -609,9 +607,9 @@ func FailTask(id string, cause *maestroSpecs.APIError) (err error) {
 }
 
 func GetTaskStatus(id string) (step uint32, ok bool) {
-	ptask, ok2 := tasks.GetStringKey(id)
+	ptask, ok2 := tasks.Load(id)
 	if ok2 {
-		task := (*MaestroTask)(ptask)
+		task := ptask.(*MaestroTask)
 		ok = true
 		step = task.Step
 	} else {
@@ -642,11 +640,11 @@ func TaskAckOK(taskid string) {
 }
 
 func RegisterHandler(optype string, handler TaskHandler) {
-	handlers.Set(optype, unsafe.Pointer(&handler))
+	handlers.Store(optype, &handler)
 }
 
 func RemoveTask(id string) error {
-	tasks.Del(id)
+	tasks.Delete(id)
 	return getInstance().removeTaskById(id)
 }
 
@@ -662,7 +660,7 @@ func RestartStoredTasks() {
 		newtask := new(MaestroTask)
 		*newtask = *task
 		// add to our in-memory hashmap
-		tasks.Set(newtask.Id, unsafe.Pointer(newtask))
+		tasks.Store(newtask.Id, newtask)
 		return true // iterate through all tasks in DB
 	})
 	controlChan <- newControlTokenNewTask(nil) // wake up thread
@@ -688,22 +686,24 @@ func cleanOutStaleTasks() {
 		}
 	})
 	var removeids []string
-	for item := range tasks.Iter() {
-		if item.Value == nil {
+
+	tasks.Range(func(key, value interface{}) bool {
+		if value == nil {
 			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
-			continue
+			return true
 		}
-		if item.Value != nil {
-			taskitem := (*MaestroTask)(item.Value)
+		if value != nil {
+			taskitem := value.(*MaestroTask)
 			if taskitem.enqueTime < oldest {
 				removeids = append(removeids, taskitem.Id)
 			}
 		}
-	}
+		return true
+	})
 	// remove stale Tasks
 	for id := range removeids {
 		debugging.DEBUG_OUT("TASK>>>>>>>>>  removing Task %s\n", id)
-		tasks.Del(id)
+		tasks.Delete(id)
 	}
 
 }
@@ -752,9 +752,9 @@ func taskRunner() {
 	anyran := false
 
 	getTask := func(id string) (ret *MaestroTask, ok bool) {
-		retp, ok := tasks.GetStringKey(id)
+		retp, ok := tasks.Load(id)
 		if ok {
-			ret = (*MaestroTask)(retp)
+			ret = retp.(*MaestroTask)
 		}
 		return
 	}
@@ -780,12 +780,11 @@ func taskRunner() {
 
 							if !isRunning(child) {
 								debugging.DEBUG_OUT(" TASK>>>>>> batch Task %s - found child %d  - %s\n", taskitem.Id, n, task.Id)
-
-								_handler, ok := handlers.GetStringKey(task.Op.GetType())
+								_handler, ok := handlers.Load(task.Op.GetType())
 								if ok && _handler != nil {
 									markAsRunning(task.Id)
 									debugging.DEBUG_OUT(" TASK>>>>>> Executing task %s on step %d (%s) %+v\n", task.Id, task.Step, task.Op.GetType(), isRunning(task.Id))
-									handler := (*TaskHandler)(_handler)
+									handler := _handler.(*TaskHandler)
 									taskcopy := new(MaestroTask)
 									*taskcopy = *task
 									(*handler).SubmitTask(taskcopy)
@@ -813,11 +812,11 @@ func taskRunner() {
 			} else {
 				// Looks to be a standard task
 				// find a handler, and attempt to execute this Task
-				_handler, ok := handlers.GetStringKey(taskitem.Op.GetType())
+				_handler, ok := handlers.Load(taskitem.Op.GetType())
 				if ok && _handler != nil {
 					markAsRunning(taskitem.Id)
 					debugging.DEBUG_OUT(" TASK>>>>>> Executing task %s on step %d (%s) %+v\n", taskitem.Id, taskitem.Step, taskitem.Op.GetType(), isRunning(taskitem.Id))
-					handler := (*TaskHandler)(_handler)
+					handler := _handler.(*TaskHandler)
 					taskitemcopy := new(MaestroTask)
 					*taskitemcopy = *taskitem
 					(*handler).SubmitTask(taskitemcopy)
@@ -840,14 +839,13 @@ func taskRunner() {
 
 	// Find a task which can be ran
 	findTask := func() (ret *MaestroTask) {
-	outerTaskLoop:
-		for item := range tasks.Iter() {
-			if item.Value == nil {
+		tasks.Range(func(key, value interface{}) bool {
+			if value == nil {
 				debugging.DEBUG_OUT(" TASK>>>>>> CORRUPTION in hashmap - have null value pointer\n")
-				continue
+				return true
 			}
-			if item.Value != nil {
-				taskitem := (*MaestroTask)(item.Value)
+			if value != nil {
+				taskitem := value.(*MaestroTask)
 				debugging.DEBUG_OUT(" TASK>>>>>> Looking at task %s on step %d  {%+v}\n", taskitem.Id, taskitem.Step, *taskitem)
 
 				meta := getMetaTaskData(taskitem.Id)
@@ -857,7 +855,7 @@ func taskRunner() {
 				if meta.failed {
 					debugging.DEBUG_OUT2(" TASK>>>>>> Task %s is marked failed. next...\n", taskitem.Id)
 					meta.release()
-					continue
+					return true
 				}
 
 				// the Task is already executing a step
@@ -865,7 +863,7 @@ func taskRunner() {
 				if meta.stepExecuting {
 					debugging.DEBUG_OUT2(" TASK>>>>>> Task %s is marked executing now. next...\n", taskitem.Id)
 					meta.release()
-					continue
+					return true
 				}
 
 				// If this is a batchTask - then it will have subtasks
@@ -889,13 +887,13 @@ func taskRunner() {
 								// if a Task has failed, then if the Batch task is marked 'failFast' the entire
 								// Batch should be marked failed
 								FailTask(taskitem.Id, newAPIErrorFailedBatch(taskitem.Id))
-								continue outerTaskLoop
+								return true
 							} else {
 								childmeta.release()
 								debugging.DEBUG_OUT(" TASK>>>>>> batch Task %s - found child %d  - %s\n", taskitem.Id, n, childtask.Id)
 								ret = childtask
 							}
-							return
+							return false
 							// } else {
 							// 	debugging.DEBUG_OUT(" TASK>>>>>> batch Task %s - child %d is already running\n",taskitem.Id,n)
 							// 	// TODO - check timeout
@@ -940,8 +938,8 @@ func taskRunner() {
 				}
 
 			}
-
-		}
+			return true
+		})
 		return
 	}
 

@@ -127,8 +127,14 @@ void childClosedFDCallback (GreaseLibError *err, int stream_type, int fd) {
 	if(err) {
 
 	} else {
-		printf("CHILD CLOSED FD: type %d, fd %d\n", stream_type,fd);
-		GreaseLib_removeFDForStdout(fd);
+		printf("CHILD CLOSED FD: type %d, fd %d for pid %d\n", stream_type,fd,(int)getpid());
+		
+		if(stream_type == 1) {
+			GreaseLib_removeFDForStdout(fd);
+		} else if (stream_type==2) {
+			GreaseLib_removeFDForStderr(fd);	
+		}
+		
 		sawClosedRedirectedFD(); // call back into Go land
 
 		// pid_t lastpid;
@@ -159,7 +165,7 @@ int createChild(char* szCommand,
 		DBG_MAESTRO("send message:%s\n",szMessage);
 	}
 
-	if (pipe(aErrorPipe) < 0) {
+	if (pipe2(aErrorPipe,O_CLOEXEC) < 0) {
 		err->_errno = errno;
 		perror("allocating pipe for execve error capture.");
 		return -1;
@@ -202,12 +208,9 @@ int createChild(char* szCommand,
 		GreaseLib_addOriginLabel( childStartingOriginID, szCommand, strlen(szCommand) );
 	}
 	DBG_MAESTRO("createChild 1.1");
-	// we defer grabbing stdout, until we know we send a message to process
 	// GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
-	GreaseLib_addFDForStderr( aStderrPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
 	DBG_MAESTRO("createChild 1.2");
 	if(!opts->ok_string) {
-		GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
 	} else {
 		DBG_MAESTRO("Not redirecting STDOUT - have ok_string opt");
 		opts->stdout_fd = aStdoutPipe[PIPE_READ];
@@ -266,7 +269,7 @@ int createChild(char* szCommand,
 			close(aStdinPipe[PIPE_READ]);
 			close(aStdoutPipe[PIPE_WRITE]);
 			close(aStderrPipe[PIPE_WRITE]);
-			return -1;
+			exit(1);
 		}
 
 		// redirect stdout
@@ -276,7 +279,7 @@ int createChild(char* szCommand,
 			close(aStdinPipe[PIPE_READ]);
 			close(aStdoutPipe[PIPE_WRITE]);
 			close(aStderrPipe[PIPE_WRITE]);
-			return -1;
+			exit(1);
 		}
 
 		// redirect stderr
@@ -286,14 +289,14 @@ int createChild(char* szCommand,
 			close(aStdinPipe[PIPE_READ]);
 			close(aStdoutPipe[PIPE_WRITE]);
 			close(aStderrPipe[PIPE_WRITE]);
-			return -1;
+			exit(1);
 		}
 
 		// tell the kernel to close this FD if execve kicks off correctly
 		fcntl(aErrorPipe[PIPE_WRITE], F_SETFD, FD_CLOEXEC);
 		close(aStdinPipe[PIPE_READ]);
 		close(aStdoutPipe[PIPE_WRITE]);
-
+		close(aStderrPipe[PIPE_WRITE]);
 		if(!opts) {
 			// Default:
 			// make this process in a new process group
@@ -330,7 +333,6 @@ int createChild(char* szCommand,
 
 		//    close(aErrorPipe[PIPE_WRITE]);
 
-
 		DBG_MAESTRO("createChild exit() child");
 		exit(nResult);
 	} else if (nChild > 0) {
@@ -347,8 +349,8 @@ int createChild(char* szCommand,
 
 		int _errno = 0;
 
-		DBG_MAESTRO("createChild reading error pipe\n");
 		int n = read(aErrorPipe[PIPE_READ],&_errno,sizeof(int));
+		DBG_MAESTRO("createChild reading error pipe %d for pid %d\n",n,(int) getpid ());
 		if(n > 0) {
 			// if non zero, then the error pipe was not closed, and
 			// execve failed
@@ -370,6 +372,8 @@ int createChild(char* szCommand,
 
 		close(aStdinPipe[PIPE_WRITE]);
 
+		GreaseLib_addFDForStderr( aStderrPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
+		GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
 
 		// Just a char by char read here, you can change it accordingly
 		//    while (read(aStdoutPipe[PIPE_READ], &nChar, 1) == 1) {
