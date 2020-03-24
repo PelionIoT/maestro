@@ -824,7 +824,8 @@ func GetAllTargetsAndFilters() ([]GreaseLibTargetOpts, []GreaseLibFilter) {
 	count := C.GreaseLib_getFilters(&cfilters)
 	if count > 0 {
 		defer C.free(unsafe.Pointer(cfilters))
-		cfiltersSlice = (*[1 << 30]C.GreaseLibFilter)(unsafe.Pointer(cfilters))[:count:count]
+		// https://github.com/golang/go/wiki/cgo#turning-c-arrays-into-go-slices
+		cfiltersSlice = (*[1 << 22]C.GreaseLibFilter)(unsafe.Pointer(cfilters))[:count:count]
 	}
 
 	for _, cfilter := range cfiltersSlice {
