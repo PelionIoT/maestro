@@ -2145,8 +2145,12 @@ func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbcon
 
 	//Setup the config with the given network config
 	if inst.networkConfig != nil {
-		log.MaestroInfof("NetworkManager: Submit config read from config file\n")
-		inst.submitConfig(inst.networkConfig)
+		if inst.networkConfig.Disable == false {
+			log.MaestroInfof("NetworkManager: Submit config read from config file\n")
+			inst.submitConfig(inst.networkConfig)
+		} else {
+			return errors.New("NetworkManager: Network configuration Disable flag set to true")
+		}
 	} else {
 		return errors.New("NetworkManager: No network configuration set, unable to cofigure network")
 	}
