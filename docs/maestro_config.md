@@ -27,6 +27,7 @@ network:
 ```
 - if_name: eth1
   existing: override
+  clear_addresses: true
   dhcpv4: false
   ipv4_addr: 10.0.103.103
   ipv4_mask: 24
@@ -36,6 +37,7 @@ network:
 Breakdown:
 * `if_name` - REQUIRED. Name of the interface Maestro will modify
 * `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface
+* `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses
 * `dhcpv4` - REQUIRED. `false` for static interfaces
 * `ipv4_addr` - REQUIRED. IP address to assign to the interface
 * `ipv4_mask` - REQUIRED. IP mask to use for the subnet
@@ -46,6 +48,7 @@ Breakdown:
 ```
 - if_name: eth1
   existing: override
+  clear_addresses: true
   dhcpv4: false
   ipv4_addr: 10.0.103.103
   ipv4_mask: 24
@@ -55,6 +58,7 @@ Breakdown:
 Breakdown:
 * `if_name` - REQUIRED. Name of the interface Maestro will modify
 * `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface
+* `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses
 * `dhcpv4` - REQUIRED. `false` for static interfaces
 * `ipv4_addr` - REQUIRED. IP address to assign to the interface
 * `ipv4_mask` - REQUIRED. IP mask to use for the subnet
@@ -205,6 +209,10 @@ Breakdown:
 * `vm_stats` - Memory statistics
 * `disk_stats` - Disk statistics
 
+How to Disable System Stats:
+* Remove the System Stats section from the config file
+* Add "disable_sys_stats: true" to the Symphony section in the config file
+
 ## config_end
 
 You must put `config_end: true` at the end of your `maestro.config`
@@ -217,12 +225,14 @@ network:
     interfaces:
         - if_name: eth1
           existing: override
+          clear_addresses: true
           dhcpv4: false
           ipv4_addr: 10.0.103.103
           ipv4_mask: 24
           hw_addr: "{{ARCH_ETHERNET_MAC}}"
         - if_name: eth2
           existing: override
+          clear_addresses: true
           dhcpv4: false
           ipv4_addr: 10.0.102.102
           ipv4_mask: 24
@@ -241,6 +251,7 @@ sys_stats: # system stats intervals
     every: "30s"
     name: disk
 symphony:
+    disable_sys_stats: false
     sys_stats_count_threshold: 15     # send if you have 15 or more stats queued
     sys_stats_time_threshold: 120000  # every 120 seconds send stuff, no matter what
     client_cert: {{SYMPHONY_CLIENT_CRT}}
