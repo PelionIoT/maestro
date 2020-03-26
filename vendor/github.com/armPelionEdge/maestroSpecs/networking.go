@@ -150,6 +150,9 @@ type NetIfConfigPayload struct {
 // }
 
 type NetworkConfigPayload struct {
+	// If the flag is "disable : false" then maestro will do networking.  If the flag is "disable : true" then maestro will not do networking.
+	Disable bool `yaml:"disable" json:"disable" netgroup:"config_network"`
+
 	// an array of network interfaces to configure
 	Interfaces []*NetIfConfigPayload `yaml:"interfaces" json:"interfaces" netgroup:"if"`
 
