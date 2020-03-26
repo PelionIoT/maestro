@@ -73,7 +73,7 @@ describe('Maestro Config', function() {
             let view = {
                 network: {
                     interfaces: [
-                        {if_name: 'eth1', existing: 'replace', dhcpv4: true}
+                        {if_name: 'eth1', clear_addresses: true, existing: 'replace', dhcpv4: true}
                     ],
                 },
                 config_end: true
@@ -107,7 +107,7 @@ describe('Maestro Config', function() {
             let view = {
                 network: {
                     interfaces: [
-                        {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.123.123.123', ip_mask: 24}
+                        {if_name: 'eth1', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.123.123.123', ipv4_mask: 24}
                     ],
                 },
                 config_end: true
@@ -141,8 +141,8 @@ describe('Maestro Config', function() {
             let view = {
                 network: {
                     interfaces: [
-                        {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
-                        {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
+                        {if_name: 'eth1', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.99.99.99', ipv4_mask: 24},
+                        {if_name: 'eth2', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.88.88.88', ipv4_mask: 24}
                     ],
                 },
                 config_end: true
@@ -201,7 +201,7 @@ describe('Maestro Config', function() {
             let view = {
                 network: {
                     interfaces: [
-                        {if_name: 'eth1', existing: 'replace', dhcpv4: true}
+                        {if_name: 'eth1', clear_addresses: true, existing: 'replace', dhcpv4: true}
                     ],
                 },
                 sys_stats: {
@@ -242,7 +242,7 @@ describe('Maestro Config', function() {
             let view = {
                 network: {
                     interfaces: [
-                        {if_name: 'eth1', existing: 'replace', dhcpv4: true}
+                        {if_name: 'eth1', clear_addresses: true, existing: 'replace', dhcpv4: true}
                     ],
                 },
                 sys_stats: {
@@ -296,8 +296,8 @@ describe('Maestro API', function() {
                 sysLogSocket: '/run/systemd/journal/syslog',
                 network: {
                     interfaces: [
-                        {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.99.99.99', ip_mask: 24},
-                        {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.88.88.88', ip_mask: 24}
+                        {if_name: 'eth1', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.99.99.99', ipv4_mask: 24},
+                        {if_name: 'eth2', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.88.88.88', ipv4_mask: 24}
                     ]
                 },
                 sys_stats: {
@@ -528,8 +528,8 @@ describe('DeviceDB', function() {
                     let view = {
                         network: {
                             interfaces: [
-                                {if_name: 'eth1', existing: 'replace', dhcpv4: false, ipv4_addr: '10.77.77.77', ip_mask: 24},
-                                {if_name: 'eth2', existing: 'replace', dhcpv4: false, ipv4_addr: '10.66.66.66', ip_mask: 24}
+                                {if_name: 'eth1', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.77.77.77', ipv4_mask: 24},
+                                {if_name: 'eth2', existing: 'replace', clear_addresses: true, dhcpv4: false, ipv4_addr: '10.66.66.66', ipv4_mask: 24}
                             ]
                         },
                         devicedb_conn_config: {
@@ -582,7 +582,7 @@ describe('DeviceDB', function() {
         it('should set the IP address of the second network adapter', function(done) {
             this.timeout(timeout);
             this.done = done;
-            devicedb_set_ip_address(this, 'eth1', '10.125.125.125');
+            devicedb_set_ip_address(this, 'eth2', '10.125.125.125');
         });
 
         it('should change the IP address of the second network adapter', function(done) {
