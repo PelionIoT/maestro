@@ -36,7 +36,7 @@ network:
 
 Breakdown:
 * `if_name` - REQUIRED. Name of the interface Maestro will modify
-* `existing` - REQUIRED. Tells Maestro to `replace` or `override` the existing saved interface
+* `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface
 * `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses
 * `dhcpv4` - REQUIRED. `false` for static interfaces
 * `ipv4_addr` - REQUIRED. IP address to assign to the interface
@@ -57,7 +57,7 @@ Breakdown:
 
 Breakdown:
 * `if_name` - REQUIRED. Name of the interface Maestro will modify
-* `existing` - REQUIRED. Tells Maestro to `replace` or `override` the existing saved interface
+* `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface
 * `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses
 * `dhcpv4` - REQUIRED. `false` for static interfaces
 * `ipv4_addr` - REQUIRED. IP address to assign to the interface
