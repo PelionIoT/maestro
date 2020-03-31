@@ -690,7 +690,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				}
 
 			} else { // else do nothingm db has priority
-				//                this.byInterfaceName.Set(ifname,unsafe.Pointer(ret))
+				this.byInterfaceName.Store(ifname, &storedifconfig)
 			}
 		}
 
