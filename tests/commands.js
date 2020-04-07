@@ -98,7 +98,7 @@ module.exports = class Commands {
     }
 
     /**
-     * Check an ip addr command to verify a valid IP address exists
+     * Check an ip addr command to verify a valid IP address exists and if the interface is UP
      * @param {String} ip - IP address that should be available (or portion of an IP)
      * @param {callback} cb - Callback to run when done
      **/
@@ -107,15 +107,19 @@ module.exports = class Commands {
         let command = Commands.list.ip_addr.replace('{{interface}}', iface);
         this.run_shell(command, function(stdout) {
             let arr = stdout.split('\n');
+            var interface_up = false
             for (var i in arr) {
                 let line = arr[i].trim();
                 let words = line.split(' ');
+                if( i==0 && words[7] === 'state' && words[8] === 'UP') {
+                    interface_up = true
+                }
                 if (words.length >= 4 && words[0] === 'inet' && words[1].includes(ip)) {
-                    this.cb(true);
+                    this.cb(true,interface_up);
                     return;
                 }
             }
-            this.cb(false);
+            this.cb(false,interface_up);
         }.bind({ctx: this, cb: cb}));
     }
 

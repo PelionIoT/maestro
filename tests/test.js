@@ -84,8 +84,9 @@ describe('Maestro Config', function() {
                 // Function to run when done with the workflow
                 function() {
                     // Compare the IP address of the VM to verify maestro set the IP properly
-                    maestro_commands.check_ip_addr('eth1', '172.28.128.', function(contains_ip) {
+                    maestro_commands.check_ip_addr('eth1', '172.28.128.', function(contains_ip, interface_up) {
                         assert(contains_ip, 'Interface eth1 not set with an IP address prefixed with 172.28.128.xxx');
+                        assert(interface_up, 'Interface eth1 not UP');
                         this();
                     }.bind(this));
                 }.bind(done),
@@ -118,8 +119,9 @@ describe('Maestro Config', function() {
                 // Function to run when done with the workflow
                 function() {
                     // Compare the IP address of the VM to verify maestro set the IP properly
-                    maestro_commands.check_ip_addr('eth1', '10.123.123.123', function(contains_ip) {
+                    maestro_commands.check_ip_addr('eth1', '10.123.123.123', function(contains_ip, interface_up) {
                         assert(contains_ip, 'Interface eth1 not set with IP address 10.123.123.123');
+                        assert(interface_up, 'Interface eth1 not UP');
                         this();
                     }.bind(this));
                 }.bind(done),
@@ -153,11 +155,13 @@ describe('Maestro Config', function() {
                 // Function to run when done with the workflow
                 function() {
                     // Compare the IP address of the VM to verify maestro set the IP properly
-                    maestro_commands.check_ip_addr('eth1', this.interfaces[0].ipv4_addr, function(contains_ip) {
+                    maestro_commands.check_ip_addr('eth1', this.interfaces[0].ipv4_addr, function(contains_ip, interface_up) {
                         assert(contains_ip, 'Interface ' + this.interfaces[0].if_name + ' not set with IP address ' + this.interfaces[0].ipv4_addr);
+                        assert(interface_up, 'Interface eth1 not UP');
                         // Compare the IP address of the VM to verify maestro set the IP properly
-                        maestro_commands.check_ip_addr('eth2', this.interfaces[1].ipv4_addr, function(contains_ip) {
+                        maestro_commands.check_ip_addr('eth2', this.interfaces[1].ipv4_addr, function(contains_ip,interface_up) {
                             assert(contains_ip, 'Interface ' + this.interfaces[1].if_name + ' not set with IP address ' + this.interfaces[1].if_name);
+                            assert(interface_up, 'Interface eth2 not UP');
                             this.done();
                         }.bind(this));
                     }.bind(this));
@@ -375,8 +379,9 @@ describe('Maestro API', function() {
             command = command.replace('{{payload}}', json_view);
 
             maestro_commands.run_shell(command, function(result) {
-                maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
+                maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip,interface_up) {
                     assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
+                    assert(interface_up, 'Interface ' + this.interface + ' not UP');
                     this.ctx.done();
                 }.bind(this));
             }.bind({interface: interface, ip_address: ip_address, ctx: ctx}));
@@ -496,8 +501,9 @@ function devicedb_set_ip_address(ctx, interface, ip_address)
     let key = 'MAESTRO_NETWORK_CONFIG_ID';
     maestro_commands.devicedb_command(ctx.device_id, ctx.site_id, key, body, function(output) {
         setTimeout(function() {
-            maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip) {
+            maestro_commands.check_ip_addr(this.interface, this.ip_address, function(contains_ip,interface_up) {
                 assert(contains_ip, 'Interface ' + this.interface + ' not set with IP address ' + this.ip_address);
+                assert(interface_up, 'Interface ' + this.interface + ' not UP');
                 this.ctx.done();
             }.bind(this));
         }.bind(this), 5000);
