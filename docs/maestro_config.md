@@ -32,6 +32,7 @@ network:
   ipv4_addr: 10.0.103.103
   ipv4_mask: 24
   hw_addr: "{{ARCH_ETHERNET_MAC}}"
+  default_gateway: 10.0.103.1
 ```
 
 Breakdown:
@@ -42,6 +43,7 @@ Breakdown:
 * `ipv4_addr` - REQUIRED. IP address to assign to the interface
 * `ipv4_mask` - REQUIRED. IP mask to use for the subnet
 * `hw_addr` - MAC address to use for the interface
+* `default_gateway` - REQUIRED. IP address of the default gateway to be used
 
 ### DHCP interface:
 
@@ -49,9 +51,7 @@ Breakdown:
 - if_name: eth1
   existing: override
   clear_addresses: true
-  dhcpv4: false
-  ipv4_addr: 10.0.103.103
-  ipv4_mask: 24
+  dhcpv4: true
   hw_addr: "{{ARCH_ETHERNET_MAC}}"
 ```
 
@@ -59,9 +59,7 @@ Breakdown:
 * `if_name` - REQUIRED. Name of the interface Maestro will modify
 * `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface
 * `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses
-* `dhcpv4` - REQUIRED. `false` for static interfaces
-* `ipv4_addr` - REQUIRED. IP address to assign to the interface
-* `ipv4_mask` - REQUIRED. IP mask to use for the subnet
+* `dhcpv4` - REQUIRED. `true` for dhcp interfaces
 * `hw_addr` - MAC address to use for the interface
 
 ## DeviceDB
@@ -230,6 +228,7 @@ network:
           ipv4_addr: 10.0.103.103
           ipv4_mask: 24
           hw_addr: "{{ARCH_ETHERNET_MAC}}"
+          default_gateway: 10.0.103.1
         - if_name: eth2
           existing: override
           clear_addresses: true
@@ -237,6 +236,7 @@ network:
           ipv4_addr: 10.0.102.102
           ipv4_mask: 24
           hw_addr: "{{ARCH_ETHERNET_MAC}}"
+          default_gateway: 10.0.102.1
 devicedb_conn_config:
     devicedb_uri: "https://{{DEVICE_ID}}:9090"
     devicedb_prefix: "vagrant"
