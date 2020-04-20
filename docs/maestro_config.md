@@ -107,7 +107,7 @@ Available syslog levels are:
 * `info`
 * `debug`
 
-Where the contents of the `echo` is the message, and `err` is the log level. The log level you specify must be one of the values in your log target `filters` list; otherwise, the log will not show up.
+Where the content of the `echo` is the message, and `err` is the log level. The log level you specify must be one of the values in your log target `filters` list; otherwise, the log will not show up.
 
 ### Targets
 
