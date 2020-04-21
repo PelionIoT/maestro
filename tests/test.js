@@ -317,7 +317,7 @@ describe('Maestro API', function() {
             this.file_target = this.view.targets[1].file;
             this.file_target_default_filter = this.view.targets[1].filters[0].levels;
             maestro_commands.maestro_workflow(YAML.stringify(this.view), null, null);
-            setTimeout(this.done, 5000);
+            setTimeout(this.done, 10000);
         }.bind(this));
     });
 
