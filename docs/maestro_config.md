@@ -1,6 +1,6 @@
-# Maestro Config
+# Maestro config
 
-The following guide documents the options available in the `maestro.config` yaml file that is provided to maestro on startup. This file is hardcoded within maestro, and should live in the maestro project directory.
+This document describes the Maestro configuration options, which you define in the `maestro.config` YAML file that is provided to Maestro on startup. This file is hardcoded in Maestro, and should live in the Maestro project directory.
 
 The following is a bare minimum configuration for maestro:
 
@@ -8,11 +8,11 @@ The following is a bare minimum configuration for maestro:
 config_end: true
 ```
 
-The remaining sections detail subsections that can be placed in the file above the `config_end: true` line.
+You can include additional subsections in the file, above the `config_end: true` line, as shown in the examples.
 
 ## Networking
 
-You must specify a network interface:
+To specify a network interface, add:
 
 ```
 network:
@@ -22,7 +22,7 @@ network:
         - <interface ...> # Outlined below
 ```
 
-### Static interface:
+### Static interface
 
 ```
 - if_name: eth1
@@ -35,17 +35,17 @@ network:
   default_gateway: 10.0.103.1
 ```
 
-Breakdown:
-* `if_name` - REQUIRED. Name of the interface Maestro will modify
-* `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface
-* `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses
-* `dhcpv4` - REQUIRED. `false` for static interfaces
-* `ipv4_addr` - REQUIRED. IP address to assign to the interface
-* `ipv4_mask` - REQUIRED. IP mask to use for the subnet
-* `hw_addr` - MAC address to use for the interface
-* `default_gateway` - REQUIRED. IP address of the default gateway to be used
+Parameters:
+* `if_name` - REQUIRED. Name of the interface Maestro modifies.
+* `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface.
+* `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses.
+* `dhcpv4` - REQUIRED. `false` for static interfaces.
+* `ipv4_addr` - REQUIRED. IP address to assign to the interface.
+* `ipv4_mask` - REQUIRED. IP mask to use for the subnet.
+* `hw_addr` - MAC address to use for the interface.
+* `default_gateway` - REQUIRED. IP address of the default gateway.
 
-### DHCP interface:
+### DHCP interface
 
 ```
 - if_name: eth1
@@ -56,15 +56,15 @@ Breakdown:
 ```
 
 Breakdown:
-* `if_name` - REQUIRED. Name of the interface Maestro will modify
-* `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface
-* `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses
-* `dhcpv4` - REQUIRED. `true` for dhcp interfaces
-* `hw_addr` - MAC address to use for the interface
+* `if_name` - REQUIRED. Name of the interface Maestro modifies.
+* `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface.
+* `clear_addresses` - REQUIRED. Clears any existing addresses assigned to the interface before setting up the specified addresses.
+* `dhcpv4` - REQUIRED. `true` for DHCP interfaces.
+* `hw_addr` - REQUIRED. MAC address to use for the interface.
 
 ## DeviceDB
 
-Only necessary if you want Maestro to connect to a deviceDB server:
+To connect to a deviceDB server, add:
 
 ```
 devicedb_conn_config:
@@ -75,18 +75,18 @@ devicedb_conn_config:
     ca_chain: "~/.ssl_certs/myCA.pem"
 ```
 
-Breakdown:
-* `devicedb_uri` - REQUIRED. URL of the deviceDB edge instance. NOT the deviceDB cloud URL
-* `devicedb_prefix` - REQUIRED. Table within devicedb to put data into
+Parameters:
+* `devicedb_uri` - REQUIRED. URL of the deviceDB edge instance. **Not the deviceDB cloud URL.**
+* `devicedb_prefix` - REQUIRED. Table within deviceDB to put data into.
 * `devicedb_bucket` - REQUIRED. Bucket within the table specified above.
-* `relay_id` - REQUIRED. Unique identifier for the gateway. Usually the gateway ID specified by the cloud
-* `ca_chain` - REQUIRED. Location of the root CA certificate that the deviceDB cloud instance is setup with.
+* `relay_id` - REQUIRED. Unique identifier for the gateway. Usually, the gateway ID specified by the cloud.
+* `ca_chain` - REQUIRED. Location of the root CA certificate the deviceDB cloud instance is set up with.
 
 ## Logging
 
 ### SysLog
 
-To enable syslog, add to your `maestro.config`:
+To enable syslog, add:
 
 ```
 sysLogSocket: /run/systemd/journal/syslog
@@ -101,16 +101,19 @@ echo "test err message" | systemd-cat -p err
 ```
 
 Available syslog levels are:
+
 * `err`
 * `warning`
 * `info`
 * `debug`
 
-Where the contents of the `echo` is the message, and `err` is the log level. Note that you must have the log level you specify match what is in your log target filters list otherwise it will not show up.
+Where the content of the `echo` is the message, and `err` is the log level. The log level you specify must be one of the values in your log target `filters` list; otherwise, the log will not show up.
 
 ### Targets
 
-A target is a destination where Maestro will output its logs to. It can be a file, the cloud, etc. For example, Maestro has the ability to take syslog's and dump them to a file. The file that the syslogs get dumped to is considered a `target`. Maestro can be setup to have multiple targets.
+A target is a destination to which Maestro outputs its logs. The target can be a file, the cloud, and so on. Maestro can have multiple targets.
+
+To define the target into which Maestro dumps its logs, add:
 
 ```
 targets:
@@ -119,22 +122,6 @@ targets:
     - <target ...> # Outlined below
 ```
 
-Breakdown:
-* `name` - Unique identifier for the log target. `toCloud` is a special name for sending data to the cloud and is the required `name` for cloud targets. File targets do not need a `name`
-* `file` - Required for log targets destined to a file. This is the output location for said file.
-* `format_time` - REQUIRED. Used to specify the time format in the output logs
-* `delim` - OPTIONAL. Used to specify the delimiter between logs
-* `filters` - REQUIRED. Used to specify what level of logs make it to the output log
-    * `warn`
-    * `info` or `success`. They behave the same
-    * `error`
-    * `debug`
-    * `all`
-* `rotate` - Optional; only used for log targets destined to a file. Determines how to rotate between X amount of files
-    * `max_files` - Max files to rotate between
-    * `max_file_size` - Max size of each log file. In bytes
-    * `max_total_size` - Max size of all of the log files. In bytes
-    * `rotate_on_start` - Move to the next file when Maestro reboots
 
 #### File target:
 
@@ -152,13 +139,30 @@ Breakdown:
   - levels: error
 ```
 
-To view a file log, run the following:
+Parameters:
+* `file` - The location of the output file.
+* `rotate` - OPTIONAL. Defines the log file rotation.
+    * `max_files` - Maximum number of log files to rotate between.
+    * `max_file_size` - Maximum size of each log file, in bytes.
+    * `max_total_size` - Maximum total size of all log files, in bytes.
+    * `rotate_on_start` - Move to the next file when Maestro reboots.
+* `delim` - OPTIONAL. Specifies the delimiter between logs.
+* `format_time` - REQUIRED. Specifies the time format in the output logs.
+* `filters` - REQUIRED. Specifies what level of logs make it to the output log.
+    * `warn`
+    * `info` or `success` - Behave the same.
+    * `error`
+    * `debug`
+    * `all`
+
+
+**To view a file log, run:**
 
 ```
 sudo tail -f /var/log/maestro/maestro.log
 ```
 
-Where `/var/log/maestro/maestro.log` is the file specified in the `file` field
+Where `/var/log/maestro/maestro.log` is the file specified in the `file` field.
 
 #### Cloud target:
 ```
@@ -168,12 +172,22 @@ Where `/var/log/maestro/maestro.log` is the file specified in the `file` field
   filters:
   - levels: all
 ```
+<span class="notes">**Note:** If you have a cloud target, you MUST have a section in your `maestro.config` for [Symphony](#symphony).</span>
 
-Note: If you have a cloud target, you MUST have a section in your `maestro.config` for Symphony, which is explained below
+Parameters:
+* `name` - Unique identifier of the log target. `toCloud` is a special name for sending data to the cloud and is the required `name` for cloud targets.
+* `format_time` - REQUIRED. Specifies the time format in the output logs.
+* `flag_json_escape_strings` - Sends log dumps in JSON format. Always `true` for cloud targets.
+* `filters` - REQUIRED. Specifies what level of logs make it to the output log.
+    * `warn`
+    * `info` or `success` - Behave the same.
+    * `error`
+    * `debug`
+    * `all`
 
 ### Symphony
 
-If you have a log target with the name `toCloud`, this section is required in your `maestro.config`!
+If you have a cloud target, you must add:
 
 ```
 symphony:
@@ -184,15 +198,16 @@ symphony:
     host: "{{SYMPHONY_HOST}}"
 ```
 
-Breakdown:
-* `sys_stats_count_threshold` - How many messages are stored before the stats are sent up to the cloud
-* `sys_stats_time_threshold` - How long to wait before sending whatever is in the queue, regardless of message count. In milliseconds
-* `client_cert` - Certificate to authenticate with the cloud. This needs to be the actual certificate in PEM format, not the file location
-* `client_key` - Private key to authenticate with the cloud. This needs to be the actual key in PEM format, not the file location
-* `host` - URL of the symphony cloud
+Parameters:
+* `sys_stats_count_threshold` - How many messages are stored before the stats are sent to the cloud.
+* `sys_stats_time_threshold` - How long to wait, in milliseconds, before sending messages in the queue to the cloud, regardless of message count.
+* `client_cert` - Certificate to authenticate with the cloud. The actual certificate in PEM format, not the file location.
+* `client_key` - Private key to authenticate with the cloud. The actual key in PEM format, not the file location.
+* `host` - URL of the Symphony cloud.
 
-### System Stats
+### System stats
 
+To log system statistics, add:
 ```
 sys_stats:
   vm_stats:
@@ -203,19 +218,20 @@ sys_stats:
     name: disk
 ```
 
-Breakdown:
-* `vm_stats` - Memory statistics
-* `disk_stats` - Disk statistics
+Parameters:
+* `vm_stats` - Memory statistics.
+* `disk_stats` - Disk statistics.
 
-How to Disable System Stats:
-* Remove the System Stats section from the config file
-* Add "disable_sys_stats: true" to the Symphony section in the config file
+**To disable system stats:**
+
+* Remove the `sys_stats` section from the config file.
+* Add `disable_sys_stats: true` to the `symphony` section in the config file.
 
 ## config_end
 
-You must put `config_end: true` at the end of your `maestro.config`
+You must put `config_end: true` at the end of your `maestro.config`.
 
-# Example
+## maestro.config file example
 
 ```
 sysLogSocket: /run/systemd/journal/syslog
@@ -276,7 +292,7 @@ targets:
       - levels: error
         format_pre: "\u001B[31m"    # red
         format_post: "\u001B[39m"
-    - name: "toCloud"  # this is a special target for sending to the cloud. It must send as a JSON
+    - name: "toCloud"  # this sends log dumps to the cloud as a JSON.
       format_time: "\"timestamp\":%ld%03d, "
       format_level: "\"level\":\"%s\", "
       format_tag: "\"tag\":\"%s\", "
