@@ -1235,7 +1235,7 @@ func InitProcessMgmt(config *configs.ProcessesConfig) {
 	if config != nil {
 		globalConfig = config
 	} else {
-		globalConfig = configs.ProcessesDefaults
+		return
 	}
 	processMgmtShutdownNotifier = make(chan interface{})
 	go periodicReaper()
