@@ -14,6 +14,5 @@ Vagrant.configure("2") do |config|
   config.vm.provision "file", source: "vagrant/build.sh", destination: "/tmp/build_maestro"
   config.vm.provision "shell", inline: "mv /tmp/build_maestro /usr/sbin/build_maestro; chmod +x /usr/sbin/build_maestro"
   config.vm.provision "file", source: "vagrant/docker-compose.yaml", destination: "/tmp/docker-compose.yaml"
-  config.vm.provision "file", source: "patches/0001-PATCH-Fake-devicedb-running-on-local-machine.patch", destination: "/tmp/0001-PATCH-Fake-devicedb-running-on-local-machine.patch"
   config.ssh.extra_args = "-t"
 end

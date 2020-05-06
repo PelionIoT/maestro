@@ -47,7 +47,6 @@ import (
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/networking/arp"
-	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/tasks"
 	"github.com/armPelionEdge/maestroSpecs"
@@ -897,176 +896,177 @@ const DEVICEDB_JOB_NAME string = "devicedb"
 
 //This function is called during bootup. It waits for devicedb to be up and running to connect to it, once connected it calls
 //SetupDeviceDBConfig
-func (this *networkManagerInstance) initDeviceDBConfig() {
+func (this *networkManagerInstance) initDeviceDBConfig() error {
 	var totalWaitTime int = 0
 	var loopWaitTime int = INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 	var err error
-	var pid int = -1
-	var devicedbrunning bool = false
+	//TLS config to connect to devicedb
+	var tlsConfig *tls.Config
 
-	if this.waitForDeviceDB {
-		log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb process/job\n")
-		for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-			//First wait for devicedb to start
-			devicedbrunning, pid = processes.IsJobActive(DEVICEDB_JOB_NAME)
-			log.MaestroWarnf("initDeviceDBConfig: devicedbrunning: %v, pid: %d\n", devicedbrunning, pid)
-			if devicedbrunning {
-				//Service is started, but wait for some seconds for the port to be up and running
-				time.Sleep(time.Second * 15)
-				break
-			} else {
-				time.Sleep(time.Second * time.Duration(loopWaitTime))
-				totalWaitTime += loopWaitTime
-				//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
-				if totalWaitTime > LOOP_WAIT_TIME_INCREMENT_WINDOW {
-					loopWaitTime = INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
-				}
+	if this.ddbConnConfig == nil {
+		log.MaestroErrorf("NetworkManager: No devicedb connection config available, configuration will not be fetched from devicedb\n")
+		return errors.New("No devicedb connection config available, configuration will not be fetched from devicedb\n")
+	}
+
+	log.MaestroInfof("NetworkManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
+		this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket, this.ddbConnConfig.RelayId, this.ddbConnConfig.CaChainCert)
+
+	//Device DB config uses deviceid as the relay_id, so uset that to set the hostname
+	log.MaestroWarnf("NetworkManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
+	err = syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
+	if err != nil {
+		log.MaestroErrorf("NetworkManager: Failed to set hostname (ignoring...): %v\n", err)
+	}
+
+	relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
+	if err != nil {
+		log.MaestroErrorf("NetworkManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
+		return errors.New(fmt.Sprintf("NetworkManager: Unable to access ca-chain-cert file at: %s, err = %v\n", this.ddbConnConfig.CaChainCert, err))
+	}
+
+	caCerts := x509.NewCertPool()
+
+	if !caCerts.AppendCertsFromPEM(relayCaChain) {
+		log.MaestroErrorf("CA chain loaded from %s is not valid: %v\n", this.ddbConnConfig.CaChainCert, err)
+		return errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", this.ddbConnConfig.CaChainCert))
+	}
+
+	tlsConfig = &tls.Config{
+		RootCAs: caCerts,
+	}
+
+	for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+		log.MaestroInfof("initDeviceDBConfig: connecting to devicedb\n")
+		this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
+		if this.ddbConfigClient.IsConnected() || !this.waitForDeviceDB {
+			break
+		} else {
+			log.MaestroWarnf("initDeviceDBConfig: devicedb is not running. retrying in %d seconds", loopWaitTime)
+			time.Sleep(time.Second * time.Duration(loopWaitTime))
+			totalWaitTime += loopWaitTime
+			//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
+			if totalWaitTime > LOOP_WAIT_TIME_INCREMENT_WINDOW {
+				loopWaitTime = INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 			}
 		}
 
 		//After 24 hours just assume its never going to come up stop waiting for it and break the loop
 		if totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS {
 			log.MaestroErrorf("initDeviceDBConfig: devicedb is not running, cannot fetch config from devicedb")
+			return errors.New("devicedb is not running, cannot fetch config from devicedb")
 		}
+	}
+	log.MaestroInfof("initDeviceDBConfig: successfully connected to devicedb\n")
+
+	err = this.SetupDeviceDBConfig()
+	if err != nil {
+		log.MaestroErrorf("initDeviceDBConfig: error setting up config using devicedb: %v", err)
+	} else {
+		log.MaestroInfof("initDeviceDBConfig: successfully read config from devicedb\n")
 	}
 
-	if (devicedbrunning && pid > 0) || (!this.waitForDeviceDB) {
-		log.MaestroWarnf("initDeviceDBConfig: connecting to devicedb\n")
-		err = this.SetupDeviceDBConfig()
-		if err != nil {
-			log.MaestroErrorf("initDeviceDBConfig: error setting up config using devicedb: %v", err)
-		} else {
-			log.MaestroWarnf("initDeviceDBConfig: successfully connected to devicedb\n")
-		}
-	}
+	return err
 }
 
 //SetupDeviceDBConfig reads the config from devicedb and if its new it applies the new config.
 //It also sets up the config update handlers for all the tags/groups.
-func (this *networkManagerInstance) SetupDeviceDBConfig() (err error) {
-	//TLS config to connect to devicedb
-	var tlsConfig *tls.Config
+func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 
-	if this.ddbConnConfig != nil {
-		log.MaestroInfof("NetworkManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
-			this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket, this.ddbConnConfig.RelayId, this.ddbConnConfig.CaChainCert)
-		//Device DB config uses deviceid as the relay_id, so uset that to set the hostname
-		log.MaestroWarnf("NetworkManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
-		syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
-		var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
-		relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
-		if err != nil {
-			log.MaestroErrorf("NetworkManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
-			err_updated := errors.New(fmt.Sprintf("NetworkManager: Unable to access ca-chain-cert file at: %s, err = %v\n", this.ddbConnConfig.CaChainCert, err))
-			return err_updated
-		}
+	var err error
+	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
 
-		caCerts := x509.NewCertPool()
-
-		if !caCerts.AppendCertsFromPEM(relayCaChain) {
-			log.MaestroErrorf("CA chain loaded from %s is not valid: %v\n", this.ddbConnConfig.CaChainCert, err)
-			err_updated := errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", this.ddbConnConfig.CaChainCert))
-			return err_updated
-		}
-
-		tlsConfig = &tls.Config{
-			RootCAs: caCerts,
-		}
-
-		//Create a config analyzer object, required for registering the config change hook and diff the config objects.
-		configAna := maestroSpecs.NewConfigAnalyzer(DDB_NETWORK_CONFIG_CONFIG_GROUP_ID)
-		if configAna == nil {
-			log.MaestroErrorf("NetworkManager: Failed to create config analyzer object, unable to fetch config from devicedb")
-			err_updated := errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
-			return err_updated
-		} else {
-			this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
-			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
-			if err != nil {
-				log.MaestroWarnf("NetworkManager: No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
-				err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
-				if err != nil {
-					log.MaestroErrorf("NetworkManager: Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
-					err_updated := errors.New(fmt.Sprintf("\nUnable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err))
-					return err_updated
-				}
-			} else {
-				//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
-				log.MaestroInfof("NetworkManager: Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
-				identical, _, _, err := configAna.DiffChanges(this.networkConfig, ddbNetworkConfig)
-				if !identical && (err == nil) {
-					//The configs are different, lets go ahead reconfigure the intfs
-					log.MaestroDebugf("NetworkManager: New network config found from devicedb, reconfigure nework using new config\n")
-					this.networkConfig = &ddbNetworkConfig
-					this.submitConfig(this.networkConfig)
-					//Setup the intfs using new config
-					this.setupInterfaces()
-					//Set the hostname again as we reconfigured the network
-					log.MaestroWarnf("NetworkManager: Again setting hostname: %s\n", this.ddbConnConfig.RelayId)
-					syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
-				} else {
-					log.MaestroInfof("NetworkManager: New network config found from devicedb, but its same as boot config, no need to re-configure\n")
-				}
-			}
-			//Since we are booting set the Network config commit flag to false
-			log.MaestroWarnf("NetworkManager: Setting Network config commit flag to false\n")
-			this.CurrConfigCommit.ConfigCommitFlag = false
-			this.CurrConfigCommit.LastUpdateTimestamp = ""
-			this.CurrConfigCommit.TotalCommitCountFromBoot = 0
-			err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
-			if err != nil {
-				log.MaestroErrorf("NetworkManager: Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
-				err_updated := errors.New(fmt.Sprintf("\nUnable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
-				return err_updated
-			}
-
-			//Now start a monitor for the network config in devicedb
-			err, this.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
-			if err != nil {
-				log.MaestroErrorf("NetworkManager: Unable to create config monitor: %v\n", err)
-			} else {
-				//Add config change hook for all property groups, we can use the same interface
-				var networkConfigChangeHook NetworkConfigChangeHook
-
-				configAna.AddHook("dhcp", networkConfigChangeHook)
-				configAna.AddHook("if", networkConfigChangeHook)
-				configAna.AddHook("ipv4", networkConfigChangeHook)
-				configAna.AddHook("ipv6", networkConfigChangeHook)
-				configAna.AddHook("mac", networkConfigChangeHook)
-				configAna.AddHook("wifi", networkConfigChangeHook)
-				configAna.AddHook("IEEE8021x", networkConfigChangeHook)
-				configAna.AddHook("route", networkConfigChangeHook)
-				configAna.AddHook("http", networkConfigChangeHook)
-				configAna.AddHook("nameserver", networkConfigChangeHook)
-				configAna.AddHook("gateway", networkConfigChangeHook)
-				configAna.AddHook("dns", networkConfigChangeHook)
-				configAna.AddHook("config_netif", networkConfigChangeHook)
-				configAna.AddHook("config_network", networkConfigChangeHook)
-
-				//Add monitor for this config
-				var origNetworkConfig, updatedNetworkConfig maestroSpecs.NetworkConfigPayload
-				//Provide a copy of current network config monitor to Config monitor, not the actual config we use, this would prevent config monitor
-				//directly updating the running config(this.networkConfig).
-				origNetworkConfig = *this.networkConfig
-
-				//Adding monitor config
-				this.ddbConfigMonitor.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
-
-				//Add config change hook for all property groups, we can use the same interface
-				var commitConfigChangeHook CommitConfigChangeHook
-				configAna.AddHook("config_commit", commitConfigChangeHook)
-
-				//Add monitor for this object
-				var updatedConfigCommit ConfigCommit
-				log.MaestroInfof("NetworkManager: Adding monitor for config commit object\n")
-				this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
-			}
-		}
-	} else {
-		log.MaestroErrorf("NetworkManager: No devicedb connection config available, configuration will not be fetched from devicedb\n")
+	//Create a config analyzer object, required for registering the config change hook and diff the config objects.
+	configAna := maestroSpecs.NewConfigAnalyzer(DDB_NETWORK_CONFIG_CONFIG_GROUP_ID)
+	if configAna == nil {
+		log.MaestroErrorf("NetworkManager: Failed to create config analyzer object, unable to fetch config from devicedb")
+		return errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
 	}
 
-	return
+	err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+	if err != nil {
+		log.MaestroWarnf("NetworkManager: No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
+		err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
+		if err != nil {
+			log.MaestroErrorf("NetworkManager: Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
+			return errors.New(fmt.Sprintf("\nUnable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err))
+		}
+	} else {
+		//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
+		log.MaestroInfof("NetworkManager: Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
+		identical, _, _, err := configAna.DiffChanges(this.networkConfig, ddbNetworkConfig)
+		if !identical && (err == nil) {
+			//The configs are different, lets go ahead reconfigure the intfs
+			log.MaestroDebugf("NetworkManager: New network config found from devicedb, reconfigure nework using new config\n")
+			this.networkConfig = &ddbNetworkConfig
+			this.submitConfig(this.networkConfig)
+			//Setup the intfs using new config
+			this.setupInterfaces()
+			//Set the hostname again as we reconfigured the network
+			log.MaestroWarnf("NetworkManager: Again setting hostname: %s\n", this.ddbConnConfig.RelayId)
+			err = syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
+			if err != nil {
+				log.MaestroErrorf("NetworkManager: Failed to set hostname (ignoring...): %v\n", err)
+			}
+		} else {
+			log.MaestroInfof("NetworkManager: New network config found from devicedb, but its same as boot config, no need to re-configure\n")
+		}
+	}
+
+	//Since we are booting set the Network config commit flag to false
+	log.MaestroWarnf("NetworkManager: Setting Network config commit flag to false\n")
+	this.CurrConfigCommit.ConfigCommitFlag = false
+	this.CurrConfigCommit.LastUpdateTimestamp = ""
+	this.CurrConfigCommit.TotalCommitCountFromBoot = 0
+	err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
+	if err != nil {
+		log.MaestroErrorf("NetworkManager: Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
+		return errors.New(fmt.Sprintf("\nUnable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
+	}
+
+	//Now start a monitor for the network config in devicedb
+	err, this.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
+	if err != nil {
+		log.MaestroErrorf("NetworkManager: Unable to create config monitor: %v\n", err)
+		return errors.New(fmt.Sprintf("\n Unable to create config monitor: %v\n", err))
+	}
+
+	//Add config change hook for all property groups, we can use the same interface
+	var networkConfigChangeHook NetworkConfigChangeHook
+
+	configAna.AddHook("dhcp", networkConfigChangeHook)
+	configAna.AddHook("if", networkConfigChangeHook)
+	configAna.AddHook("ipv4", networkConfigChangeHook)
+	configAna.AddHook("ipv6", networkConfigChangeHook)
+	configAna.AddHook("mac", networkConfigChangeHook)
+	configAna.AddHook("wifi", networkConfigChangeHook)
+	configAna.AddHook("IEEE8021x", networkConfigChangeHook)
+	configAna.AddHook("route", networkConfigChangeHook)
+	configAna.AddHook("http", networkConfigChangeHook)
+	configAna.AddHook("nameserver", networkConfigChangeHook)
+	configAna.AddHook("gateway", networkConfigChangeHook)
+	configAna.AddHook("dns", networkConfigChangeHook)
+	configAna.AddHook("config_netif", networkConfigChangeHook)
+	configAna.AddHook("config_network", networkConfigChangeHook)
+
+	//Add monitor for this config
+	var origNetworkConfig, updatedNetworkConfig maestroSpecs.NetworkConfigPayload
+	//Provide a copy of current network config monitor to Config monitor, not the actual config we use, this would prevent config monitor
+	//directly updating the running config(this.networkConfig).
+	origNetworkConfig = *this.networkConfig
+
+	//Adding monitor config
+	this.ddbConfigMonitor.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
+
+	//Add config change hook for all property groups, we can use the same interface
+	var commitConfigChangeHook CommitConfigChangeHook
+	configAna.AddHook("config_commit", commitConfigChangeHook)
+
+	//Add monitor for this object
+	var updatedConfigCommit ConfigCommit
+	log.MaestroInfof("NetworkManager: Adding monitor for config commit object\n")
+	this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
+
+	return nil
 }
 
 // ErrNoInterface is the error when no interface can be found by the reference data
