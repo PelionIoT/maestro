@@ -150,6 +150,19 @@ devicedb start -conf $EDGE_CLIENT_RESOURCES/devicedb.conf
 " > /usr/sbin/devicedb_edge
 chmod +x /usr/sbin/devicedb_edge
 
+# Add a script to clear devicedb edge and cloud
+echo "#!/bin/bash -ue
+. /etc/profile.d/envvars.sh
+cd $DEVICEDB_SRC
+docker stop devicedb_devicedb-cloud_1
+docker rm devicedb_devicedb-cloud_1
+sudo systemctl stop devicedb_edge
+rm -rf $EDGE_DATA_DIRECTORY/*
+docker-compose up -d
+sudo systemctl start devicedb_edge
+" > /usr/sbin/clear_devicedb
+chmod +x /usr/sbin/clear_devicedb
+
 # Create a systemctl service that always run devicedb on reboot
 echo "[Unit]
 Description=DeviceDB Edge
