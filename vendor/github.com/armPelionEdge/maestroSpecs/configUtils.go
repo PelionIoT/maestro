@@ -1,10 +1,13 @@
 package maestroSpecs
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
 	"sync"
+
+	"github.com/armPelionEdge/maestro/log"
 )
 
 // Copyright (c) 2018, Arm Limited and affiliates.
@@ -91,23 +94,30 @@ type changes struct {
 	curvals    []reflect.Value
 	//	curValues   []reflect.Value
 	configgroup string // which config group this is
-	index	[]int; // this is valid if the value is >=0, in that case it indicates the index of the item in a slice
+	index       []int  // this is valid if the value is >=0, in that case it indicates the index of the item in a slice
 }
 
 func (a *ConfigAnalyzer) callGroupChanges(c *changes) {
+	log.MaestroInfof("in callGroupChanges\n")
 	hooki, ok := a.configMap.Load(c.configgroup)
 
 	if ok {
+		log.MaestroInfof("got configgroup\n")
 		hook, ok2 := hooki.(ConfigChangeHook)
 		if ok2 {
+			log.MaestroInfof("got got change hook\n")
 			hook.ChangesStart(c.configgroup)
 			for n, fieldname := range c.fieldnames {
-				
+
+				log.MaestroInfof("calling saw change\n")
 				takeit := hook.SawChange(c.configgroup, fieldname, c.futvals[n].Interface(), c.curvals[n].Interface(), c.index[n])
 				if takeit {
+					log.MaestroInfof("calling set\n")
 					c.curvals[n].Set(c.futvals[n])
 				}
 			}
+
+			log.MaestroInfof("changes complete\n")
 			takeall := hook.ChangesComplete(c.configgroup)
 			if takeall {
 				for n := range c.curvals {
@@ -116,9 +126,19 @@ func (a *ConfigAnalyzer) callGroupChanges(c *changes) {
 			}
 		}
 	}
+
+	log.MaestroInfof("exit callGroupChanges\n")
 }
 
 func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (identical bool, noaction bool, allchanges map[string]*changes, err error) {
+
+	jsstruct, _ := json.Marshal(current)
+	log.MaestroDebugf("current: \n")
+	log.MaestroDebugf("%s\n", string(jsstruct))
+	log.MaestroDebugf("future: ")
+	jsstruct2, _ := json.Marshal(future)
+	log.MaestroDebugf("%s\n", string(jsstruct2))
+
 	noaction = true
 	identical = true
 	allchanges = make(map[string]*changes)
@@ -169,7 +189,7 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 			return
 		}
 
-		//fmt.Printf("Vals: \n\tfut %v kind: %s \n\tcurr %v kind: %s\n", futValue, reflect.ValueOf(futValue).Kind(), currValue, reflect.ValueOf(currValue).Kind())
+		//log.MaestroInfof("Vals: \n\tfut %v kind: %s \n\tcurr %v kind: %s\n", futValue, reflect.ValueOf(futValue).Kind(), currValue, reflect.ValueOf(currValue).Kind())
 		// using the current struct, walk through each field
 		//		assignToStruct := reflect.ValueOf(opts).Elem()
 		for i := 0; i < currType.NumField(); i++ {
@@ -196,7 +216,7 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 					if newstruct.IsValid() && fieldval.CanSet() {
 						fieldval.Set(newstruct.Convert(t))
 					} else {
-						fmt.Printf("Error - could not create / assign valid stuct\n")
+						log.MaestroDebugf("Error - could not create / assign valid stuct\n")
 						continue
 					}
 				}
@@ -259,7 +279,7 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 							}
 							err2 := compareStruct(fmt.Sprintf("%s[%d]", pre+field.Name, i), curindexval.Interface(), indexval.Interface(), i)
 							if err2 != nil {
-								fmt.Printf("Error on compareStruct: %s\n", err2.Error())
+								log.MaestroDebugf("Error on compareStruct: %s\n", err2.Error())
 							}
 							continue
 						}
@@ -271,7 +291,7 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 						}
 						err2 := compareStruct(fmt.Sprintf("%s[%d]", pre+field.Name, i), curindexval.Interface(), indexval.Addr().Interface(), i)
 						if err2 != nil {
-							fmt.Printf("Error on compareStruct: %s\n", err2.Error())
+							log.MaestroDebugf("Error on compareStruct: %s\n", err2.Error())
 						}
 						continue
 					}
@@ -308,7 +328,7 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 				}
 			} else {
 				if !futval.IsValid() {
-					fmt.Printf("futval is not valid!\n")
+					log.MaestroDebugf("futval is not valid!\n")
 				}
 				if futval.Interface() != fieldval.Interface() {
 					identical = false
@@ -358,14 +378,18 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 // NOTE: Technically current and future can have different types, but must have fields with the same names to be compared. The function
 // will only look at field names which are in 'current' and which are public, and which have identical types.
 func (a *ConfigAnalyzer) CallChanges(current interface{}, future interface{}) (identical bool, noaction bool, err error) {
-	
-	identical, noaction, allchanges, err := a.DiffChanges(current, future) 
+
+	log.MaestroInfof("Calling diff changes\n")
+	identical, noaction, allchanges, err := a.DiffChanges(current, future)
 
 	// walk through changes, calling the callbacks as needed
 	if !noaction {
+		log.MaestroInfof("found diff!\n")
 		for _, c := range allchanges {
 			a.callGroupChanges(c)
 		}
+	} else {
+		log.MaestroInfof("no diff!\n")
 	}
 
 	return
