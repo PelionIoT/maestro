@@ -1,6 +1,7 @@
 package maestroSpecs
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -91,23 +92,30 @@ type changes struct {
 	curvals    []reflect.Value
 	//	curValues   []reflect.Value
 	configgroup string // which config group this is
-	index	[]int; // this is valid if the value is >=0, in that case it indicates the index of the item in a slice
+	index       []int  // this is valid if the value is >=0, in that case it indicates the index of the item in a slice
 }
 
 func (a *ConfigAnalyzer) callGroupChanges(c *changes) {
+	fmt.Printf("in callGroupChanges\n")
 	hooki, ok := a.configMap.Load(c.configgroup)
 
 	if ok {
+		fmt.Printf("got configgroup\n")
 		hook, ok2 := hooki.(ConfigChangeHook)
 		if ok2 {
+			fmt.Printf("got got change hook\n")
 			hook.ChangesStart(c.configgroup)
 			for n, fieldname := range c.fieldnames {
-				
+
+				fmt.Printf("calling saw change\n")
 				takeit := hook.SawChange(c.configgroup, fieldname, c.futvals[n].Interface(), c.curvals[n].Interface(), c.index[n])
 				if takeit {
+					fmt.Printf("calling set\n")
 					c.curvals[n].Set(c.futvals[n])
 				}
 			}
+
+			fmt.Printf("changes complete\n")
 			takeall := hook.ChangesComplete(c.configgroup)
 			if takeall {
 				for n := range c.curvals {
@@ -116,9 +124,21 @@ func (a *ConfigAnalyzer) callGroupChanges(c *changes) {
 			}
 		}
 	}
+
+	fmt.Printf("exit callGroupChanges\n")
 }
 
 func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (identical bool, noaction bool, allchanges map[string]*changes, err error) {
+
+	jsstruct, _ := json.Marshal(current)
+	fmt.Println("current: ")
+	fmt.Println(string(jsstruct))
+	fmt.Println("\n")
+	fmt.Println("future: ")
+	jsstruct2, _ := json.Marshal(future)
+	fmt.Println(string(jsstruct2))
+	fmt.Println("\n")
+
 	noaction = true
 	identical = true
 	allchanges = make(map[string]*changes)
@@ -358,14 +378,18 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 // NOTE: Technically current and future can have different types, but must have fields with the same names to be compared. The function
 // will only look at field names which are in 'current' and which are public, and which have identical types.
 func (a *ConfigAnalyzer) CallChanges(current interface{}, future interface{}) (identical bool, noaction bool, err error) {
-	
-	identical, noaction, allchanges, err := a.DiffChanges(current, future) 
+
+	fmt.Printf("Calling diff changes\n")
+	identical, noaction, allchanges, err := a.DiffChanges(current, future)
 
 	// walk through changes, calling the callbacks as needed
 	if !noaction {
+		fmt.Printf("found diff!\n")
 		for _, c := range allchanges {
 			a.callGroupChanges(c)
 		}
+	} else {
+		fmt.Printf("no diff!\n")
 	}
 
 	return

@@ -67,20 +67,20 @@ type LogTarget struct {
 }
 
 type LogFormat struct {
-	Time   string `yaml:"time,omitempty"`
-	Level  string `yaml:"level,omitempty"`
-	Tag    string `yaml:"tag,omitempty"`
-	Origin string `yaml:"origin,omitempty"`
+	Time   string `yaml:"time,omitempty" log_group:"format"`
+	Level  string `yaml:"level,omitempty" log_group:"format"`
+	Tag    string `yaml:"tag,omitempty" log_group:"format"`
+	Origin string `yaml:"origin,omitempty" log_group:"format"`
 }
 
 type LogFilter struct {
-	Target string `yaml:"target,omitempty"` // target: "default",
-	Levels string `yaml:"levels,omitempty"`
-	Tag    string `yaml:"tag,omitempty"`
+	Target string `yaml:"target,omitempty" log_group:"filters"` // target: "default",
+	Levels string `yaml:"levels,omitempty" log_group:"filters"`
+	Tag    string `yaml:"tag,omitempty" log_group:"filters"`
 
-	Pre           string `yaml:"format_pre,omitempty" greaseAssign:"Format_pre"`
-	Post          string `yaml:"format_post,omitempty" greaseAssign:"Format_post"`
-	PostFmtPreMsg string `yaml:"fmt_post_pre_msg,omitempty"  greaseAssign:"Format_post_pre_msg"`
+	Pre           string `yaml:"format_pre,omitempty" greaseAssign:"Format_pre" log_group:"filters"`
+	Post          string `yaml:"format_post,omitempty" greaseAssign:"Format_post" log_group:"filters"`
+	PostFmtPreMsg string `yaml:"fmt_post_pre_msg,omitempty"  greaseAssign:"Format_post_pre_msg" log_group:"filters"`
 	//	format_pre *string`
 	//	format_post *string
 	//	format_post_pre_msg *string
