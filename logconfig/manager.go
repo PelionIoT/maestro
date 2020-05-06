@@ -74,6 +74,7 @@ type LogData struct {
 
 func (logdata *LogData) MarshalJSON() ([]byte, error) {
 	type Alias LogData
+
 	return json.Marshal(&struct {
 		//		LastSeen int64 `json:"lastSeen"`
 		*Alias
@@ -198,7 +199,7 @@ func (this *logManagerInstance) decLogThreadCount() {
 }
 func (this *logManagerInstance) waitForActiveLogThreads(timeout_seconds int) (wastimeout bool) {
 	if !this.threadCountEnable {
-		log.MaestroError("LogManager: Called waitForActiveLogThreads - threadCountEnable is false!")
+		fmt.Printf("LogManager: Called waitForActiveLogThreads - threadCountEnable is false!")
 		return
 	}
 	timeout := time.Second * time.Duration(timeout_seconds)
@@ -230,7 +231,7 @@ func (this *logManagerInstance) StorageReady(instance storage.MaestroDBStorageIn
 	this.db = instance.GetDb()
 	err := this.loadAllLogData()
 	if err != nil {
-		log.MaestroErrorf("LogManager: Failed to load existing log interface settings: %s\n", err.Error())
+		fmt.Printf("LogManager: Failed to load existing log interface settings: %s\n", err.Error())
 	}
 }
 
@@ -259,12 +260,14 @@ func GetInstance() *logManagerInstance {
 }
 
 func (this *LogData) setRunningConfig(logconfig []maestroSpecs.LogTarget) (ret *LogData) {
+	fmt.Printf("in setRunningConfig\n")
 	//ret.RunningLogconfig = new(maestroSpecs.LogFilter)
 	ret.RunningLogconfig = logconfig // copy that entire struct
 	return
 }
 
 func validateLogConfig(logconf maestroSpecs.LogTarget) (ok bool, problem string) {
+	fmt.Printf("in validateLogConfig\n")
 	ok = true
 	/*if len(logconf.IfName) < 1 {
 		ok = false
@@ -276,6 +279,7 @@ func validateLogConfig(logconf maestroSpecs.LogTarget) (ok bool, problem string)
 // to be ran on startup, or new interface creation
 //
 func resetLogDataFromStoredConfig(logtarget maestroSpecs.LogTarget) error {
+	fmt.Printf("in resetLogDataFromStoredConfig\n")
 	/*var logconf []maestroSpecs.LogTarget
 
 	logconf = nil
@@ -283,7 +287,7 @@ func resetLogDataFromStoredConfig(logtarget maestroSpecs.LogTarget) error {
 	if logdata.StoredLogconfig != nil {
 		logconf = logdata.StoredLogconfig
 	} else {
-		log.MaestroWarnf("Logging does not have a StoredConfig. Why?\n")
+		fmt.Printf("Logging does not have a StoredConfig. Why?\n")
 		if logdata.RunningLogconfig != nil {
 			logconf = logdata.RunningLogconfig
 		} else {
@@ -295,6 +299,7 @@ func resetLogDataFromStoredConfig(logtarget maestroSpecs.LogTarget) error {
 }
 
 func (this *logManagerInstance) submitConfigAndSync(config []maestroSpecs.LogTarget) {
+	fmt.Printf("in submitConfigAndSync\n")
 	this.submitConfig(config)
 	var ddbLogConfig maestroSpecs.LogConfigPayload
 
@@ -302,21 +307,22 @@ func (this *logManagerInstance) submitConfigAndSync(config []maestroSpecs.LogTar
 		target := target
 		ddbLogConfig.Targets = append(ddbLogConfig.Targets, &target)
 	}
-	log.MaestroWarnf("LogManager: Updating devicedb config.\n")
+	fmt.Printf("LogManager: Updating devicedb config.\n")
 	err := this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Put(&ddbLogConfig)
 	if err != nil {
-		log.MaestroErrorf("LogManager: Unable to put log config in devicedb err: %v\n", err)
+		fmt.Printf("LogManager: Unable to put log config in devicedb err: %v\n", err)
 	}
 }
 
 func (this *logManagerInstance) submitConfig(config []maestroSpecs.LogTarget) {
+	fmt.Printf("in submitConfig\n")
 	this.logConfig = config
 
 	debugging.DEBUG_OUT("targets:", len(config))
 	for n := 0; n < len(config); n++ {
 		conf_ok, problem := validateLogConfig(config[n])
 		if !conf_ok {
-			log.MaestroErrorf("LogManager: Target config problem: \"%s\"  Skipping interface config.\n", problem)
+			fmt.Printf("LogManager: Target config problem: \"%s\"  Skipping interface config.\n", problem)
 			continue
 		}
 		targetname := config[n].Name
@@ -324,16 +330,16 @@ func (this *logManagerInstance) submitConfig(config []maestroSpecs.LogTarget) {
 		var storedconfig maestroSpecs.LogTarget
 		err := this.logConfigDB.Get(targetname, &storedconfig)
 		if err != nil {
-			log.MaestroInfof("LogManager: sumbitConfig: Get failed: %v\n", err)
+			fmt.Printf("LogManager: sumbitConfig: Get failed: %v\n", err)
 			if err != stow.ErrNotFound {
-				log.MaestroErrorf("LogManager: problem with database on if %s - Get: %s\n", targetname, err.Error())
+				fmt.Printf("LogManager: problem with database on if %s - Get: %s\n", targetname, err.Error())
 			} else {
 				//cache our local copy. Do we need to do this anymore?
 				this.byLogName.Set(targetname, unsafe.Pointer(&config[n]))
 				//write this out to the DB
 				err := this.logConfigDB.Put(targetname, config[n])
 				if err != nil {
-					log.MaestroErrorf("LogManager: Problem (1) storing config for interface [%s]: %s\n", config[n].Name, err)
+					fmt.Printf("LogManager: Problem (1) storing config for interface [%s]: %s\n", config[n].Name, err)
 				}
 			}
 		} else {
@@ -344,9 +350,9 @@ func (this *logManagerInstance) submitConfig(config []maestroSpecs.LogTarget) {
 				//write this out to the DB
 				err := this.logConfigDB.Put(targetname, config[n])
 				if err != nil {
-					log.MaestroErrorf("LogManager: Problem (2) storing config for interface [%s]: %s\n", config[n].Name, err)
+					fmt.Printf("LogManager: Problem (2) storing config for interface [%s]: %s\n", config[n].Name, err)
 				} else {
-					log.MaestroInfof("LogManager: log target [%s] - setting \"replace\"\n", config[n].Name)
+					fmt.Printf("LogManager: log target [%s] - setting \"replace\"\n", config[n].Name)
 				}
 
 			} else {
@@ -360,6 +366,7 @@ func (this *logManagerInstance) submitConfig(config []maestroSpecs.LogTarget) {
 // If one or more interfaces data have problems, it will keep loading
 // If reading the DB fails completely, it will error out
 func (this *logManagerInstance) loadAllLogData() (err error) {
+	fmt.Printf("in loadAllLogData\n")
 	var temp LogData
 	this.logConfigDB.IterateIf(func(key []byte, val interface{}) bool {
 		logname := string(key[:])
@@ -370,17 +377,17 @@ func (this *logManagerInstance) loadAllLogData() (err error) {
 			if err2 == nil {
 				//this.newInterfaceMutex.Lock()
 				// if there is an existing in-memory entry, overwrite it
-				log.MaestroInfof("LogManager:loadAllLogData: Loading config for: %s.\n", logname)
+				fmt.Printf("LogManager:loadAllLogData: Loading config for: %s.\n", logname)
 				this.byLogName.Set(logname, unsafe.Pointer(&logdata))
 				//this.newInterfaceMutex.Unlock()
 				debugging.DEBUG_OUT("loadAllLogData() see if: %s --> %+v\n", logname, logdata)
 			} else {
-				log.MaestroErrorf("LogManager: Critical problem with interface [%s] config. Not loading config.\n", logname)
+				fmt.Printf("LogManager: Critical problem with interface [%s] config. Not loading config.\n", logname)
 			}
 		} else {
 			err = errors.New("Internal DB corruption")
 			debugging.DEBUG_OUT("LogManager: internal DB corruption - @if %s\n", logname)
-			log.MaestroError("LogManager: internal DB corruption")
+			fmt.Printf("LogManager: internal DB corruption")
 		}
 		return true
 	}, &temp)
@@ -407,12 +414,12 @@ func (this *logManagerInstance) initDeviceDBConfig() {
 	var totalWaitTime int = 0
 	var loopWaitTime int = INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 	var err error
-	log.MaestroWarnf("initDeviceDBConfig: connecting to devicedb\n")
+	fmt.Printf("initDeviceDBConfig: connecting to devicedb\n")
 	err = this.SetupDeviceDBConfig()
 
 	//After 24 hours just assume its never going to come up stop waiting for it and break the loop
 	for (err != nil) && (totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS) {
-		log.MaestroInfof("initDeviceDBConfig: Waiting for devicedb to connect\n")
+		fmt.Printf("initDeviceDBConfig: Waiting for devicedb to connect\n")
 		time.Sleep(time.Second * time.Duration(loopWaitTime))
 		totalWaitTime += loopWaitTime
 		//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
@@ -423,10 +430,10 @@ func (this *logManagerInstance) initDeviceDBConfig() {
 	}
 
 	if totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-		log.MaestroErrorf("initDeviceDBConfig: devicedb is not connected, cannot fetch config from devicedb")
+		fmt.Printf("initDeviceDBConfig: devicedb is not connected, cannot fetch config from devicedb")
 	}
 	if err == nil {
-		log.MaestroWarnf("initDeviceDBConfig: successfully connected to devicedb\n")
+		fmt.Printf("initDeviceDBConfig: successfully connected to devicedb\n")
 	}
 }
 
@@ -437,15 +444,15 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 	var tlsConfig *tls.Config
 
 	if this.ddbConnConfig != nil {
-		log.MaestroInfof("LogManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
+		fmt.Printf("LogManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
 			this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket, this.ddbConnConfig.RelayId, this.ddbConnConfig.CaChainCert)
 		//Device DB config uses deviceid as the relay_id, so uset that to set the hostname
-		log.MaestroWarnf("LogManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
+		fmt.Printf("LogManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
 		syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
 
 		relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
 		if err != nil {
-			log.MaestroErrorf("LogManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
+			fmt.Printf("LogManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
 			err_updated := errors.New(fmt.Sprintf("LogManager: Unable to access ca-chain-cert file at: %s, err = %v\n", this.ddbConnConfig.CaChainCert, err))
 			return err_updated
 		}
@@ -453,7 +460,7 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 		caCerts := x509.NewCertPool()
 
 		if !caCerts.AppendCertsFromPEM(relayCaChain) {
-			log.MaestroErrorf("CA chain loaded from %s is not valid: %v\n", this.ddbConnConfig.CaChainCert, err)
+			fmt.Printf("CA chain loaded from %s is not valid: %v\n", this.ddbConnConfig.CaChainCert, err)
 			err_updated := errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", this.ddbConnConfig.CaChainCert))
 			return err_updated
 		}
@@ -468,7 +475,7 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 		//Create a config analyzer object, required for registering the config change hook and diff the config objects.
 		configLogAna := maestroSpecs.NewConfigAnalyzer(DDB_LOG_CONFIG_CONFIG_GROUP_ID)
 		if configLogAna == nil {
-			log.MaestroErrorf("LogManager: Failed to create config analyzer object, unable to fetch config from devicedb")
+			fmt.Printf("LogManager: Failed to create config analyzer object, unable to fetch config from devicedb")
 			err_updated := errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
 			return err_updated
 		} else {
@@ -479,17 +486,17 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 					target := target
 					ddbLogConfig.Targets = append(ddbLogConfig.Targets, &target)
 				}
-				log.MaestroWarnf("LogManager: No log config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config.\n", err)
+				fmt.Printf("LogManager: No log config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config.\n", err)
 				err = this.ddbConfigClient.Config(DDB_LOG_CONFIG_NAME).Put(&ddbLogConfig)
 				if err != nil {
-					log.MaestroErrorf("LogManager: Unable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err)
+					fmt.Printf("LogManager: Unable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err)
 					err_updated := errors.New(fmt.Sprintf("\nUnable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err))
 					return err_updated
 				}
 			} else {
 				//We found a config in devicedb, lets try to use and reconfigure log if its an updated one
-				log.MaestroInfof("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig.Targets)
-				log.MaestroInfof("MRAY DiffChanges being called\n")
+				fmt.Printf("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig.Targets)
+				fmt.Printf("MRAY DiffChanges being called\n")
 				fmt.Printf("MRAY DiffChanges being called\n")
 				var temp maestroSpecs.LogConfigPayload
 				for _, target := range this.logConfig {
@@ -499,7 +506,7 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 				identical, _, _, err := configLogAna.DiffChanges(temp, ddbLogConfig)
 				if !identical && (err == nil) {
 					//The configs are different, lets go ahead reconfigure the intfs
-					log.MaestroDebugf("LogManager: New log config found from devicedb, reconfigure nework using new config\n")
+					fmt.Printf("LogManager: New log config found from devicedb, reconfigure nework using new config\n")
 					this.logConfig = make([]maestroSpecs.LogTarget, len(ddbLogConfig.Targets))
 					for i, target := range ddbLogConfig.Targets {
 						this.logConfig[i] = *target
@@ -508,14 +515,14 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 					// //Setup the intfs using new config
 					// this.setupTargets()
 				} else {
-					log.MaestroInfof("LogManager: New log config found from devicedb, but its same as boot config, no need to re-configure\n")
+					fmt.Printf("LogManager: New log config found from devicedb, but its same as boot config, no need to re-configure\n")
 				}
 			}
 
 			//Now start a monitor for the log config in devicedb
 			err, this.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
 			if err != nil {
-				log.MaestroErrorf("LogManager: Unable to create config monitor: %v\n", err)
+				fmt.Printf("LogManager: Unable to create config monitor: %v\n", err)
 			} else {
 				//Add config change hook for all property groups, we can use the same interface
 				var logConfigChangeHook LogConfigChangeHook
@@ -528,6 +535,7 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 
 				//Add monitor for this config
 				var origLogConfig, updatedLogConfig maestroSpecs.LogConfigPayload
+
 				//Provide a copy of current log config monitor to Config monitor, not the actual config we use, this would prevent config monitor
 				//directly updating the running config(this.logConfig).
 				for _, target := range this.logConfig {
@@ -535,12 +543,14 @@ func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
 					origLogConfig.Targets = append(origLogConfig.Targets, &target)
 				}
 
+				fmt.Printf("  ------------------------------------------------> adding log monitor config\n")
+
 				//Adding monitor config
 				this.ddbConfigMonitor.AddMonitorConfig(&origLogConfig, &updatedLogConfig, DDB_LOG_CONFIG_NAME, configLogAna)
 			}
 		}
 	} else {
-		log.MaestroErrorf("LogManager: No devicedb connection config available, configuration will not be fetched from devicedb\n")
+		fmt.Printf("LogManager: No devicedb connection config available, configuration will not be fetched from devicedb\n")
 	}
 
 	return
@@ -559,7 +569,7 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 	inst.logConfig = config.Targets
 	inst.ddbConnConfig = config.DDBConnConfig
 
-	log.MaestroInfof("LogManager: Initializing %v %v\n", inst.logConfig, inst.ddbConnConfig)
+	fmt.Printf("LogManager: Initializing %v %v\n", inst.logConfig, inst.ddbConnConfig)
 
 	greasego.StartGreaseLib(func() {
 		debugging.DEBUG_OUT("Grease start cb: Got to here 1\n")
@@ -625,7 +635,7 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 			if config.Symphony != nil && symphony_client != nil && symphony_err == nil {
 				opts.TargetCB = wwrmi.TargetCB
 			} else {
-				log.MaestroError("Log: 'toCloud' target is enabled, but Symphony API is not configured. Will not work.")
+				fmt.Printf("Log: 'toCloud' target is enabled, but Symphony API is not configured. Will not work.")
 				// skip this target
 				continue
 			}
@@ -684,17 +694,18 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 	// should not start workers until after greasego is setup
 	if config.Symphony != nil {
 		if symphony_err != nil {
-			log.MaestroErrorf("Symphony / RMI client is not configured correctly or has failed: %s\n", symphony_err.Error())
+			fmt.Printf("Symphony / RMI client is not configured correctly or has failed: %s\n", symphony_err.Error())
 		} else {
 			symphony_client.StartWorkers()
-			log.MaestroSuccess("Maestro RMI workers started")
-			log.MaestroInfo("Symphony / RMI client workers started.")
+			fmt.Printf("Maestro RMI workers started")
+			fmt.Printf("Symphony / RMI client workers started.")
 		}
 	}
 
 	client := log.NewSymphonyClient("http://127.0.0.1:9443/submitLog/1", config.ClientId, defaults.NUMBER_BANKS_WEBLOG, 30*time.Second)
 	client.Start()
 
+	fmt.Printf("init device db config\n")
 	go inst.initDeviceDBConfig()
 
 	return
