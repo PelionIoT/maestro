@@ -3,29 +3,29 @@ package maestroConfig
 import (
 	"context"
 	"crypto/tls"
-	"errors"
-	"encoding/json"
-	"fmt"
-	"sort"
-	"time"
 	"crypto/x509"
-	"os"
-	"io/ioutil"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/armPelionEdge/devicedb/client"
 	"github.com/armPelionEdge/devicedb/client_relay"
-	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
+	"io/ioutil"
+	"os"
+	"sort"
+	"time"
 )
 
 var configClient *DDBRelayConfigClient
 
 // DDBRelayConfigClient specifies some attributes for devicedb server that use to setup the client
 type DDBMonitor struct {
-	Uri      string
-	Relay    string
-	Bucket   string
-	Prefix   string
-	CaChain  string
+	Uri             string
+	Relay           string
+	Bucket          string
+	Prefix          string
+	CaChain         string
 	DDBConfigClient *DDBRelayConfigClient
 }
 
@@ -33,7 +33,7 @@ type DDBMonitor struct {
 //ddbConnConfig should contain a valid connection config
 func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonitor *DDBMonitor) {
 	var tlsConfig *tls.Config
-		
+
 	if ddbConnConfig.RelayId == "" {
 		fmt.Fprintf(os.Stderr, "No relay_id provided\n")
 		err = errors.New("No relay_id provided\n")
@@ -61,14 +61,14 @@ func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonito
 	}
 
 	configClient = NewDDBRelayConfigClient(tlsConfig, ddbConnConfig.DeviceDBUri, ddbConnConfig.RelayId, ddbConnConfig.DeviceDBPrefix, ddbConnConfig.DeviceDBBucket)
-	
+
 	ddbMonitor = &DDBMonitor{
-		Uri: ddbConnConfig.DeviceDBUri,
-		Relay: ddbConnConfig.RelayId,
-		Bucket: ddbConnConfig.DeviceDBBucket,
-		Prefix: ddbConnConfig.DeviceDBPrefix,
+		Uri:             ddbConnConfig.DeviceDBUri,
+		Relay:           ddbConnConfig.RelayId,
+		Bucket:          ddbConnConfig.DeviceDBBucket,
+		Prefix:          ddbConnConfig.DeviceDBPrefix,
 		DDBConfigClient: configClient,
-		CaChain: ddbConnConfig.CaChainCert,
+		CaChain:         ddbConnConfig.CaChainCert,
 	}
 
 	return
@@ -112,7 +112,7 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 		} else {
 			log.MaestroInfof("CallChanges ret same=%+v noaction=%+v\n", same, noaction)
 		}
-		
+
 		//Make a copy of previous config
 		prevconfig := updatedConfig
 		//The below statement is just to avoid compiler erroring about prevconfig not used
@@ -194,17 +194,17 @@ func (ddbClient *DDBRelayConfigClient) Config(name string) Config {
 	configName := fmt.Sprintf("%v.%v.%v", ddbClient.Prefix, ddbClient.Relay, name)
 
 	return &DDBConfig{
-		Key:			configName,
-		Bucket:			ddbClient.Bucket,
-		ConfigClient:	ddbClient,
+		Key:          configName,
+		Bucket:       ddbClient.Bucket,
+		ConfigClient: ddbClient,
 	}
 }
 
 // DDBConfig has the name of the config and also include the instance of DDBRelayConfigClient,
 // which is used by the implementation of the Config interface
 type DDBConfig struct {
-	Key		string
-	Bucket	string	
+	Key          string
+	Bucket       string
 	ConfigClient *DDBRelayConfigClient
 }
 
@@ -214,19 +214,19 @@ type DDBConfig struct {
 // value could not be parsed as expecting format
 func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{ddbConfig.Key})
-	if (err != nil) {
+	if err != nil {
 		log.MaestroErrorf("DDBConfig.Get(): Failed to get the matched config from the devicedb. Error: %v", err)
 		return err
 	}
 
-	if(configEntries == nil) {
+	if configEntries == nil {
 		err = errors.New(fmt.Sprintf("Object %s does not exist", ddbConfig.Key))
 	} else {
 		//fmt.Printf("\nDDBConfig: Object:%s is %v", ddbConfig.Key, configEntries)
 		// the length of configEntries will be the same as the length of keys string that provided in the above Get function.
 		// Since we only have one key for the Get function, we should have configEntries with length of 1. But the only entry
 		// of the configEntries could be a nil value since the key might not exist
-		if ((len(configEntries) > 0) && (configEntries[0] != nil) && (len(configEntries[0].Siblings) != 0)) {
+		if (len(configEntries) > 0) && (configEntries[0] != nil) && (len(configEntries[0].Siblings) != 0) {
 			// the length of siblings might not be one since it might exist
 			// multiple same config entries in the devicedb server. In this case,
 			// we generally use the first one of the sorted siblings
@@ -261,25 +261,25 @@ func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 // Put function will write the passed config object(t) with the configName in ddbConfig object
 func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 	//Ensure t is not nil
-	if(t != nil) {
+	if t != nil {
 		bodyJSON, err := json.Marshal(&t)
-		if(err == nil) {
+		if err == nil {
 			var config ConfigWrapper
 			config.Body = string([]byte(bodyJSON))
 			config.Relay = ""
 			config.Name = ddbConfig.Key
-			
+
 			//Marshal the storage object to put into deviceDB
 			bodyJSON, err := json.Marshal(&config)
-			
+
 			//log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
-			if(err == nil) {
+			if err == nil {
 				var devicedbClientBatch *client.Batch
 				ctx, _ := context.WithCancel(context.Background())
 				devicedbClientBatch = client.NewBatch()
-				devicedbClientBatch.Put(ddbConfig.Key,string([]byte(bodyJSON)),"")
+				devicedbClientBatch.Put(ddbConfig.Key, string([]byte(bodyJSON)), "")
 				err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
-				if(err != nil) {
+				if err != nil {
 					log.MaestroErrorf("DDBConfig.Put(): %v", err)
 					return err
 				}
@@ -297,13 +297,13 @@ func (ddbConfig *DDBConfig) Delete() (err error) {
 	var devicedbClientBatch *client.Batch
 	ctx, _ := context.WithCancel(context.Background())
 	devicedbClientBatch = client.NewBatch()
-	devicedbClientBatch.Delete(ddbConfig.Key,"")
+	devicedbClientBatch.Delete(ddbConfig.Key, "")
 	//log.MaestroErrorf("DDBConfig.Delete() Deleting key: %s", ddbConfig.Key)
 	err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
-	if(err != nil) {
+	if err != nil {
 		log.MaestroErrorf("DDBConfig.Delete(): %v", err)
 	}
-	
+
 	return
 }
 
@@ -311,17 +311,17 @@ func (ddbConfig *DDBConfig) Delete() (err error) {
 // monitor the updates about the given config
 func (ddbConfig *DDBConfig) Watch() Watcher {
 	return &DDBWatcher{
-		Updates: make(chan string),
+		Updates:              make(chan string),
 		handleWatcherControl: make(chan string),
-		Config:  ddbConfig,
+		Config:               ddbConfig,
 	}
 }
 
 // DDBWatcher provides a channel that process the updates, and the
 // config could be used while handling the updates from devicedb
 type DDBWatcher struct {
-	Updates chan string
-	Config  *DDBConfig
+	Updates              chan string
+	Config               *DDBConfig
 	handleWatcherControl chan string
 }
 
@@ -414,7 +414,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 
 			sortableConfigs := sort.StringSlice(update.Siblings)
 			sort.Sort(sortableConfigs)
-			var configLen int 	
+			var configLen int
 			configLen = len(sortableConfigs)
 			if configLen == 0 {
 				log.MaestroInfof("DDBConfig.handleWatcher(): configLen == 0")
@@ -438,7 +438,6 @@ func (watcher *DDBWatcher) handleWatcher() {
 				break
 			}
 
-			
 		case _, ok := <-watcher.handleWatcherControl:
 			log.MaestroErrorf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered")
 			if !ok {
