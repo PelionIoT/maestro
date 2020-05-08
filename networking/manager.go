@@ -878,6 +878,12 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 //Note that call to initDeviceDBConfig is done as a go routine.
 func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.networkConfig, this.networkConfig.Interfaces)
+
+	if this.networkConfig.Disable == true {
+		log.MaestroInfo("NetworkManager: Network management is disabled.  No interfaces to bring up.\n")
+		return
+	}
+
 	//Setup the intfs using initial boot config first
 	this.setupInterfaces()
 
@@ -2137,7 +2143,7 @@ func (mgr *networkManagerInstance) ValidateTask(task *tasks.MaestroTask) error {
 // InitNetworkManager be called on startup.
 // NetworkConfigPayload will come from config file
 // Storage should be started already.
-func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbconfig *maestroConfig.DeviceDBConnConfig) (err error) {
+func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbconfig *maestroConfig.DeviceDBConnConfig) error {
 	log.MaestroInfof("NetworkManager: Initializing %v %v\n", networkconfig, ddbconfig)
 	inst := GetInstance()
 	inst.networkConfig = networkconfig
@@ -2149,11 +2155,12 @@ func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbcon
 			log.MaestroInfof("NetworkManager: Submit config read from config file\n")
 			inst.submitConfig(inst.networkConfig)
 		} else {
-			return errors.New("NetworkManager: Network configuration Disable flag set to true")
+			log.MaestroWarnf("NetworkManager: Network configuration Disable flag set to true\n")
+			return nil
 		}
 	} else {
 		return errors.New("NetworkManager: No network configuration set, unable to cofigure network")
 	}
 
-	return
+	return nil
 }
