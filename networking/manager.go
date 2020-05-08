@@ -944,7 +944,7 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 	for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
 		log.MaestroInfof("initDeviceDBConfig: connecting to devicedb\n")
 		this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
-		if this.ddbConfigClient.IsConnected() || !this.waitForDeviceDB {
+		if this.ddbConfigClient.IsAvailable() || !this.waitForDeviceDB {
 			break
 		} else {
 			log.MaestroWarnf("initDeviceDBConfig: devicedb is not running. retrying in %d seconds", loopWaitTime)

@@ -208,13 +208,13 @@ type DDBConfig struct {
 	ConfigClient *DDBRelayConfigClient
 }
 
-func (rcc *DDBRelayConfigClient) IsConnected() bool {
+func (rcc *DDBRelayConfigClient) IsAvailable() bool {
 	_, err := rcc.Client.Get(context.Background(), rcc.Bucket, []string{"NULL"})
 	if err != nil {
-		log.MaestroErrorf("DDBRelayConfigClient.isConnected(): false, Error: %v", err)
+		log.MaestroErrorf("DDBRelayConfigClient.IsAvailable(): false, Error: %v", err)
 		return false
 	}
-	log.MaestroInfo("DDBRelayConfigClient.isConnected(): true")
+	log.MaestroInfo("DDBRelayConfigClient.IsAvailable(): true")
 	return true
 }
 
