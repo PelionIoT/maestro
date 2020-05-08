@@ -941,9 +941,15 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 		RootCAs: caCerts,
 	}
 
+	this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(
+		tlsConfig,
+		this.ddbConnConfig.DeviceDBUri,
+		this.ddbConnConfig.RelayId,
+		this.ddbConnConfig.DeviceDBPrefix,
+		this.ddbConnConfig.DeviceDBBucket)
+
 	for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-		log.MaestroInfof("initDeviceDBConfig: connecting to devicedb\n")
-		this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.RelayId, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket)
+		log.MaestroInfof("initDeviceDBConfig: checking devicedb availability\n")
 		if this.ddbConfigClient.IsAvailable() || !this.waitForDeviceDB {
 			break
 		} else {
