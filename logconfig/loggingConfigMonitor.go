@@ -16,13 +16,17 @@ package logconfig
 // limitations under the License.
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/armPelionEdge/greasego"
 	//"github.com/armPelionEdge/maestro/log"
+
+	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestroSpecs"
 )
@@ -46,23 +50,23 @@ var configChangeRequestChan chan ConfigChangeInfo = nil
 //This is the go routine which waits on configChangeRequestChan and when it
 //receives a message which is ConfigChangeInfo object, it calls corresponding
 //process functions(see below) based on config group.
-func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
+func ConfigChangeHandler(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	fmt.Printf("in ConfigChangeHandler\n")
-	instance = GetInstance()
-	for configChange := range jobConfigChangeChan {
-		fmt.Printf("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
-		switch configChange.configgroup {
-		case "name":
-			instance.TargetConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "filters":
-			instance.FiltersConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "format":
-			instance.FormatConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		case "opts":
-			instance.OptsConfigChange(configChange.fieldchanged, configChange.futvalue, configChange.curvalue, configChange.index)
-		default:
-			fmt.Printf("\nConfigChangeHook:Unknown field or group: %s:%s old:%v new:%v\n", configChange.configgroup, configChange.fieldchanged, configChange.curvalue, configChange.futvalue)
-		}
+
+	fmt.Printf("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
+	switch configgroup {
+	case "file":
+		instance.FileConfigChange(fieldchanged, futvalue, curvalue, index)
+	case "name":
+		instance.NameConfigChange(fieldchanged, futvalue, curvalue, index)
+	case "filters":
+		instance.FiltersConfigChange(fieldchanged, futvalue, curvalue, index)
+	case "format":
+		instance.FormatConfigChange(fieldchanged, futvalue, curvalue, index)
+	case "opts":
+		instance.OptsConfigChange(fieldchanged, futvalue, curvalue, index)
+	default:
+		fmt.Printf("\nConfigChangeHook:Unknown field or group: %s:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
 	}
 }
 
@@ -71,7 +75,7 @@ func ConfigChangeHandler(jobConfigChangeChan <-chan ConfigChangeInfo) {
 func (cfgHook LogConfigChangeHook) ChangesStart(configgroup string) {
 	fmt.Printf("ConfigChangeHook:ChangesStart: %s\n", configgroup)
 
-	ConfigChangeHandler(configChangeRequestChan)
+	//ConfigChangeHandler(configChangeRequestChan)
 }
 
 // SawChange is called whenever a field changes. It will be called only once for each field which is changed.
@@ -79,13 +83,14 @@ func (cfgHook LogConfigChangeHook) ChangesStart(configgroup string) {
 // If SawChange return true, then the value of futvalue will replace the value of current value
 func (cfgHook LogConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
 	fmt.Printf("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
-	if configChangeRequestChan != nil {
+	/*if configChangeRequestChan != nil {
 		fieldnames := strings.Split(fieldchanged, ".")
 		fmt.Printf("ConfigChangeHook:fieldnames: %v\n", fieldnames)
 		configChangeRequestChan <- ConfigChangeInfo{configgroup, fieldnames[len(fieldnames)-1], fieldchanged, futvalue, curvalue, index}
 	} else {
 		fmt.Printf("ConfigChangeHook:Config change chan is nil, unable to process change")
-	}
+	}*/
+	ConfigChangeHandler(configgroup, fieldchanged, futvalue, curvalue, index)
 
 	return false //return false as we would apply only those we successfully processed
 }
@@ -94,6 +99,21 @@ func (cfgHook LogConfigChangeHook) SawChange(configgroup string, fieldchanged st
 // If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
 func (cfgHook LogConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
 	fmt.Printf("ConfigChangeHook:ChangesComplete: %s\n", configgroup)
+
+	inst := GetInstance()
+	//only apply this after getting all the filters
+	if configgroup == "filters" {
+
+		fmt.Println("In config group if")
+
+		jsstruct, _ := json.Marshal(inst.logConfig)
+		fmt.Printf("Applying: \n")
+		fmt.Println(string(jsstruct))
+
+		//here is where we will add our filters
+		inst.ApplyChanges()
+	}
+
 	return false //return false as we would apply only those we successfully processed
 }
 
@@ -167,33 +187,99 @@ func DeleteLogFilter(filterConfig maestroSpecs.LogFilter) error {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Function to process Target config change
-func (inst *logManagerInstance) TargetConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	fmt.Printf("TargetConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+func (inst *logManagerInstance) FileConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	fmt.Printf("FileConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+
+	splits := strings.Split(fieldchanged, ".")
+
+	targetIndex, _ := strconv.Atoi(strings.TrimLeft(strings.TrimRight(splits[0], "]"), "Targets["))
+	fieldName := splits[1]
+
+	switch fieldName {
+	case "File":
+		inst.logConfig[targetIndex].File = reflect.ValueOf(futvalue).String()
+	default:
+		log.MaestroWarnf("FileConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
+}
+
+//Function to process Target config change
+func (inst *logManagerInstance) NameConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	fmt.Printf("NameConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+
+	splits := strings.Split(fieldchanged, ".")
+
+	targetIndex, _ := strconv.Atoi(strings.TrimLeft(strings.TrimRight(splits[0], "]"), "Targets["))
+	fieldName := splits[1]
+
+	switch fieldName {
+	case "Name":
+		inst.logConfig[targetIndex].Name = reflect.ValueOf(futvalue).String()
+	default:
+		log.MaestroWarnf("NameConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process filter config change
 func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	fmt.Printf("FiltersConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-	filterslen := reflect.ValueOf(futvalue).Len()
+
+	splits := strings.Split(fieldchanged, ".")
+
+	for i := 0; i < len(splits); i++ {
+		println("index: %n value: %s", i, splits[i])
+	}
+	targetIndex, _ := strconv.Atoi(strings.TrimLeft(strings.TrimRight(splits[0], "]"), "Targets["))
+
+	filterIndex, _ := strconv.Atoi(strings.TrimLeft(strings.TrimRight(splits[1], "]"), "Filters["))
+
+	fieldName := ""
+
+	if len(splits) > 2 {
+		fieldName = splits[2]
+	}
+
+	println("targetIndex=", targetIndex)
+	println("filterIndex=", filterIndex)
+	println("fieldName=", fieldName)
+
+	switch fieldName {
+	case "Target":
+		inst.logConfig[targetIndex].Filters[filterIndex].Target = reflect.ValueOf(futvalue).String()
+	case "Levels":
+		inst.logConfig[targetIndex].Filters[filterIndex].Levels = reflect.ValueOf(futvalue).String()
+	case "Pre":
+		inst.logConfig[targetIndex].Filters[filterIndex].Pre = reflect.ValueOf(futvalue).String()
+	case "Post":
+		inst.logConfig[targetIndex].Filters[filterIndex].Post = reflect.ValueOf(futvalue).String()
+	default:
+		log.MaestroWarnf("FiltersConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
+}
+func (inst *logManagerInstance) ApplyChanges() {
+
+	fmt.Println("Entering ApplyChanges()")
+	filterslen := len(inst.logConfig[0].Filters)
 
 	// verify we have an existing target because we don't currently support adding new targets
-	if len(inst.logConfig) <= index {
+	/*if len(inst.logConfig) <= index {
 		fmt.Printf("FiltersConfigChange: No targets exist.  Adding new targets is not supported.\n")
 		return
-	}
-	targId := greasego.GetTargetId(inst.logConfig[index].Name)
+	}*/
+	targId := greasego.GetTargetId(inst.logConfig[0].File)
 	if targId == 0 {
-		fmt.Printf("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfig[index].Name)
+		fmt.Printf("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfig[0].Name)
 		return
 	}
+	fmt.Println("targId=", targId)
 
 	// if the existing target at index has a name and if the incoming filter specifies a target name,
 	// then verify the names match
-	if len(inst.logConfig[index].Name) > 0 {
+	if len(inst.logConfig[0].Name) > 0 {
 		for i := 0; i < filterslen; i++ {
-			target_name := reflect.ValueOf(futvalue).Index(i).FieldByName("Target").String()
-			if len(target_name) > 0 && (inst.logConfig[index].Name != target_name) {
-				fmt.Printf("FiltersConfigChange: filter.Target.Name doesn't match existing target at index %d\n", index)
+			target_name := inst.logConfig[0].Filters[i].Target
+			if len(target_name) > 0 && (inst.logConfig[0].Name != target_name) {
+				fmt.Printf("FiltersConfigChange: filter.Target.Name doesn't match existing target at index 0\n")
 				return
 			}
 		}
@@ -203,22 +289,16 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 	//     as "replace" behavior for the "Existing" flag.  Do we need to handle "override" flag?
 
 	// For "replace" behavior, we delete all existing filters for the given target
-	for _, filter := range inst.logConfig[index].Filters {
+	for _, filter := range inst.logConfig[0].Filters {
 		DeleteLogFilter(filter)
 	}
 	// now that all existing filters have been deleted, clear the local config array
-	inst.logConfig[index].Filters = make([]maestroSpecs.LogFilter, filterslen)
+	//inst.logConfig[0].Filters = make([]maestroSpecs.LogFilter, filterslen)
 
 	// create the new filters based on the incoming config in futvalue
 	for i := 0; i < filterslen; i++ {
-		inst.logConfig[index].Filters[i].Levels = reflect.ValueOf(futvalue).Index(i).FieldByName("Levels").String()
-		inst.logConfig[index].Filters[i].Tag = reflect.ValueOf(futvalue).Index(i).FieldByName("Tag").String()
-		inst.logConfig[index].Filters[i].Pre = reflect.ValueOf(futvalue).Index(i).FieldByName("Pre").String()
-		inst.logConfig[index].Filters[i].Post = reflect.ValueOf(futvalue).Index(i).FieldByName("Post").String()
-		inst.logConfig[index].Filters[i].PostFmtPreMsg = reflect.ValueOf(futvalue).Index(i).FieldByName("PostFmtPreMsg").String()
-
 		// configure greasego
-		AddLogFilter(inst.logConfig[index].Filters[i])
+		AddLogFilter(inst.logConfig[0].Filters[i])
 
 		// FIXME: push the new config to maestroDB here?
 	}
@@ -274,10 +354,6 @@ func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
 // if there is at least one change to report
 func (cfgHook CommitConfigChangeHook) ChangesStart(configgroup string) {
 	fmt.Printf("CommitChangeHook:ChangesStart: %s\n", configgroup)
-	if configApplyRequestChan == nil {
-		configApplyRequestChan = make(chan bool, 10)
-		go ConfigApplyHandler(configApplyRequestChan)
-	}
 }
 
 // SawChange is called whenever a field changes. It will be called only once for each field which is changed.
@@ -285,20 +361,14 @@ func (cfgHook CommitConfigChangeHook) ChangesStart(configgroup string) {
 // If SawChange return true, then the value of futvalue will replace the value of current value
 func (cfgHook CommitConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
 	fmt.Printf("CommitChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
-	instance = GetInstance()
+	/*instance = GetInstance()
 	switch fieldchanged {
 	case "ConfigCommitFlag":
-		instance.CurrConfigCommit.ConfigCommitFlag = reflect.ValueOf(futvalue).Bool()
-		if instance.CurrConfigCommit.ConfigCommitFlag == true {
-			//flag set to true, apply the new config
-			fmt.Printf("\nCommitChangeHook:commit flag set, applying changes")
-			configApplyRequestChan <- true
-		}
 	case "LastUpdateTimestamp":
 	case "TotalCommitCountFromBoot":
 	default:
 		fmt.Printf("\nCommitChangeHook:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-	}
+	}*/
 	return false //return false as we would apply only those we successfully processed
 }
 
@@ -306,5 +376,6 @@ func (cfgHook CommitConfigChangeHook) SawChange(configgroup string, fieldchanged
 // If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
 func (cfgHook CommitConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
 	fmt.Printf("CommitChangeHook:ChangesComplete: %s\n", configgroup)
+
 	return false //return false as we would apply only those we successfully processed
 }
