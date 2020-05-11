@@ -923,22 +923,25 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 	if err != nil {
 		log.MaestroErrorf("NetworkManager: Failed to set hostname (ignoring...): %v\n", err)
 	}
+	if (this.ddbConnConfig.CaChainCert != nil)
+		relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
+		if err != nil {
+			log.MaestroErrorf("NetworkManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
+			return errors.New(fmt.Sprintf("NetworkManager: Unable to access ca-chain-cert file at: %s, err = %v\n", this.ddbConnConfig.CaChainCert, err))
+		}
 
-	relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
-	if err != nil {
-		log.MaestroErrorf("NetworkManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
-		return errors.New(fmt.Sprintf("NetworkManager: Unable to access ca-chain-cert file at: %s, err = %v\n", this.ddbConnConfig.CaChainCert, err))
-	}
+		caCerts := x509.NewCertPool()
 
-	caCerts := x509.NewCertPool()
+		if !caCerts.AppendCertsFromPEM(relayCaChain) {
+			log.MaestroErrorf("CA chain loaded from %s is not valid: %v\n", this.ddbConnConfig.CaChainCert, err)
+			return errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", this.ddbConnConfig.CaChainCert))
+		}
 
-	if !caCerts.AppendCertsFromPEM(relayCaChain) {
-		log.MaestroErrorf("CA chain loaded from %s is not valid: %v\n", this.ddbConnConfig.CaChainCert, err)
-		return errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", this.ddbConnConfig.CaChainCert))
-	}
-
-	tlsConfig = &tls.Config{
-		RootCAs: caCerts,
+		tlsConfig = &tls.Config{
+			RootCAs: caCerts,
+		}
+	} else {
+		tlsConfig = &tls.Config{}
 	}
 
 	this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(
