@@ -12,7 +12,6 @@ import (
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestroSpecs"
 	"io/ioutil"
-	"os"
 	"sort"
 	"sync"
 	"time"
@@ -24,77 +23,29 @@ const LOOP_WAIT_TIME_INCREMENT_WINDOW int = (6 * 60)             //6 minutes whi
 const INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5     //5 secs
 const INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 120 //Exponential retry backoff interval
 
-var configClient *DDBRelayConfigClient
-
 var once sync.Once
 var configClientSingleton *DDBRelayConfigClient
 
 // DDBRelayConfigClient specifies some attributes for devicedb server that use to setup the client
-type DDBMonitor struct {
-	Uri             string
-	Relay           string
-	Bucket          string
-	Prefix          string
-	CaChain         string
-	DDBConfigClient *DDBRelayConfigClient
-}
-
-//This function is called during maestro initilization to connect to deviceDB
-//ddbConnConfig should contain a valid connection config
-func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonitor *DDBMonitor) {
-	var tlsConfig *tls.Config
-
-	if ddbConnConfig.RelayId == "" {
-		fmt.Fprintf(os.Stderr, "No relay_id provided\n")
-		err = errors.New("No relay_id provided\n")
-	}
-
-	if ddbConnConfig.CaChainCert == "" {
-		fmt.Fprintf(os.Stderr, "No ca_chain provided\n")
-		err = errors.New("No ca_chain provided\n")
-	}
-
-	relayCaChain, err := ioutil.ReadFile(ddbConnConfig.CaChainCert)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err)
-		err = errors.New(fmt.Sprintf("Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err))
-	}
-
-	caCerts := x509.NewCertPool()
-	if !caCerts.AppendCertsFromPEM(relayCaChain) {
-		fmt.Fprintf(os.Stderr, "CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err)
-		err = errors.New(fmt.Sprintf("CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err))
-	}
-
-	tlsConfig = &tls.Config{
-		RootCAs: caCerts,
-	}
-
-	configClient = NewDDBRelayConfigClient(tlsConfig, ddbConnConfig.DeviceDBUri, ddbConnConfig.RelayId, ddbConnConfig.DeviceDBPrefix, ddbConnConfig.DeviceDBBucket)
-
-	ddbMonitor = &DDBMonitor{
-		Uri:             ddbConnConfig.DeviceDBUri,
-		Relay:           ddbConnConfig.RelayId,
-		Bucket:          ddbConnConfig.DeviceDBBucket,
-		Prefix:          ddbConnConfig.DeviceDBPrefix,
-		DDBConfigClient: configClient,
-		CaChain:         ddbConnConfig.CaChainCert,
-	}
-
-	return
+type DDBRelayConfigClient struct {
+	Uri    string
+	Relay  string
+	Bucket string
+	Prefix string
+	Client client_relay.Client
 }
 
 //This function is used to add a configuration monitor for the "config" object with name "configName".
 //configAnalyzer object is used for comparing new and old config objects which is used by the monitor
 //when it detects a config object change
-func (ddbMonitor *DDBMonitor) AddMonitorConfig(config interface{}, updatedConfig interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer) (err error) {
-	go configMonitor(config, updatedConfig, configName, configAnalyzer, ddbMonitor.DDBConfigClient)
+func (this *DDBRelayConfigClient) AddMonitorConfig(config interface{}, updatedConfig interface{}, configName string, configAnalyzer *maestroSpecs.ConfigAnalyzer) (err error) {
+	go configMonitor(config, updatedConfig, configName, configAnalyzer, this)
 	return
 }
 
 //This function is used to delete a configuration monitor with name "configName".
-func (ddbMonitor *DDBMonitor) RemoveMonitorConfig(configName string) (err error) {
-	configWatcher := ddbMonitor.DDBConfigClient.Config(configName).Watch()
+func (this *DDBRelayConfigClient) RemoveMonitorConfig(configName string) (err error) {
+	configWatcher := this.Config(configName).Watch()
 	configWatcher.Stop()
 	return
 }
@@ -163,14 +114,6 @@ type Watcher interface {
 	// Next would parse the config as the given interface and return true when the
 	// configuration with given key still exists, otherwise it will return false
 	Next(t interface{}) bool
-}
-
-// DDBRelayConfigClient specifies some attributes for devicedb server that use to setup the client
-type DDBRelayConfigClient struct {
-	Relay  string
-	Bucket string
-	Prefix string
-	Client client_relay.Client
 }
 
 // Generic wrapper for storing the config structs
@@ -269,6 +212,7 @@ func NewDDBRelayConfigClient(tlsConfig *tls.Config, uri string, relay string, pr
 	client := client_relay.New(config)
 
 	return &DDBRelayConfigClient{
+		Uri:    uri,
 		Relay:  relay,
 		Client: client,
 		Bucket: bucket,
