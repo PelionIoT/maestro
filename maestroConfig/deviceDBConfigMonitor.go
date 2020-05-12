@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -24,6 +25,9 @@ const INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5     //5 secs
 const INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 120 //Exponential retry backoff interval
 
 var configClient *DDBRelayConfigClient
+
+var once sync.Once
+var configClientSingleton *DDBRelayConfigClient
 
 // DDBRelayConfigClient specifies some attributes for devicedb server that use to setup the client
 type DDBMonitor struct {
@@ -174,6 +178,15 @@ type ConfigWrapper struct {
 	Name  string      `json:"name"`
 	Relay string      `json:"relay"`
 	Body  interface{} `json:"body"`
+}
+
+// This function creates and returns a singleton DDBRelayConfigClient
+func GetDDBRelayConfigClient(ddbConnConfig *DeviceDBConnConfig) (*DDBRelayConfigClient, error) {
+	var err error
+	once.Do(func() {
+		configClientSingleton, err = CreateDDBRelayConfigClient(ddbConnConfig)
+	})
+	return configClientSingleton, err
 }
 
 // This function is called during bootup. It waits for devicedb to be up and running to connect to it
