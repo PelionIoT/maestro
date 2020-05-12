@@ -17,6 +17,12 @@ import (
 	"time"
 )
 
+//Constants used in the logic for connecting to devicedb
+const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = (24 * 60 * 60)        //24 hours
+const LOOP_WAIT_TIME_INCREMENT_WINDOW int = (6 * 60)             //6 minutes which is the exponential retry backoff window
+const INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5     //5 secs
+const INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 120 //Exponential retry backoff interval
+
 var configClient *DDBRelayConfigClient
 
 // DDBRelayConfigClient specifies some attributes for devicedb server that use to setup the client
@@ -168,6 +174,74 @@ type ConfigWrapper struct {
 	Name  string      `json:"name"`
 	Relay string      `json:"relay"`
 	Body  interface{} `json:"body"`
+}
+
+// This function is called during bootup. It waits for devicedb to be up and running to connect to it
+func CreateDDBRelayConfigClient(ddbConnConfig *DeviceDBConnConfig, waitForDeviceDB bool) (*DDBRelayConfigClient, error) {
+	var totalWaitTime int = 0
+	var loopWaitTime int = INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
+	var err error
+	//TLS config to connect to devicedb
+	var tlsConfig *tls.Config
+
+	if ddbConnConfig == nil {
+		return nil, errors.New("No devicedb connection config available\n")
+	}
+
+	log.MaestroInfof("MaestroConfig: try-connect to devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
+		ddbConnConfig.DeviceDBUri, ddbConnConfig.DeviceDBPrefix, ddbConnConfig.DeviceDBBucket, ddbConnConfig.RelayId, ddbConnConfig.CaChainCert)
+
+	if len(ddbConnConfig.CaChainCert) > 0 {
+		relayCaChain, err := ioutil.ReadFile(ddbConnConfig.CaChainCert)
+		if err != nil {
+			log.MaestroWarnf("MaestroConfig: Unable to access ca-chain-cert file at: %s\n", ddbConnConfig.CaChainCert)
+			return nil, errors.New(fmt.Sprintf("NetworkManager: Unable to access ca-chain-cert file at: %s, err = %v\n", ddbConnConfig.CaChainCert, err))
+		}
+
+		caCerts := x509.NewCertPool()
+
+		if !caCerts.AppendCertsFromPEM(relayCaChain) {
+			log.MaestroErrorf("CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err)
+			return nil, errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", ddbConnConfig.CaChainCert))
+		}
+
+		tlsConfig = &tls.Config{
+			RootCAs: caCerts,
+		}
+	} else {
+		tlsConfig = &tls.Config{}
+	}
+
+	ddbConfigClient := NewDDBRelayConfigClient(
+		tlsConfig,
+		ddbConnConfig.DeviceDBUri,
+		ddbConnConfig.RelayId,
+		ddbConnConfig.DeviceDBPrefix,
+		ddbConnConfig.DeviceDBBucket)
+
+	for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+		log.MaestroInfof("maestroConfig: checking devicedb availability\n")
+		if ddbConfigClient.IsAvailable() || !waitForDeviceDB {
+			break
+		} else {
+			log.MaestroWarnf("maestroConfig: devicedb is not running. retrying in %d seconds", loopWaitTime)
+			time.Sleep(time.Second * time.Duration(loopWaitTime))
+			totalWaitTime += loopWaitTime
+			//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
+			if totalWaitTime > LOOP_WAIT_TIME_INCREMENT_WINDOW {
+				loopWaitTime = INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
+			}
+		}
+
+		//After 24 hours just assume its never going to come up stop waiting for it and break the loop
+		if totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS {
+			log.MaestroErrorf("maestroConfig: devicedb is not running, cannot fetch config from devicedb")
+			return nil, errors.New("devicedb is not running, cannot fetch config from devicedb")
+		}
+	}
+	log.MaestroInfof("maestroConfig: successfully connected to devicedb\n")
+
+	return ddbConfigClient, err
 }
 
 // NewDDBRelayConfigClient will initialize an client from devicedb/client_relay,
