@@ -893,7 +893,7 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 func (this *networkManagerInstance) initDeviceDBConfig() error {
 	var err error
 
-	this.ddbConfigClient, err = maestroConfig.CreateDDBRelayConfigClient(this.ddbConnConfig)
+	this.ddbConfigClient, err = maestroConfig.GetDDBRelayConfigClient(this.ddbConnConfig)
 	if this.ddbConfigClient == nil {
 		return err
 	}
