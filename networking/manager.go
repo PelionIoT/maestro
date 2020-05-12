@@ -227,7 +227,6 @@ type networkManagerInstance struct {
 
 	//Configs to be used for connecting to devicedb
 	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
-	ddbConfigMonitor *maestroConfig.DDBMonitor
 	ddbConfigClient  *maestroConfig.DDBRelayConfigClient
 	CurrConfigCommit ConfigCommit
 
@@ -965,12 +964,6 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	}
 
 	//Now start a monitor for the network config in devicedb
-	err, this.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
-	if err != nil {
-		log.MaestroErrorf("NetworkManager: Unable to create config monitor: %v\n", err)
-		return errors.New(fmt.Sprintf("\n Unable to create config monitor: %v\n", err))
-	}
-
 	//Add config change hook for all property groups, we can use the same interface
 	var networkConfigChangeHook NetworkConfigChangeHook
 
@@ -996,7 +989,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	origNetworkConfig = *this.networkConfig
 
 	//Adding monitor config
-	this.ddbConfigMonitor.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
+	this.ddbConfigClient.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
 
 	//Add config change hook for all property groups, we can use the same interface
 	var commitConfigChangeHook CommitConfigChangeHook
@@ -1005,7 +998,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	//Add monitor for this object
 	var updatedConfigCommit ConfigCommit
 	log.MaestroInfof("NetworkManager: Adding monitor for config commit object\n")
-	this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
+	this.ddbConfigClient.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
 
 	return nil
 }
