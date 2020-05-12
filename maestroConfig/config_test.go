@@ -203,8 +203,8 @@ func TestConfigMonitorSimple(t *testing.T) {
 	ddbConnConfig.RelayId = relay
 	ddbConnConfig.CaChainCert = relayCaChainFile
 
-	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
-	if(err != nil) {
+	ddbConfigMon, err := CreateDDBRelayConfigClient(ddbConnConfig)
+	if err != nil {
 		fmt.Printf("\nUnable to create config monitor: %v\n", err)
 		t.FailNow()
 	}
@@ -293,8 +293,8 @@ func TestConfigMonitorSlice(t *testing.T) {
 	ddbConnConfig.RelayId = relay
 	ddbConnConfig.CaChainCert = relayCaChainFile
 
-	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
-	if(err != nil) {
+	ddbConfigMon, err := CreateDDBRelayConfigClient(ddbConnConfig)
+	if err != nil {
 		fmt.Printf("\nUnable to create config monitor: %v\n", err)
 		t.FailNow()
 	}
@@ -386,8 +386,8 @@ func TestConfigMonitorMultipleGroup(t *testing.T) {
 	ddbConnConfig.RelayId = relay
 	ddbConnConfig.CaChainCert = relayCaChainFile
 
-	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
-	if(err != nil) {
+	ddbConfigMon, err := CreateDDBRelayConfigClient(ddbConnConfig)
+	if err != nil {
 		fmt.Printf("\nUnable to create config monitor: %v\n", err)
 		t.FailNow()
 	}
@@ -489,8 +489,8 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	ddbConnConfig.RelayId = relay
 	ddbConnConfig.CaChainCert = relayCaChainFile
 
-	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
-	if(err != nil) {
+	ddbConfigMon, err := CreateDDBRelayConfigClient(ddbConnConfig)
+	if err != nil {
 		fmt.Printf("\nUnable to create config monitor: %v\n", err)
 		t.FailNow()
 	}
@@ -614,8 +614,8 @@ func TestConfigMonitorMultipleUpdates(t *testing.T) {
 	ddbConnConfig.RelayId = relay
 	ddbConnConfig.CaChainCert = relayCaChainFile
 
-	err, ddbConfigMon := NewDeviceDBMonitor(ddbConnConfig)
-	if(err != nil) {
+	ddbConfigMon, err := CreateDDBRelayConfigClient(ddbConnConfig)
+	if err != nil {
 		fmt.Printf("\nUnable to create config monitor: %v\n", err)
 		t.FailNow()
 	}
