@@ -224,7 +224,6 @@ type networkManagerInstance struct {
 	interfaceThreadCountMutex sync.Mutex
 	threadCountChan           chan networkThreadMessage
 	networkConfig             *maestroSpecs.NetworkConfigPayload
-	waitForDeviceDB           bool
 
 	//Configs to be used for connecting to devicedb
 	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
@@ -479,7 +478,6 @@ func newNetworkManagerInstance() (ret *networkManagerInstance) {
 	ret = new(networkManagerInstance)
 	ret.watcherWorkChannel = make(chan networkThreadMessage, 10) // use a buffered channel
 	ret.threadCountChan = make(chan networkThreadMessage)
-	ret.waitForDeviceDB = true
 	// ret.resetDNSBuffer()
 	go ret.watchInterfaces()
 	return
@@ -895,7 +893,7 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 func (this *networkManagerInstance) initDeviceDBConfig() error {
 	var err error
 
-	this.ddbConfigClient, err = maestroConfig.CreateDDBRelayConfigClient(this.ddbConnConfig, this.waitForDeviceDB)
+	this.ddbConfigClient, err = maestroConfig.CreateDDBRelayConfigClient(this.ddbConnConfig)
 	if this.ddbConfigClient == nil {
 		return err
 	}

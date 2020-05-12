@@ -649,7 +649,6 @@ func TestNetworkConfigInDDB(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
-	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12
@@ -752,7 +751,6 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
-	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12
@@ -863,7 +861,6 @@ func TestNetworkConfigNameserversUpdateInDDB(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
-	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12
@@ -987,7 +984,6 @@ func TestConfigCommitUpdateInDDB(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
-	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12
@@ -1123,7 +1119,6 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 		t.FailNow()
 	}
 	manager := testGetInstance(storage)
-	manager.waitForDeviceDB = false
 	manager.ddbConnConfig = &maestroConfig.DeviceDBConnConfig {devicedbUri, devicedbPrefix, devicedbBucket, relay, relayCaChainFile}
 
 	timeout := 60 * 60 * 12

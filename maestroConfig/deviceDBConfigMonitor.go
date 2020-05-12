@@ -177,7 +177,7 @@ type ConfigWrapper struct {
 }
 
 // This function is called during bootup. It waits for devicedb to be up and running to connect to it
-func CreateDDBRelayConfigClient(ddbConnConfig *DeviceDBConnConfig, waitForDeviceDB bool) (*DDBRelayConfigClient, error) {
+func CreateDDBRelayConfigClient(ddbConnConfig *DeviceDBConnConfig) (*DDBRelayConfigClient, error) {
 	var totalWaitTime int = 0
 	var loopWaitTime int = INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 	var err error
@@ -221,7 +221,7 @@ func CreateDDBRelayConfigClient(ddbConnConfig *DeviceDBConnConfig, waitForDevice
 
 	for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
 		log.MaestroInfof("maestroConfig: checking devicedb availability\n")
-		if ddbConfigClient.IsAvailable() || !waitForDeviceDB {
+		if ddbConfigClient.IsAvailable() {
 			break
 		} else {
 			log.MaestroWarnf("maestroConfig: devicedb is not running. retrying in %d seconds", loopWaitTime)
