@@ -29,13 +29,10 @@ package networking
 import (
 	"bufio"
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -227,11 +224,9 @@ type networkManagerInstance struct {
 	interfaceThreadCountMutex sync.Mutex
 	threadCountChan           chan networkThreadMessage
 	networkConfig             *maestroSpecs.NetworkConfigPayload
-	waitForDeviceDB           bool
 
 	//Configs to be used for connecting to devicedb
 	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
-	ddbConfigMonitor *maestroConfig.DDBMonitor
 	ddbConfigClient  *maestroConfig.DDBRelayConfigClient
 	CurrConfigCommit ConfigCommit
 
@@ -482,7 +477,6 @@ func newNetworkManagerInstance() (ret *networkManagerInstance) {
 	ret = new(networkManagerInstance)
 	ret.watcherWorkChannel = make(chan networkThreadMessage, 10) // use a buffered channel
 	ret.threadCountChan = make(chan networkThreadMessage)
-	ret.waitForDeviceDB = true
 	// ret.resetDNSBuffer()
 	go ret.watchInterfaces()
 	return
@@ -893,80 +887,14 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 	return
 }
 
-//Constants used in the logic for connecting to devicedb
-const MAX_DEVICEDB_WAIT_TIME_IN_SECS int = (24 * 60 * 60)        //24 hours
-const LOOP_WAIT_TIME_INCREMENT_WINDOW int = (6 * 60)             //6 minutes which is the exponential retry backoff window
-const INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 5     //5 secs
-const INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS int = 120 //Exponential retry backoff interval
-const DEVICEDB_JOB_NAME string = "devicedb"
-
 //This function is called during bootup. It waits for devicedb to be up and running to connect to it, once connected it calls
 //SetupDeviceDBConfig
 func (this *networkManagerInstance) initDeviceDBConfig() error {
-	var totalWaitTime int = 0
-	var loopWaitTime int = INITIAL_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
 	var err error
-	//TLS config to connect to devicedb
-	var tlsConfig *tls.Config
 
-	if this.ddbConnConfig == nil {
-		log.MaestroErrorf("NetworkManager: No devicedb connection config available, configuration will not be fetched from devicedb\n")
-		return errors.New("No devicedb connection config available, configuration will not be fetched from devicedb\n")
-	}
-
-	log.MaestroInfof("NetworkManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
-		this.ddbConnConfig.DeviceDBUri, this.ddbConnConfig.DeviceDBPrefix, this.ddbConnConfig.DeviceDBBucket, this.ddbConnConfig.RelayId, this.ddbConnConfig.CaChainCert)
-
-	//Device DB config uses deviceid as the relay_id, so uset that to set the hostname
-	log.MaestroWarnf("NetworkManager: Setting hostname: %s\n", this.ddbConnConfig.RelayId)
-	err = syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
-	if err != nil {
-		log.MaestroErrorf("NetworkManager: Failed to set hostname (ignoring...): %v\n", err)
-	}
-
-	relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
-	if err != nil {
-		log.MaestroErrorf("NetworkManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
-		return errors.New(fmt.Sprintf("NetworkManager: Unable to access ca-chain-cert file at: %s, err = %v\n", this.ddbConnConfig.CaChainCert, err))
-	}
-
-	caCerts := x509.NewCertPool()
-
-	if !caCerts.AppendCertsFromPEM(relayCaChain) {
-		log.MaestroErrorf("CA chain loaded from %s is not valid: %v\n", this.ddbConnConfig.CaChainCert, err)
-		return errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", this.ddbConnConfig.CaChainCert))
-	}
-
-	tlsConfig = &tls.Config{
-		RootCAs: caCerts,
-	}
-
-	this.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(
-		tlsConfig,
-		this.ddbConnConfig.DeviceDBUri,
-		this.ddbConnConfig.RelayId,
-		this.ddbConnConfig.DeviceDBPrefix,
-		this.ddbConnConfig.DeviceDBBucket)
-
-	for totalWaitTime < MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-		log.MaestroInfof("initDeviceDBConfig: checking devicedb availability\n")
-		if this.ddbConfigClient.IsAvailable() || !this.waitForDeviceDB {
-			break
-		} else {
-			log.MaestroWarnf("initDeviceDBConfig: devicedb is not running. retrying in %d seconds", loopWaitTime)
-			time.Sleep(time.Second * time.Duration(loopWaitTime))
-			totalWaitTime += loopWaitTime
-			//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
-			if totalWaitTime > LOOP_WAIT_TIME_INCREMENT_WINDOW {
-				loopWaitTime = INCREASED_DEVICEDB_STATUS_CHECK_INTERVAL_IN_SECS
-			}
-		}
-
-		//After 24 hours just assume its never going to come up stop waiting for it and break the loop
-		if totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-			log.MaestroErrorf("initDeviceDBConfig: devicedb is not running, cannot fetch config from devicedb")
-			return errors.New("devicedb is not running, cannot fetch config from devicedb")
-		}
+	this.ddbConfigClient, err = maestroConfig.GetDDBRelayConfigClient(this.ddbConnConfig)
+	if this.ddbConfigClient == nil {
+		return err
 	}
 	log.MaestroInfof("initDeviceDBConfig: successfully connected to devicedb\n")
 
@@ -1036,12 +964,6 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	}
 
 	//Now start a monitor for the network config in devicedb
-	err, this.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(this.ddbConnConfig)
-	if err != nil {
-		log.MaestroErrorf("NetworkManager: Unable to create config monitor: %v\n", err)
-		return errors.New(fmt.Sprintf("\n Unable to create config monitor: %v\n", err))
-	}
-
 	//Add config change hook for all property groups, we can use the same interface
 	var networkConfigChangeHook NetworkConfigChangeHook
 
@@ -1067,7 +989,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	origNetworkConfig = *this.networkConfig
 
 	//Adding monitor config
-	this.ddbConfigMonitor.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
+	this.ddbConfigClient.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
 
 	//Add config change hook for all property groups, we can use the same interface
 	var commitConfigChangeHook CommitConfigChangeHook
@@ -1076,7 +998,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	//Add monitor for this object
 	var updatedConfigCommit ConfigCommit
 	log.MaestroInfof("NetworkManager: Adding monitor for config commit object\n")
-	this.ddbConfigMonitor.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
+	this.ddbConfigClient.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
 
 	return nil
 }
