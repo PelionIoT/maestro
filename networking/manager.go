@@ -896,13 +896,13 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 	if this.ddbConfigClient == nil {
 		return err
 	}
-	log.MaestroInfof("initDeviceDBConfig: successfully connected to devicedb\n")
+	log.MaestroInfof("NetworkManager: successfully connected to devicedb\n")
 
 	err = this.SetupDeviceDBConfig()
 	if err != nil {
-		log.MaestroErrorf("initDeviceDBConfig: error setting up config using devicedb: %v", err)
+		log.MaestroErrorf("NetworkManager: error setting up config using devicedb: %v", err)
 	} else {
-		log.MaestroInfof("initDeviceDBConfig: successfully read config from devicedb\n")
+		log.MaestroInfof("NetworkManager: successfully read config from devicedb\n")
 	}
 
 	return err
