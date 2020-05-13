@@ -1,16 +1,12 @@
 package logconfig
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 	"unsafe"
 
@@ -125,9 +121,8 @@ type logManagerInstance struct {
 	logConfig []maestroSpecs.LogTarget
 
 	// Configs to be used for connecting to devicedb
-	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
-	ddbConfigMonitor *maestroConfig.DDBMonitor
-	ddbConfigClient  *maestroConfig.DDBRelayConfigClient
+	ddbConnConfig   *maestroConfig.DeviceDBConnConfig
+	ddbConfigClient *maestroConfig.DDBRelayConfigClient
 }
 
 //DDBLogConfigName name used in log writes
@@ -303,164 +298,102 @@ func (logManager *logManagerInstance) SetTargetConfigByName(targetname string, l
 	return
 }
 
-//Constants used in the logic for connecting to devicedb
-/////////////////////////////////////////////////////////
-
-//MaxDeviceDBWaitTimeInSecs is 24 hours
-const MaxDeviceDBWaitTimeInSecs int = (24 * 60 * 60)
-
-//LoopWaitTimeIncrementWindow is 6 minutes which is the exponential retry backoff window
-const LoopWaitTimeIncrementWindow int = (6 * 60)
-
-//InitialDeviceDBStatusCheckIntervalInSecs is 5 secs
-const InitialDeviceDBStatusCheckIntervalInSecs int = 5
-
-//IncreasedDeviceDBStatusCheckIntervalInSecs is Exponential retry backoff interval
-const IncreasedDeviceDBStatusCheckIntervalInSecs int = 120
-
-//initDeviceDBConfig This function is called during bootup. It waits for devicedb to be up and running to connect to it, once connected it calls
+//This function is called during bootup. It waits for devicedb to be up and running to connect to it, once connected it calls
 //SetupDeviceDBConfig
-func (logManager *logManagerInstance) initDeviceDBConfig() {
-	var totalWaitTime int = 0
-	var loopWaitTime int = InitialDeviceDBStatusCheckIntervalInSecs
+func (this *logManagerInstance) initDeviceDBConfig() error {
 	var err error
-	log.MaestroInfof("initDeviceDBConfig: connecting to devicedb\n")
-	err = logManager.SetupDeviceDBConfig()
 
-	//After 24 hours just assume its never going to come up stop waiting for it and break the loop
-	for (err != nil) && (totalWaitTime < MaxDeviceDBWaitTimeInSecs) {
-		log.MaestroDebugf("initDeviceDBConfig: Waiting for devicedb to connect\n")
-		time.Sleep(time.Second * time.Duration(loopWaitTime))
-		totalWaitTime += loopWaitTime
-		//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
-		if totalWaitTime > LoopWaitTimeIncrementWindow {
-			loopWaitTime = IncreasedDeviceDBStatusCheckIntervalInSecs
-		}
-		err = logManager.SetupDeviceDBConfig()
+	this.ddbConfigClient, err = maestroConfig.GetDDBRelayConfigClient(this.ddbConnConfig)
+	if this.ddbConfigClient == nil {
+		return err
+	}
+	log.MaestroInfof("LogManager: successfully connected to devicedb\n")
+
+	err = this.SetupDeviceDBConfig()
+	if err != nil {
+		log.MaestroErrorf("LogManager: error setting up config using devicedb: %v", err)
+	} else {
+		log.MaestroInfof("LogManager: successfully read config from devicedb\n")
 	}
 
-	if totalWaitTime >= MaxDeviceDBWaitTimeInSecs {
-		log.MaestroDebugf("initDeviceDBConfig: devicedb is not connected, cannot fetch config from devicedb")
-	}
-	if err == nil {
-		log.MaestroInfof("initDeviceDBConfig: successfully connected to devicedb\n")
-	}
+	return err
 }
 
 //SetupDeviceDBConfig reads the config from devicedb and if its new it applies the new config.
 //It also sets up the config update handlers for all the tags/groups.
-func (logManager *logManagerInstance) SetupDeviceDBConfig() (err error) {
-	//TLS config to connect to devicedb
-	var tlsConfig *tls.Config
+func (this *logManagerInstance) SetupDeviceDBConfig() (err error) {
+	var ddbLogConfig maestroSpecs.LogConfigPayload
 
-	if logManager.ddbConnConfig != nil {
-		log.MaestroInfof("LogManager: Found valid devicedb connection config, try connecting and fetching the config from devicedb: uri:%s prefix: %s bucket:%s id:%s cert:%s\n",
-			logManager.ddbConnConfig.DeviceDBUri, logManager.ddbConnConfig.DeviceDBPrefix, logManager.ddbConnConfig.DeviceDBBucket, logManager.ddbConnConfig.RelayId, logManager.ddbConnConfig.CaChainCert)
-		//Device DB config uses deviceid as the relay_id, so uset that to set the hostname
-		log.MaestroInfof("LogManager: Setting hostname: %s\n", logManager.ddbConnConfig.RelayId)
-		syscall.Sethostname([]byte(logManager.ddbConnConfig.RelayId))
+	//Create a config analyzer object, required for registering the config change hook and diff the config objects.
+	configLogAna := maestroSpecs.NewConfigAnalyzer(DDBLogConfigGroupID)
+	if configLogAna == nil {
+		log.MaestroDebugf("LogManager: Failed to create config analyzer object, unable to fetch config from devicedb")
+		errUpdated := errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
+		return errUpdated
+	}
 
-		relayCaChain, err := ioutil.ReadFile(logManager.ddbConnConfig.CaChainCert)
+	err = this.ddbConfigClient.Config(DDBLogConfigName).Get(&ddbLogConfig)
+	if err != nil {
+		for _, target := range this.logConfig {
+			target := target
+			ddbLogConfig.Targets = append(ddbLogConfig.Targets, &target)
+		}
+		log.MaestroDebugf("LogManager: No log config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config.\n", err)
+		err = this.ddbConfigClient.Config(DDBLogConfigName).Put(&ddbLogConfig)
 		if err != nil {
-			log.MaestroDebugf("LogManager: Unable to access ca-chain-cert file at: %s\n", logManager.ddbConnConfig.CaChainCert)
-			errUpdated := errors.New(fmt.Sprintf("LogManager: Unable to access ca-chain-cert file at: %s, err = %v\n", logManager.ddbConnConfig.CaChainCert, err))
+			log.MaestroDebugf("LogManager: Unable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err)
+			errUpdated := errors.New(fmt.Sprintf("\nUnable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err))
 			return errUpdated
-		}
-
-		caCerts := x509.NewCertPool()
-
-		if !caCerts.AppendCertsFromPEM(relayCaChain) {
-			log.MaestroDebugf("CA chain loaded from %s is not valid: %v\n", logManager.ddbConnConfig.CaChainCert, err)
-			errUpdated := errors.New(fmt.Sprintf("CA chain loaded from %s is not valid\n", logManager.ddbConnConfig.CaChainCert))
-			return errUpdated
-		}
-
-		tlsConfig = &tls.Config{
-			RootCAs: caCerts,
-		}
-
-		//Config for log
-		var ddbLogConfig maestroSpecs.LogConfigPayload
-
-		//Create a config analyzer object, required for registering the config change hook and diff the config objects.
-		configLogAna := maestroSpecs.NewConfigAnalyzer(DDBLogConfigGroupID)
-		if configLogAna == nil {
-			log.MaestroDebugf("LogManager: Failed to create config analyzer object, unable to fetch config from devicedb")
-			errUpdated := errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
-			return errUpdated
-		} else {
-			logManager.ddbConfigClient = maestroConfig.NewDDBRelayConfigClient(tlsConfig, logManager.ddbConnConfig.DeviceDBUri, logManager.ddbConnConfig.RelayId, logManager.ddbConnConfig.DeviceDBPrefix, logManager.ddbConnConfig.DeviceDBBucket)
-			err = logManager.ddbConfigClient.Config(DDBLogConfigName).Get(&ddbLogConfig)
-			if err != nil {
-				for _, target := range logManager.logConfig {
-					target := target
-					ddbLogConfig.Targets = append(ddbLogConfig.Targets, &target)
-				}
-				log.MaestroDebugf("LogManager: No log config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config.\n", err)
-				err = logManager.ddbConfigClient.Config(DDBLogConfigName).Put(&ddbLogConfig)
-				if err != nil {
-					log.MaestroDebugf("LogManager: Unable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err)
-					errUpdated := errors.New(fmt.Sprintf("\nUnable to put log config in devicedb err:%v, config will not be monitored from devicedb\n", err))
-					return errUpdated
-				}
-			} else {
-				//We found a config in devicedb, lets try to use and reconfigure log if its an updated one
-				log.MaestroInfof("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig.Targets)
-				log.MaestroInfof("MRAY DiffChanges being called\n")
-				var temp maestroSpecs.LogConfigPayload
-				for _, target := range logManager.logConfig {
-					target := target
-					temp.Targets = append(temp.Targets, &target)
-				}
-				identical, _, _, err := configLogAna.DiffChanges(temp, ddbLogConfig)
-				if !identical && (err == nil) {
-					//The configs are different, lets go ahead reconfigure the intfs
-					log.MaestroInfof("LogManager: New log config found from devicedb, reconfigure nework using new config\n")
-					logManager.logConfig = make([]maestroSpecs.LogTarget, len(ddbLogConfig.Targets))
-					for i, target := range ddbLogConfig.Targets {
-						logManager.logConfig[i] = *target
-					}
-					logManager.submitConfigAndSync(logManager.logConfig)
-					// //Setup the intfs using new config
-					// this.setupTargets()
-				} else {
-					log.MaestroInfof("LogManager: New log config found from devicedb, but its same as boot config, no need to re-configure\n")
-				}
-			}
-
-			//Now start a monitor for the log config in devicedb
-			err, logManager.ddbConfigMonitor = maestroConfig.NewDeviceDBMonitor(logManager.ddbConnConfig)
-			if err != nil {
-				log.MaestroDebugf("LogManager: Unable to create config monitor: %v\n", err)
-			} else {
-				//Add config change hook for all property groups, we can use the same interface
-				var logConfigChangeHook ChangeHook
-
-				//log target keys
-				configLogAna.AddHook("name", logConfigChangeHook)
-				configLogAna.AddHook("filters", logConfigChangeHook)
-				configLogAna.AddHook("format", logConfigChangeHook)
-				configLogAna.AddHook("opts", logConfigChangeHook)
-
-				//Add monitor for this config
-				var origLogConfig, updatedLogConfig maestroSpecs.LogConfigPayload
-
-				//Provide a copy of current log config monitor to Config monitor, not the actual config we use, this would prevent config monitor
-				//directly updating the running config(this.logConfig).
-				for _, target := range logManager.logConfig {
-					target := target
-					origLogConfig.Targets = append(origLogConfig.Targets, &target)
-				}
-
-				log.MaestroInfof("adding log monitor config\n")
-
-				//Adding monitor config
-				logManager.ddbConfigMonitor.AddMonitorConfig(&origLogConfig, &updatedLogConfig, DDBLogConfigName, configLogAna)
-			}
 		}
 	} else {
-		log.MaestroDebugf("LogManager: No devicedb connection config available, configuration will not be fetched from devicedb\n")
+		//We found a config in devicedb, lets try to use and reconfigure log if its an updated one
+		log.MaestroInfof("LogManager: Found a valid config in devicedb [%v], will try to use and reconfigure log if its an updated one\n", ddbLogConfig.Targets)
+		log.MaestroInfof("MRAY DiffChanges being called\n")
+		var temp maestroSpecs.LogConfigPayload
+		for _, target := range this.logConfig {
+			target := target
+			temp.Targets = append(temp.Targets, &target)
+		}
+		identical, _, _, err := configLogAna.DiffChanges(temp, ddbLogConfig)
+		if !identical && (err == nil) {
+			//The configs are different, lets go ahead reconfigure the intfs
+			log.MaestroInfof("LogManager: New log config found from devicedb, reconfigure nework using new config\n")
+			this.logConfig = make([]maestroSpecs.LogTarget, len(ddbLogConfig.Targets))
+			for i, target := range ddbLogConfig.Targets {
+				this.logConfig[i] = *target
+			}
+			this.submitConfigAndSync(this.logConfig)
+			// //Setup the intfs using new config
+			// this.setupTargets()
+		} else {
+			log.MaestroInfof("LogManager: New log config found from devicedb, but its same as boot config, no need to re-configure\n")
+		}
 	}
+
+	//Now start a monitor for the log config in devicedb
+	//Add config change hook for all property groups, we can use the same interface
+	var logConfigChangeHook ChangeHook
+
+	//log target keys
+	configLogAna.AddHook("name", logConfigChangeHook)
+	configLogAna.AddHook("filters", logConfigChangeHook)
+	configLogAna.AddHook("format", logConfigChangeHook)
+	configLogAna.AddHook("opts", logConfigChangeHook)
+
+	//Add monitor for this config
+	var origLogConfig, updatedLogConfig maestroSpecs.LogConfigPayload
+
+	//Provide a copy of current log config monitor to Config monitor, not the actual config we use, this would prevent config monitor
+	//directly updating the running config(this.logConfig).
+	for _, target := range this.logConfig {
+		target := target
+		origLogConfig.Targets = append(origLogConfig.Targets, &target)
+	}
+
+	log.MaestroInfof("adding log monitor config\n")
+
+	//Adding monitor config
+	this.ddbConfigClient.AddMonitorConfig(&origLogConfig, &updatedLogConfig, DDBLogConfigName, configLogAna)
 
 	return
 }
