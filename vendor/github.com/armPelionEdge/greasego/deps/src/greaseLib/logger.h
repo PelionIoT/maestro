@@ -224,7 +224,6 @@ struct uint64_t_eqstrP {
 
 //#define LOGGER_HEAVY_DEBUG 1
 #define MAX_IDENTICAL_FILTERS 16
-#define LOGGER_HEAVY_DEBUG
 #ifdef LOGGER_HEAVY_DEBUG
 #pragma message "Build is Debug Heavy!!"
 // confused? here: https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
