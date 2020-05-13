@@ -46,7 +46,7 @@ cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego"
 cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego"
 
 # build greasego
-DEBUG=1 ./build.sh
+./build.sh
 
 popd
 
