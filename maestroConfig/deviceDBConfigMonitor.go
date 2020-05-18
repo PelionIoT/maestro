@@ -39,25 +39,24 @@ func NewDeviceDBMonitor(ddbConnConfig *DeviceDBConnConfig) (err error, ddbMonito
 		err = errors.New("No relay_id provided\n")
 	}
 
-	if ddbConnConfig.CaChainCert == "" {
-		fmt.Fprintf(os.Stderr, "No ca_chain provided\n")
-		err = errors.New("No ca_chain provided\n")
-	}
+	if ddbConnConfig.CaChainCert != "" {
+		relayCaChain, err := ioutil.ReadFile(ddbConnConfig.CaChainCert)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err)
+			err = errors.New(fmt.Sprintf("Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err))
+		}
 
-	relayCaChain, err := ioutil.ReadFile(ddbConnConfig.CaChainCert)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err)
-		err = errors.New(fmt.Sprintf("Unable to load CA chain from %s: %v\n", ddbConnConfig.CaChainCert, err))
-	}
+		caCerts := x509.NewCertPool()
+		if !caCerts.AppendCertsFromPEM(relayCaChain) {
+			fmt.Fprintf(os.Stderr, "CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err)
+			err = errors.New(fmt.Sprintf("CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err))
+		}
 
-	caCerts := x509.NewCertPool()
-	if !caCerts.AppendCertsFromPEM(relayCaChain) {
-		fmt.Fprintf(os.Stderr, "CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err)
-		err = errors.New(fmt.Sprintf("CA chain loaded from %s is not valid: %v\n", ddbConnConfig.CaChainCert, err))
-	}
-
-	tlsConfig = &tls.Config{
-		RootCAs: caCerts,
+		tlsConfig = &tls.Config{
+			RootCAs: caCerts,
+		}
+	} else {
+		tlsConfig = &tls.Config{}
 	}
 
 	configClient = NewDDBRelayConfigClient(tlsConfig, ddbConnConfig.DeviceDBUri, ddbConnConfig.RelayId, ddbConnConfig.DeviceDBPrefix, ddbConnConfig.DeviceDBBucket)
