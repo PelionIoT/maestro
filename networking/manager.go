@@ -923,7 +923,7 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 	if err != nil {
 		log.MaestroErrorf("NetworkManager: Failed to set hostname (ignoring...): %v\n", err)
 	}
-	if (this.ddbConnConfig.CaChainCert != nil)
+	if this.ddbConnConfig.CaChainCert != "" {
 		relayCaChain, err := ioutil.ReadFile(this.ddbConnConfig.CaChainCert)
 		if err != nil {
 			log.MaestroErrorf("NetworkManager: Unable to access ca-chain-cert file at: %s\n", this.ddbConnConfig.CaChainCert)
