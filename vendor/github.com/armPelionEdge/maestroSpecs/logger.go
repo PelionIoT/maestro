@@ -40,47 +40,47 @@ type LogConfigPayload struct {
 }
 
 type LogRotate struct {
-	MaxFiles      uint32 `yaml:"max_files,omitempty" greaseAssign:"Max_files"`
-	RotateOnStart bool   `yaml:"rotate_on_start,omitempty" greaseAssign:"Rotate_on_start"`
-	MaxFileSize   uint32 `yaml:"max_file_size,omitempty" greaseAssign:"Max_file_size"`
-	MaxTotalSize  uint64 `yaml:"max_total_size,omitempty" greaseAssign:"Max_total_size"`
+	MaxFiles      uint32 `yaml:"max_files,omitempty" json:"max_files" greaseAssign:"Max_files"`
+	RotateOnStart bool   `yaml:"rotate_on_start,omitempty" json:"rotate_on_start" greaseAssign:"Rotate_on_start"`
+	MaxFileSize   uint32 `yaml:"max_file_size,omitempty" json:"max_file_size" greaseAssign:"Max_file_size"`
+	MaxTotalSize  uint64 `yaml:"max_total_size,omitempty" json:"max_total_size" greaseAssign:"Max_total_size"`
 }
 
 type LogTarget struct {
-	File                     string                           `yaml:"file,omitempty" greaseAssign:"File" log_group:"name"`
-	TTY                      string                           `yaml:"tty,omitempty" greaseAssign:"TTY" log_group:"name"`
-	Format                   LogFormat                        `yaml:"format,omitempty" log_group:"format"`
-	Filters                  []LogFilter                      `yaml:"filters" log_group:"filters"`
-	Rotate                   LogRotate                        `yaml:"rotate,omitempty" greaseAssign:"FileOpts" log_group:"opts"`
-	ExampleFileOpts          greasego.GreaseLibTargetFileOpts `greaseType:"FileOpts" log_group:"opts"`
-	Delim                    string                           `yaml:"delim,omitempty" greaseAssign:"Delim" log_group:"format"`
-	FormatPre                string                           `yaml:"format_pre,omitempty" greaseAssign:"Format_pre" log_group:"format"`
-	FormatTime               string                           `yaml:"format_time,omitempty" greaseAssign:"Format_time" log_group:"format"`
-	FormatLevel              string                           `yaml:"format_level,omitempty" greaseAssign:"Format_level" log_group:"format"`
-	FormatTag                string                           `yaml:"format_tag,omitempty" greaseAssign:"Format_tag" log_group:"format"`
-	FormatOrigin             string                           `yaml:"format_origin,omitempty" greaseAssign:"Format_origin" log_group:"format"`
-	FormatPost               string                           `yaml:"format_post,omitempty" greaseAssign:"Format_post" log_group:"format"`
-	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" greaseAssign:"Format_pre_msg" log_group:"format"`
-	Name                     string                           `yaml:"name,omitempty" greaseAssign:"Name" log_group:"name"`
-	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings" log_group:"opts"`
-	Existing                 string                           `yaml:"existing" json:"existing" log_group:"opts"`
+	File                     string                           `yaml:"file,omitempty" json:"file" greaseAssign:"File" log_group:"name"`
+	TTY                      string                           `yaml:"tty,omitempty" json:"tty" greaseAssign:"TTY" log_group:"name"`
+	Format                   LogFormat                        `yaml:"format,omitempty" json:"format" log_group:"format"`
+	Filters                  []LogFilter                      `yaml:"filters" json:"filters" log_group:"filters"`
+	Rotate                   LogRotate                        `yaml:"rotate,omitempty" json:"rotate" greaseAssign:"FileOpts" log_group:"opts"`
+	ExampleFileOpts          greasego.GreaseLibTargetFileOpts `greaseType:"FileOpts" json:"example_file_opts" log_group:"opts"`
+	Delim                    string                           `yaml:"delim,omitempty" json:"delim" greaseAssign:"Delim" log_group:"format"`
+	FormatPre                string                           `yaml:"format_pre,omitempty" json:"format_pre" greaseAssign:"Format_pre" log_group:"format"`
+	FormatTime               string                           `yaml:"format_time,omitempty" json:"format_time" greaseAssign:"Format_time" log_group:"format"`
+	FormatLevel              string                           `yaml:"format_level,omitempty" json:"format_level" greaseAssign:"Format_level" log_group:"format"`
+	FormatTag                string                           `yaml:"format_tag,omitempty" json:"format_tag" greaseAssign:"Format_tag" log_group:"format"`
+	FormatOrigin             string                           `yaml:"format_origin,omitempty" json:"format_origin" greaseAssign:"Format_origin" log_group:"format"`
+	FormatPost               string                           `yaml:"format_post,omitempty" json:"format_post" greaseAssign:"Format_post" log_group:"format"`
+	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" json:"format_pre_msg" greaseAssign:"Format_pre_msg" log_group:"format"`
+	Name                     string                           `yaml:"name,omitempty" json:"name" greaseAssign:"Name" log_group:"name"`
+	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings" json:"flag_json_escape_strings" log_group:"opts"`
+	Existing                 string                           `yaml:"existing" json:"existing" json:"delim" log_group:"opts"`
 }
 
 type LogFormat struct {
-	Time   string `yaml:"time,omitempty" log_group:"format"`
-	Level  string `yaml:"level,omitempty" log_group:"format"`
-	Tag    string `yaml:"tag,omitempty" log_group:"format"`
-	Origin string `yaml:"origin,omitempty" log_group:"format"`
+	Time   string `yaml:"time,omitempty" json:"time" log_group:"format"`
+	Level  string `yaml:"level,omitempty" json:"level" log_group:"format"`
+	Tag    string `yaml:"tag,omitempty" json:"tag" log_group:"format"`
+	Origin string `yaml:"origin,omitempty" json:"origin" log_group:"format"`
 }
 
 type LogFilter struct {
-	Target string `yaml:"target,omitempty" log_group:"filters"` // target: "default",
-	Levels string `yaml:"levels,omitempty" log_group:"filters"`
-	Tag    string `yaml:"tag,omitempty" log_group:"filters"`
+	Target string `yaml:"target,omitempty" json:"target" log_group:"filters"` // target: "default",
+	Levels string `yaml:"levels,omitempty" json:"levels" log_group:"filters"`
+	Tag    string `yaml:"tag,omitempty" json:"tag" log_group:"filters"`
 
-	Pre           string `yaml:"format_pre,omitempty" greaseAssign:"Format_pre" log_group:"filters"`
-	Post          string `yaml:"format_post,omitempty" greaseAssign:"Format_post" log_group:"filters"`
-	PostFmtPreMsg string `yaml:"fmt_post_pre_msg,omitempty"  greaseAssign:"Format_post_pre_msg" log_group:"filters"`
+	Pre           string `yaml:"format_pre,omitempty" json:"pre" greaseAssign:"Format_pre" log_group:"filters"`
+	Post          string `yaml:"format_post,omitempty" json:"post" greaseAssign:"Format_post" log_group:"filters"`
+	PostFmtPreMsg string `yaml:"fmt_post_pre_msg,omitempty" json:"post_fmt_pre_msg" greaseAssign:"Format_post_pre_msg" log_group:"filters"`
 	//	format_pre *string`
 	//	format_post *string
 	//	format_post_pre_msg *string
