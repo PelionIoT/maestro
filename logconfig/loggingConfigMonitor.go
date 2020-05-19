@@ -18,6 +18,7 @@ package logconfig
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,6 +38,12 @@ type ChangeHook struct {
 //receives a message which is ConfigChangeInfo object, it calls corresponding
 //process functions(see below) based on config group.
 func ConfigChangeHandler(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+
+	inst := GetInstance()
+
+	if inst.logConfigFuture == nil {
+		inst.logConfigFuture = make([]maestroSpecs.LogTarget, 1)
+	}
 
 	log.MaestroInfof("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
 	switch configgroup {
@@ -60,7 +67,8 @@ func ConfigChangeHandler(configgroup string, fieldchanged string, futvalue inter
 func (cfgHook ChangeHook) ChangesStart(configgroup string) {
 	log.MaestroInfof("ConfigChangeHook:ChangesStart: %s\n", configgroup)
 
-	//ConfigChangeHandler(configChangeRequestChan)
+	// FIXME!
+	// clear all the changes here? elsewhere?
 }
 
 // SawChange is called whenever a field changes. It will be called only once for each field which is changed.
@@ -84,20 +92,6 @@ func (cfgHook ChangeHook) SawChange(configgroup string, fieldchanged string, fut
 // If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
 func (cfgHook ChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
 	log.MaestroInfof("ConfigChangeHook:ChangesComplete: %s\n", configgroup)
-
-	inst := GetInstance()
-	//only apply this after getting all the filters
-	if configgroup == "filters" {
-
-		log.MaestroInfof("In config group if\n")
-
-		jsstruct, _ := json.Marshal(inst.logConfig)
-		log.MaestroInfof("Applying: \n")
-		log.MaestroInfof("%s\n", string(jsstruct))
-
-		//here is where we will add our filters
-		inst.ApplyChanges()
-	}
 
 	return false //return false as we would apply only those we successfully processed
 }
@@ -185,7 +179,7 @@ func (inst *logManagerInstance) FileConfigChange(fieldchanged string, futvalue i
 
 	switch fieldName {
 	case "File":
-		inst.logConfig[targetIndex].File = reflect.ValueOf(futvalue).String()
+		inst.logConfigFuture[targetIndex].File = reflect.ValueOf(futvalue).String()
 	default:
 		log.MaestroWarnf("FileConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	}
@@ -202,7 +196,7 @@ func (inst *logManagerInstance) NameConfigChange(fieldchanged string, futvalue i
 
 	switch fieldName {
 	case "Name":
-		inst.logConfig[targetIndex].Name = reflect.ValueOf(futvalue).String()
+		inst.logConfigFuture[targetIndex].Name = reflect.ValueOf(futvalue).String()
 	default:
 		log.MaestroWarnf("NameConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	}
@@ -215,7 +209,7 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 	splits := strings.Split(fieldchanged, ".")
 
 	for i := 0; i < len(splits); i++ {
-		log.MaestroInfof("index: %n value: %s\n", i, splits[i])
+		log.MaestroInfof("index: %d value: %s\n", i, splits[i])
 	}
 	targetIndex, _ := strconv.Atoi(strings.TrimLeft(strings.TrimRight(splits[0], "]"), "Targets["))
 
@@ -229,17 +223,30 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 
 	log.MaestroInfof("targetIndex=%d\n", targetIndex)
 	log.MaestroInfof("filterIndex=%d\n", filterIndex)
-	log.MaestroInfof("fieldName=%d\n", fieldName)
+	log.MaestroInfof("fieldName=%s\n", fieldName)
+	log.MaestroInfof("inst.logConfigFuture length=%d\n", len(inst.logConfigFuture))
+	log.MaestroInfof("inst.logConfigFuture[targetIndex].Filters length=%d\n", len(inst.logConfigFuture[targetIndex].Filters))
+
+	if targetIndex >= len(inst.logConfigFuture) {
+		inst.logConfigFuture = append(inst.logConfigFuture, maestroSpecs.LogTarget{})
+	}
+
+	if filterIndex >= len(inst.logConfigFuture[targetIndex].Filters) {
+		inst.logConfigFuture[targetIndex].Filters = append(inst.logConfigFuture[targetIndex].Filters, maestroSpecs.LogFilter{})
+	}
+
+	log.MaestroInfof("running file name=%s\n", inst.logConfigRunning[targetIndex].File)
+	inst.logConfigFuture[targetIndex].File = inst.logConfigRunning[targetIndex].File
 
 	switch fieldName {
 	case "Target":
-		inst.logConfig[targetIndex].Filters[filterIndex].Target = reflect.ValueOf(futvalue).String()
+		inst.logConfigFuture[targetIndex].Filters[filterIndex].Target = reflect.ValueOf(futvalue).String()
 	case "Levels":
-		inst.logConfig[targetIndex].Filters[filterIndex].Levels = reflect.ValueOf(futvalue).String()
+		inst.logConfigFuture[targetIndex].Filters[filterIndex].Levels = reflect.ValueOf(futvalue).String()
 	case "Pre":
-		inst.logConfig[targetIndex].Filters[filterIndex].Pre = reflect.ValueOf(futvalue).String()
+		inst.logConfigFuture[targetIndex].Filters[filterIndex].Pre = reflect.ValueOf(futvalue).String()
 	case "Post":
-		inst.logConfig[targetIndex].Filters[filterIndex].Post = reflect.ValueOf(futvalue).String()
+		inst.logConfigFuture[targetIndex].Filters[filterIndex].Post = reflect.ValueOf(futvalue).String()
 	default:
 		log.MaestroWarnf("FiltersConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	}
@@ -248,15 +255,19 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 //ApplyChanges this make the filter changes active
 func (inst *logManagerInstance) ApplyChanges() {
 
+	if inst.logConfigFuture == nil {
+		inst.logConfigFuture = make([]maestroSpecs.LogTarget, 1)
+	}
+
 	log.MaestroInfof("Entering ApplyChanges()\n")
-	filterslen := len(inst.logConfig[0].Filters)
+	filterslen := len(inst.logConfigFuture[0].Filters)
 
 	//get the target id
-	targID := greasego.GetTargetId(inst.logConfig[0].File)
+	targID := greasego.GetTargetId(inst.logConfigFuture[0].File)
 
 	//make sure its legit
 	if targID == 0 {
-		log.MaestroInfof("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfig[0].Name)
+		log.MaestroInfof("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfigFuture[0].Name)
 		return
 	}
 
@@ -264,33 +275,133 @@ func (inst *logManagerInstance) ApplyChanges() {
 
 	// if the existing target at index has a name and if the incoming filter specifies a target name,
 	// then verify the names match
-	if len(inst.logConfig[0].Name) > 0 {
+	if len(inst.logConfigFuture[0].Name) > 0 {
 		for i := 0; i < filterslen; i++ {
-			targetName := inst.logConfig[0].Filters[i].Target
-			if len(targetName) > 0 && (inst.logConfig[0].Name != targetName) {
+			targetName := inst.logConfigFuture[0].Filters[i].Target
+			if len(targetName) > 0 && (inst.logConfigFuture[0].Name != targetName) {
 				log.MaestroInfof("FiltersConfigChange: filter.Target.Name doesn't match existing target at index 0\n")
 				return
 			}
 		}
 	}
 
-	// FIXME: the incoming filter config completely replaces any existing config which is known
-	//     as "replace" behavior for the "Existing" flag.  Do we need to handle "override" flag?
+	/////////////////////////////////////////////////////////////
+	// We need to get all the log targets so we can modify them
+	/////////////////////////////////////////////////////////////
+	LogTargets := make([]maestroSpecs.LogTarget, 0)
 
-	// For "replace" behavior, we delete all existing filters for the given target
-	for _, filter := range inst.logConfig[0].Filters {
-		DeleteLogFilter(filter)
+	targets, filters := greasego.GetAllTargetsAndFilters()
+
+	// add all existing targets
+	for _, target := range targets {
+		var t maestroSpecs.LogTarget
+		if target.Name != nil {
+			t.Name = *target.Name
+		}
+		if target.File != nil {
+			t.File = *target.File
+		}
+		if target.TTY != nil {
+			t.TTY = *target.TTY
+		}
+		LogTargets = append(LogTargets, t)
 	}
-	// now that all existing filters have been deleted, clear the local config array
-	//inst.logConfig[0].Filters = make([]maestroSpecs.LogFilter, filterslen)
 
-	// create the new filters based on the incoming config in futvalue
-	for i := 0; i < filterslen; i++ {
-		// configure greasego
-		AddLogFilter(inst.logConfig[0].Filters[i])
-
-		// FIXME: push the new config to maestroDB here?
+	// backfill the filters
+	for _, filter := range filters {
+		targetname := greasego.GetTargetName(filter.Target)
+		for i, target := range LogTargets {
+			if target.Name == targetname {
+				var f maestroSpecs.LogFilter
+				f.Target = target.Name
+				f.Tag = maestroConfig.ConvertTagUint32ToString(filter.Tag)
+				f.Levels = maestroConfig.ConvertLevelUint32MaskToString(filter.Mask)
+				LogTargets[i].Filters = append(LogTargets[i].Filters, f)
+			}
+		}
 	}
+
+	////////////////////////////////////////////////////////////////////
+	// Now that we have the filters we need to choosse to do a replace
+	// or override
+	//
+	// replace   = destroy all filter in the target and replace
+	//             them with the new one
+	// override  = only modify the differences in the targets filters
+	////////////////////////////////////////////////////////////////////
+	if inst.logConfigFuture[0].Existing == "override" {
+		fmt.Printf("inside override\n")
+		// For override we need to walk all of our existing filters and add
+		// the missing elements
+		for _, filter := range inst.logConfigFuture[0].Filters {
+			DeleteLogFilter(filter)
+		}
+		// For "replace" behavior, we delete all existing filters for the given target
+		for x := 0; x < len(LogTargets); x++ {
+			if LogTargets[x].File == inst.logConfigFuture[0].File {
+				for y := 0; y < len(LogTargets[x].Filters); y++ {
+					for z := 0; z < len(inst.logConfigFuture[0].Filters); z++ {
+						if LogTargets[x].Filters[y].Levels == inst.logConfigFuture[0].Filters[z].Levels {
+							newFilter := LogTargets[x].Filters[y]
+							if inst.logConfigFuture[0].Filters[z].Target != "" {
+								newFilter.Target = inst.logConfigFuture[0].Filters[z].Target
+							}
+							if inst.logConfigFuture[0].Filters[z].Tag != "" {
+								newFilter.Tag = inst.logConfigFuture[0].Filters[z].Tag
+							}
+							if inst.logConfigFuture[0].Filters[z].Pre != "" {
+								newFilter.Pre = inst.logConfigFuture[0].Filters[z].Pre
+							}
+							if inst.logConfigFuture[0].Filters[z].Post != "" {
+								newFilter.Post = inst.logConfigFuture[0].Filters[z].Post
+							}
+							if inst.logConfigFuture[0].Filters[z].PostFmtPreMsg != "" {
+								newFilter.PostFmtPreMsg = inst.logConfigFuture[0].Filters[z].PostFmtPreMsg
+							}
+							//we now set oun new filter back
+							inst.logConfigFuture[0].Filters[z] = newFilter
+
+							//we need to kill it so we can add it back in the end
+							DeleteLogFilter(inst.logConfigFuture[0].Filters[z])
+						}
+					}
+				}
+			}
+		}
+	} else {
+		fmt.Printf("inside replace\n")
+		// For "replace" behavior, we delete all existing filters for the given target
+		for w := 0; w < len(inst.logConfigFuture); w++ {
+			for x := 0; x < len(LogTargets); x++ {
+				if LogTargets[x].File == inst.logConfigFuture[w].File {
+					fmt.Printf("Delete file=%s filters\n", LogTargets[x].File)
+					for y := 0; y < len(LogTargets[x].Filters); y++ {
+						DeleteLogFilter(LogTargets[x].Filters[y])
+						log.MaestroInfof("Deleted: %s\n", LogTargets[x].Filters[y].Levels)
+						//LogTargets[x].Filters[y] = maestroSpecs.LogFilter{}
+					}
+				}
+			}
+		}
+	}
+
+	log.MaestroInfof("Performed: %s\n", inst.logConfigFuture[0].Existing)
+
+	// now that we have override or replace setup we just add all the filters back
+	for x := 0; x < len(inst.logConfigFuture); x++ {
+		for y := 0; y < filterslen; y++ {
+			// configure greasego
+			AddLogFilter(inst.logConfigFuture[x].Filters[y])
+			log.MaestroInfof("Added: %s\n", inst.logConfigFuture[x].Filters[y].Levels)
+		}
+	}
+	//store the config back to the database
+	inst.submitConfig(inst.logConfigFuture)
+
+	//last but not least clear the array now that this has been called
+	inst.logConfigRunning = inst.logConfigFuture
+	inst.logConfigFuture = make([]maestroSpecs.LogTarget, 1)
+
 }
 
 //FormatConfigChange Function to process format config change
@@ -301,4 +412,55 @@ func (inst *logManagerInstance) FormatConfigChange(fieldchanged string, futvalue
 //OptsConfigChange Function to process opts config change
 func (inst *logManagerInstance) OptsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("OptsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+
+	instance.logConfigFuture[index].Existing = reflect.ValueOf(futvalue).String()
+	fmt.Printf("existing=%s\n", instance.logConfigFuture[index].Existing)
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Monitor for ConfigChangeHook
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// CommitConfigChangeHook is the handler to commit and apply changes
+type CommitConfigChangeHook struct {
+}
+
+// ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
+// if there is at least one change to report
+func (cfgHook CommitConfigChangeHook) ChangesStart(configgroup string) {
+	log.MaestroInfof("CommitChangeHook:ChangesStart: %s\n", configgroup)
+
+	inst := GetInstance()
+	//only apply this after getting all the filters
+	log.MaestroInfof("In config group if\n")
+
+	jsstruct, _ := json.Marshal(inst.logConfigRunning)
+	log.MaestroInfof("Running: \n")
+	log.MaestroInfof("%s\n", string(jsstruct))
+
+	jsstruct2, _ := json.Marshal(inst.logConfigFuture)
+	log.MaestroInfof("Applying: \n")
+	log.MaestroInfof("%s\n", string(jsstruct2))
+
+	//here is where we will add our filters
+	inst.ApplyChanges()
+
+	//inst.logConfigFuture = make([]maestroSpecs.LogTarget, 1)
+	inst.CurrConfigCommit.ConfigCommitFlag = false
+}
+
+// SawChange is called whenever a field changes. It will be called only once for each field which is changed.
+// It will always be called after ChangesStart is called
+// If SawChange return true, then the value of futvalue will replace the value of current value
+func (cfgHook CommitConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
+	log.MaestroInfof("CommitChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
+
+	return false //return false as we would apply only those we successfully processed
+}
+
+// ChangesComplete is called when all changes for a specific configgroup tagname
+// If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
+func (cfgHook CommitConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
+	log.MaestroInfof("CommitChangeHook:ChangesComplete: %s\n", configgroup)
+	return false //return false as we would apply only those we successfully processed
 }
