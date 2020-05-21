@@ -130,6 +130,14 @@ exec $GOBIN/maestro
 " > /usr/sbin/maestro
 chmod +x /usr/sbin/maestro
 
+# Do the same for maestro-shell
+echo "#!/bin/bash -ue
+. /etc/profile.d/envvars.sh
+cd $GOPATH/src/github.com/armPelionEdge/maestro-shell
+exec $GOBIN/maestro-shell
+" > /usr/sbin/maestro-shell
+chmod +x /usr/sbin/maestro-shell
+
 # Set the network interface to eth0 instead of Ubuntu 16.04 default enp0s3
 rm /etc/udev/rules.d/70-persistent-net.rules
 sed -i -e 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"/g' /etc/default/grub
