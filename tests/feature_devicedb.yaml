@@ -1,0 +1,16 @@
+sysLogSocket: "/run/systemd/journal/syslog"
+network:
+  disable: true
+devicedb_conn_config:
+  devicedb_uri: "https://1fca6ba29be411ea9b5902c5aaaa718f:9090"
+  devicedb_prefix: "vagrant"
+  devicedb_bucket: "lww"
+  relay_id: "1fca6ba29be411ea9b5902c5aaaa718f"
+  ca_chain: "/home/vagrant/work/gostuff/src/github.com/armPelionEdge/devicedb/hack/certs/myCA.pem"
+targets:
+  - file: "/var/log/maestro/maestro.log"
+    name: "/var/log/maestro/maestro.log"
+    format_time: "\"timestamp\":%ld%03d, "
+    filters:
+      - levels: "error"
+config_end: true
