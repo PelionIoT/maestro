@@ -3,9 +3,17 @@
 # Install prerequisite packages
 add-apt-repository ppa:rmescandon/yq
 apt-get update
-apt-get install -y build-essential python wget git nodejs npm m4 docker.io docker-compose uuid yq
+apt-get install -y build-essential python wget git nodejs-legacy npm m4 docker.io docker-compose uuid yq jq
 systemctl start docker
 systemctl enable docker
+
+# Upgrade node. Needed since we are using nodejs-legacy package
+# We need nodejs-legacy because mocha (test framework) expects `node` not `nodejs`
+# `node` is nodejs-legacy and `nodejs` is nodejs
+npm cache clean -f
+npm install -g n
+n stable
+apt-get install --reinstall nodejs-legacy
 
 # Install docker-compose
 sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
