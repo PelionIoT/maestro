@@ -198,7 +198,9 @@ type ProcessRecord struct {
 func GetTrackedProcessByPid(pid int) (ret *ProcessRecord, ok bool) {
 	var val interface{}
 	val, ok = processIndexByPid.Load(pid)
-	ret = val.(*ProcessRecord)
+	if ok {
+		ret = val.(*ProcessRecord)
+	}
 	return
 }
 
