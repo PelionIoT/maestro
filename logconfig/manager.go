@@ -118,9 +118,10 @@ type logManagerInstance struct {
 	threadCountChan           chan logThreadMessage
 
 	// current config state
-	logConfigRunning []maestroSpecs.LogTarget
-	logConfigFuture  []maestroSpecs.LogTarget
-	CurrConfigCommit ConfigCommit
+	logConfigRunning  []maestroSpecs.LogTarget
+	logConfigFuture   []maestroSpecs.LogTarget
+	logConfigOriginal []maestroSpecs.LogTarget
+	CurrConfigCommit  ConfigCommit
 
 	// Configs to be used for connecting to devicedb
 	ddbConnConfig   *maestroConfig.DeviceDBConnConfig
