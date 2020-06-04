@@ -650,11 +650,7 @@ void GreaseLogger::targetReady(bool ready, _errcmn::err_ev &err, logTarget *t) {
 	if(t->myId == DEFAULT_TARGET && info) delete info;
 }
 
-static void defaultTargetCallbackStderr(GreaseLibError *err, void *d, uint32_t targetId)
-{
-	GreaseLibBuf *buf = (GreaseLibBuf *)d;
-	fprintf(stderr, "%s", buf->data);
-}
+
 
 void GreaseLogger::setupDefaultTarget(actionCB cb, target_start_info *i) {
 	delim_data defaultdelim;
@@ -669,10 +665,7 @@ void GreaseLogger::setupDefaultTarget(actionCB cb, target_start_info *i) {
 //	err.setError(65001,"Test");
 //	cb(this,err,i);
 	// << end test
-	auto targ = new callbackTarget(size, DEFAULT_TARGET, GreaseLogger::LOGGER, targetReady, std::move(defaultdelim), i);
-	_errcmn::err_ev err;
-	targ->setCallback(defaultTargetCallbackStderr);
-	targ->readyCB(true, err, targ);
+	new ttyTarget(size, DEFAULT_TARGET, this, targetReady,std::move(defaultdelim), i);
 }
 
 
