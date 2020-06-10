@@ -450,137 +450,141 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 
 	log.MaestroInfof("LogManager: Initializing %v %v\n", inst.logConfigRunning, inst.ddbConnConfig)
 
-	greasego.StartGreaseLib(func() {
-		debugging.DEBUG_OUT("Grease start cb: Got to here 1\n")
-	})
-	greasego.SetupStandardLevels()
-	greasego.SetupStandardTags()
-
-	log.SetGoLoggerReady()
-
 	if config.LinuxKernelLog && config.LinuxKernelLogLegacy {
 		return errors.New("Invalid Config: You can't have both linuxKernelLog: true AND linuxKernelLogLegacy: true. Choose one")
 	}
-	if config.LinuxKernelLog {
-		kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG2, nil)
-		greasego.AddSink(kernelSink)
-	}
-	if config.LinuxKernelLogLegacy {
-		kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG, nil)
-		greasego.AddSink(kernelSink)
-	}
+	
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	greasego.StartGreaseLib(func() {
+		debugging.DEBUG_OUT("Grease start cb: Got to here 1\n")
+		defer wg.Done()
+		greasego.SetupStandardLevels()
+		greasego.SetupStandardTags()
 
-	unixLogSocket := config.GetUnixLogSocket()
-	debugging.DEBUG_OUT("UnixLogSocket: %s\n", unixLogSocket)
-	unixSockSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_UNIXDGRAM, &unixLogSocket)
-	greasego.AddSink(unixSockSink)
-
-	syslogSock := config.GetSyslogSocket()
-	if len(syslogSock) > 0 {
-		syslogSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_SYSLOGDGRAM, &syslogSock)
-		greasego.AddSink(syslogSink)
-	}
-
-	// First, setup the internal maestro logging system to deal with toCloud target
-	// This requires creating the default Symphony client:
-	var symphonyClient *wwrmi.Client
-	var symphonyErr error
-	if config.Symphony != nil {
-		symphonyClient, symphonyErr = wwrmi.GetMainClient(config.Symphony)
-	} else {
-		log.MaestroDebugf("Symphony / RMI API server not configured.\n")
-	}
-
-	debugging.DEBUG_OUT("targets:", len(config.Targets))
-	for n := 0; n < len(config.Targets); n++ {
-		if len(config.Targets[n].File) > 0 { // honor any substitution vars for the File targets
-			config.Targets[n].File = maestroConfig.GetInterpolatedConfigString(config.Targets[n].File)
+		if config.LinuxKernelLog {
+			kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG2, nil)
+			greasego.AddSink(kernelSink)
 		}
-		opts := greasego.NewGreaseLibTargetOpts()
-		greasego.AssignFromStruct(opts, config.Targets[n]) //, reflect.TypeOf(config.Targets[n]))
-
-		if config.Targets[n].Flag_json_escape_strings {
-			greasego.TargetOptsSetFlags(opts, greasego.GREASE_JSON_ESCAPE_STRINGS)
+		if config.LinuxKernelLogLegacy {
+			kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG, nil)
+			greasego.AddSink(kernelSink)
 		}
 
-		debugging.DEBUG_OUT("%+v\n", opts.FileOpts)
-		debugging.DEBUG_OUT("%+v\n", opts)
-		debugging.DEBUG_OUT("%+v\n", *opts.Format_time)
+		unixLogSocket := config.GetUnixLogSocket()
+		debugging.DEBUG_OUT("UnixLogSocket: %s\n", unixLogSocket)
+		unixSockSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_UNIXDGRAM, &unixLogSocket)
+		greasego.AddSink(unixSockSink)
 
-		if strings.Compare(config.Targets[n].Name, "toCloud") == 0 {
-			log.MaestroInfof("\nFound toCloud target-------->\n")
-			opts.NumBanks = defaults.NUMBER_BANKS_WEBLOG
-			//			DEBUG(_count := 0)
-			if config.Symphony != nil && symphonyClient != nil && symphonyErr == nil {
-				opts.TargetCB = wwrmi.TargetCB
-			} else {
-				log.MaestroInfof("Log: 'toCloud' target is enabled, but Symphony API is not configured. Will not work.")
-				// skip this target
-				continue
+		syslogSock := config.GetSyslogSocket()
+		if len(syslogSock) > 0 {
+			syslogSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_SYSLOGDGRAM, &syslogSock)
+			greasego.AddSink(syslogSink)
+		}
+
+		// First, setup the internal maestro logging system to deal with toCloud target
+		// This requires creating the default Symphony client:
+		var symphonyClient *wwrmi.Client
+		var symphonyErr error
+		if config.Symphony != nil {
+			symphonyClient, symphonyErr = wwrmi.GetMainClient(config.Symphony)
+		} else {
+			log.MaestroDebugf("Symphony / RMI API server not configured.\n")
+		}
+
+		debugging.DEBUG_OUT("targets:", len(config.Targets))
+		for n := 0; n < len(config.Targets); n++ {
+			if len(config.Targets[n].File) > 0 { // honor any substitution vars for the File targets
+				config.Targets[n].File = maestroConfig.GetInterpolatedConfigString(config.Targets[n].File)
+			}
+			opts := greasego.NewGreaseLibTargetOpts()
+			greasego.AssignFromStruct(opts, config.Targets[n]) //, reflect.TypeOf(config.Targets[n]))
+
+			if config.Targets[n].Flag_json_escape_strings {
+				greasego.TargetOptsSetFlags(opts, greasego.GREASE_JSON_ESCAPE_STRINGS)
 			}
 
-			// func(err *greasego.GreaseError, data *greasego.TargetCallbackData){
-			// 	DEBUG(_count++)
-			// 	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
-			// 	if(err != nil) {
-			// 		fmt.Printf("ERROR in toCloud target CB %s\n", err.Str)
-			// 	} else {
-			// 		buf := data.GetBufferAsSlice()
-			// 		DEBUG(s := string(buf))
-			// 		debugging.DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,s);
-			// 		client.SubmitLogs(data,buf)
-			// 	}
-			// }
-		}
+			debugging.DEBUG_OUT("%+v\n", opts.FileOpts)
+			debugging.DEBUG_OUT("%+v\n", opts)
+			debugging.DEBUG_OUT("%+v\n", *opts.Format_time)
 
-		func(n int, opts *greasego.GreaseLibTargetOpts) {
-			greasego.AddTarget(opts, func(err *greasego.GreaseError, optsId int, targId uint32) {
-				debugging.DEBUG_OUT("IN CALLBACK %d\n", optsId)
-				if err != nil {
-					log.MaestroDebugf("ERROR on creating target: %s\n", err.Str)
+			if strings.Compare(config.Targets[n].Name, "toCloud") == 0 {
+				log.MaestroInfof("\nFound toCloud target-------->\n")
+				opts.NumBanks = defaults.NUMBER_BANKS_WEBLOG
+				//			DEBUG(_count := 0)
+				if config.Symphony != nil && symphonyClient != nil && symphonyErr == nil {
+					opts.TargetCB = wwrmi.TargetCB
 				} else {
-					// after the Target is added, we can setup the Filters for it
-					if len(config.Targets[n].Filters) > 0 {
-						for l := 0; l < len(config.Targets[n].Filters); l++ {
-							debugging.DEBUG_OUT("Have filter %+v\n", config.Targets[n].Filters[l])
-							filter := greasego.NewGreaseLibFilter()
-							filter.Target = targId
-							// handle the strings:
-							greasego.AssignFromStruct(filter, config.Targets[n].Filters[l]) //, reflect.TypeOf(config.Targets[n].Filters[l]))
-							greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, targId)
-							if len(config.Targets[n].Filters[l].Levels) > 0 {
-								mask := maestroConfig.ConvertLevelStringToUint32Mask(config.Targets[n].Filters[l].Levels)
-								greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
-							}
-							if len(config.Targets[n].Filters[l].Tag) > 0 {
-								tag := maestroConfig.ConvertTagStringToUint32(config.Targets[n].Filters[l].Tag)
-								greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
-							}
-							debugging.DEBUG_OUT("Filter -----------> %+v\n", filter)
-							filterid := greasego.AddFilter(filter)
-							debugging.DEBUG_OUT("Filter ID: %d\n", filterid)
-						}
-					} else {
-						// by default, send all traffic to any target
-
-					}
+					log.MaestroInfof("Log: 'toCloud' target is enabled, but Symphony API is not configured. Will not work.")
+					// skip this target
+					continue
 				}
-			})
-		}(n, opts) // use anonymous function to preserve 'n' before callback completes
 
-	}
+				// func(err *greasego.GreaseError, data *greasego.TargetCallbackData){
+				// 	DEBUG(_count++)
+				// 	debugging.DEBUG_OUT("}}}}}}}}}}}} TargetCB_count called %d times\n",_count);
+				// 	if(err != nil) {
+				// 		fmt.Printf("ERROR in toCloud target CB %s\n", err.Str)
+				// 	} else {
+				// 		buf := data.GetBufferAsSlice()
+				// 		DEBUG(s := string(buf))
+				// 		debugging.DEBUG_OUT("CALLBACK %+v ---->%s<----\n\n",data,s);
+				// 		client.SubmitLogs(data,buf)
+				// 	}
+				// }
+			}
 
-	// should not start workers until after greasego is setup
-	if config.Symphony != nil {
-		if symphonyErr != nil {
-			log.MaestroDebugf("Symphony / RMI client is not configured correctly or has failed: %s\n", symphonyErr.Error())
-		} else {
-			symphonyClient.StartWorkers()
-			log.MaestroInfof("Maestro RMI workers started")
-			log.MaestroInfof("Symphony / RMI client workers started.")
+			func(n int, opts *greasego.GreaseLibTargetOpts) {
+				greasego.AddTarget(opts, func(err *greasego.GreaseError, optsId int, targId uint32) {
+					debugging.DEBUG_OUT("IN CALLBACK %d\n", optsId)
+					if err != nil {
+						log.MaestroDebugf("ERROR on creating target: %s\n", err.Str)
+					} else {
+						// after the Target is added, we can setup the Filters for it
+						if len(config.Targets[n].Filters) > 0 {
+							for l := 0; l < len(config.Targets[n].Filters); l++ {
+								debugging.DEBUG_OUT("Have filter %+v\n", config.Targets[n].Filters[l])
+								filter := greasego.NewGreaseLibFilter()
+								filter.Target = targId
+								// handle the strings:
+								greasego.AssignFromStruct(filter, config.Targets[n].Filters[l]) //, reflect.TypeOf(config.Targets[n].Filters[l]))
+								greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_TARGET, targId)
+								if len(config.Targets[n].Filters[l].Levels) > 0 {
+									mask := maestroConfig.ConvertLevelStringToUint32Mask(config.Targets[n].Filters[l].Levels)
+									greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, mask)
+								}
+								if len(config.Targets[n].Filters[l].Tag) > 0 {
+									tag := maestroConfig.ConvertTagStringToUint32(config.Targets[n].Filters[l].Tag)
+									greasego.SetFilterValue(filter, greasego.GREASE_LIB_SET_FILTER_MASK, tag)
+								}
+								debugging.DEBUG_OUT("Filter -----------> %+v\n", filter)
+								filterid := greasego.AddFilter(filter)
+								debugging.DEBUG_OUT("Filter ID: %d\n", filterid)
+							}
+						} else {
+							// by default, send all traffic to any target
+
+						}
+					}
+				})
+			}(n, opts) // use anonymous function to preserve 'n' before callback completes
+
 		}
-	}
+		// should not start workers until after greasego is setup
+		if config.Symphony != nil {
+			if symphonyErr != nil {
+				log.MaestroDebugf("Symphony / RMI client is not configured correctly or has failed: %s\n", symphonyErr.Error())
+			} else {
+				symphonyClient.StartWorkers()
+				log.MaestroInfof("Maestro RMI workers started")
+				log.MaestroInfof("Symphony / RMI client workers started.")
+			}
+		}
 
+	})
+	wg.Wait()
+	time.Sleep(time.Second * 2) //Waiting for greaselib to be ready and avoid segfault
+	log.SetGoLoggerReady()
 	client := log.NewSymphonyClient("http://127.0.0.1:9443/submitLog/1", config.ClientId, defaults.NUMBER_BANKS_WEBLOG, 30*time.Second)
 	client.Start()
 
