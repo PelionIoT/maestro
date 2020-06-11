@@ -448,14 +448,7 @@ void GreaseLogger::stopFlushTimer() {
 
 void GreaseLogger::mainThread(void *p) {
 	GreaseLogger *SELF = (GreaseLogger *) p;
-	uv_timer_init(SELF->loggerLoop, &SELF->flushTimer);
-	uv_unref((uv_handle_t *)&LOGGER->flushTimer);
-//	uv_timer_start(&SELF->flushTimer, flushTimer_cb, 2000, 500);
-	uv_async_init(SELF->loggerLoop, &SELF->asyncInternalCommand, handleInternalCmd);
-	uv_async_init(SELF->loggerLoop, &SELF->asyncExternalCommand, handleExternalCmd);
-
 	uv_run(SELF->loggerLoop, UV_RUN_DEFAULT);
-
 }
 
 int GreaseLogger::log(const logMeta &f, const char *s, int len) { // does the work of logging
@@ -701,7 +694,11 @@ void GreaseLogger::start_logger_cb(GreaseLogger *l, _errcmn::err_ev &err, void *
 void GreaseLogger::start(actionCB cb, target_start_info *data) {
 	// FIXME use options for non default target
 	setupDefaultTarget(cb,data);
-
+	uv_timer_init(this->loggerLoop, &this->flushTimer);
+	uv_unref((uv_handle_t *)&LOGGER->flushTimer);
+//	uv_timer_start(&SELF->flushTimer, flushTimer_cb, 2000, 500);
+	uv_async_init(this->loggerLoop, &this->asyncInternalCommand, handleInternalCmd);
+	uv_async_init(this->loggerLoop, &this->asyncExternalCommand, handleExternalCmd);
 	uv_thread_create(&logThreadId,GreaseLogger::mainThread,this);
 }
 
