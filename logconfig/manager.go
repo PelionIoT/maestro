@@ -583,7 +583,6 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 
 	})
 	wg.Wait()
-	time.Sleep(time.Second * 2) //Waiting for greaselib to be ready and avoid segfault
 	log.SetGoLoggerReady()
 	client := log.NewSymphonyClient("http://127.0.0.1:9443/submitLog/1", config.ClientId, defaults.NUMBER_BANKS_WEBLOG, 30*time.Second)
 	client.Start()
