@@ -8,10 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/hashmap"
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
@@ -106,8 +104,8 @@ type logManagerInstance struct {
 	db          *bolt.DB
 	logConfigDB *stow.Store
 
-	byLogName   *hashmap.HashMap // map of identifier to struct -> 'eth2':&networkInterfaceData{}
-	indexToName *hashmap.HashMap
+	byLogName   sync.Map // map of identifier to struct -> 'eth2':&networkInterfaceData{}
+	indexToName sync.Map
 
 	watcherWorkChannel chan logThreadMessage
 
@@ -306,7 +304,7 @@ func (logManager *logManagerInstance) loadAllLogData() (err error) {
 				//this.newInterfaceMutex.Lock()
 				// if there is an existing in-memory entry, overwrite it
 				log.MaestroInfof("LogManager:loadAllLogData: Loading config for: %s.\n", logname)
-				logManager.byLogName.Set(logname, unsafe.Pointer(&logdata))
+				logManager.byLogName.Store(logname, &logdata)
 				//this.newInterfaceMutex.Unlock()
 				debugging.DEBUG_OUT("loadAllLogData() see if: %s --> %+v\n", logname, logdata)
 			} else {
