@@ -105,7 +105,7 @@ func (a *ConfigAnalyzer) callGroupChanges(c *changes) {
 		log.MaestroInfof("got configgroup\n")
 		hook, ok2 := hooki.(ConfigChangeHook)
 		if ok2 {
-			log.MaestroInfof("got got change hook\n")
+			log.MaestroInfof(" got change hook\n")
 			hook.ChangesStart(c.configgroup)
 			for n, fieldname := range c.fieldnames {
 

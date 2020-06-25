@@ -33,6 +33,7 @@ import (
 	"github.com/armPelionEdge/maestro/debugging"
 	Log "github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/logconfig"
+	"github.com/armPelionEdge/maestro/servicectl"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/maestroutils"
 	"github.com/armPelionEdge/maestro/mdns"
@@ -248,6 +249,12 @@ func main() {
 	if logerr != nil {
 		Log.MaestroErrorf("Error starting log subsystem! %s\n", logerr.Error())
 		log.Errorf("Error starting log subsystem! %s\n", logerr.Error())
+	}
+
+	servicectlerr := servicectl.InitServicectlManager(config)
+	if servicectlerr != nil {
+		Log.MaestroErrorf("Error starting servicectl subsystem! %s\n", servicectlerr.Error())
+		log.Errorf("Error starting servicectl subsystem! %s\n", servicectlerr.Error())
 	}
 
 	tasks.InitTaskManager()

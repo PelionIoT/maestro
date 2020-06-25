@@ -461,7 +461,6 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 		defer wg.Done()
 		greasego.SetupStandardLevels()
 		greasego.SetupStandardTags()
-
 		if config.LinuxKernelLog {
 			kernelSink := greasego.NewGreaseLibSink(greasego.GREASE_LIB_SINK_KLOG2, nil)
 			greasego.AddSink(kernelSink)
@@ -568,7 +567,6 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 					}
 				})
 			}(n, opts) // use anonymous function to preserve 'n' before callback completes
-
 		}
 		// should not start workers until after greasego is setup
 		if config.Symphony != nil {

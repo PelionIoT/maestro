@@ -54,7 +54,7 @@ type YAMLMaestroConfig struct {
 	UnixLogSocket        string `yaml:"unixLogSocket"`
 	SyslogSocket         string `yaml:"sysLogSocket"`
 	LinuxKernelLog       bool   `yaml:"linuxKernelLog"`
-	LinuxKernelLogLegacy bool   `yaml:"linuxKernelLogLegacy"`
+	LinuxKernelLogLegacy bool   `yaml:"linuxKernelLogLegacy"`         //use this on kernel 3.5 and before
 	//	ApiUnixDgramSocket string `yaml:"apiUnixDgramSocket"` // not used yet
 	HttpUnixSocket       string                                  `yaml:"httpUnixSocket"`
 	VarDefs              []SubstVars                             `yaml:"var_defs"`
@@ -65,6 +65,7 @@ type YAMLMaestroConfig struct {
 	SysStats             *sysstats.StatsConfig                   `yaml:"sys_stats"`
 	Tags                 []string                                `yaml:"tags"`
 	Targets              []maestroSpecs.LogTarget                `yaml:"targets"`
+	Services			 []maestroSpecs.Service                  `yaml:"services"`	
 	ClientId             string                                  `yaml:"clientId"`
 	ConfigDBPath         string                                  `yaml:"configDBPath"` // where Maestro should look for it's database
 	Stats                maestroSpecs.StatsConfigPayload         `yaml:"stats"`

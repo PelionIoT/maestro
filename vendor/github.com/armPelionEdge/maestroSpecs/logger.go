@@ -63,7 +63,7 @@ type LogTarget struct {
 	FormatPreMsg             string                           `yaml:"format_pre_msg,omitempty" json:"format_pre_msg" greaseAssign:"Format_pre_msg" log_group:"format"`
 	Name                     string                           `yaml:"name,omitempty" json:"name" greaseAssign:"Name" log_group:"name"`
 	Flag_json_escape_strings bool                             `yaml:"flag_json_escape_strings" json:"flag_json_escape_strings" log_group:"opts"`
-	Existing                 string                           `yaml:"existing" json:"existing" json:"delim" log_group:"opts"`
+	Existing                 string                           `yaml:"existing" json:"existing" json:"existing" log_group:"opts"`
 }
 
 type LogFormat struct {

@@ -43,8 +43,7 @@ type NetIfConfigPayload struct {
 	// like "eth0"
 	IfName string `yaml:"if_name" json:"if_name" netgroup:"if"`
 	// use either this or IfName, index is a non-zero positive integer
-	// IfName is preferred and takes precedence
-	IfIndex int `yaml:"if_index" json:"if_index" netgroup:"if"`
+	// IfName IPv4 Broadcast Addr. If empty, set automaticallyt `yaml:"if_index" json:"if_index" netgroup:"if"`
 	// use DHCP?
 	DhcpV4Enabled bool `yaml:"dhcpv4" json:"dhcpv4" netgroup:"ipv4"`
 	// IPv4 Address
@@ -177,19 +176,19 @@ type NetworkConfigPayload struct {
 	// if any of the below are true, then Nameserver shoul be set to
 	// 127.0.0.1
 
-	// DnsRunLocalCaching if true, a local caching nameserver will be used.
+	// DnsRunLocalCaching if true, a local caching nameserver will be used. (NOT IMPLEMENTED)
 	DnsRunLocalCaching bool `yaml:"dns_local_caching" json:"dns_local_caching" netgroup:"dns"`
 
 	// True if the gateway should forward all DNS requests to a
-	// specific gateway only
+	// specific gateway only (NOT IMPLEMENTED)
 	DnsForwardTo string `yaml:"default_gateway" json:"default_gateway" netgroup:"dns"`
 
 	// True if you want the gateway to do lookup via DNS root servers
-	// i.e. the gateway runs it's own recursive, lookup name server
+	// i.e. the gateway runs it's own recursive, lookup name server (NOT IMPLEMENTED)
 	DnsRunRootLookup bool `yaml:"dns_root_lookup" json:"dns_root_lookup" netgroup:"dns"`
 
 	// A string, which is what the content of the /etc/hosts file should
-	// be
+	// be (NOT IMPLEMENTED)
 	DnsHostsData string `yaml:"dns_hosts_data" json:"dns_hosts_data" netgroup:"dns"`
 
 	// Fallback Gateways. (NOT IMPLEMENTED)
@@ -197,7 +196,7 @@ type NetworkConfigPayload struct {
 	// and a secondary outbound interface exists
 	FallbackNameservers string `yaml:"fallback_nameservers" json:"fallback_nameservers" netgroup:"nameserver"`
 
-	// For use typically in the config file, not required. For incoming API calls,
+	// For use typically in the config file, not required. For incoming API calls, (NOT IMPLEMENTED)
 	// the default behavior is "override", b/c the API calls always modify the
 	// interface's database entry.
 	// existing: "override"  # this will replace any data already set in the database
