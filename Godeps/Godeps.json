@@ -12,7 +12,7 @@
 			"Rev": "e0a55b97c70558c92ce14085e41b35a894e93d3d"
 		},
 		{
-			"ImportPath": "github.com/coreos/go-systemd",
+			"ImportPath": "github.com/coreos/go-systemd/dbus",
 			"Rev": "b51e752dd1c9c618846f8bc5b95ab524bd7b11c2"
 		},
 		{

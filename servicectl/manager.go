@@ -11,7 +11,6 @@ import (
 	"unsafe"
 
 	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/hashmap"
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
