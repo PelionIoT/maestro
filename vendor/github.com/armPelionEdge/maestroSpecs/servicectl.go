@@ -1,7 +1,6 @@
 package maestroSpecs
 
 import (
-	"github.com/armPelionEdge/greasego"
 )
 
 // Copyright (c) 2018, Arm Limited and affiliates.
@@ -24,8 +23,8 @@ import (
 // process.
 
 
-type ServiceCtlConfigPayload struct {
-	Services []*Service `yaml:"services" json:"services" servicectl_group:"services"`
+type ServicectlConfigPayload struct {
+	Services []Service `yaml:"services" json:"services" servicectl_group:"services"`
 }
 
 type Service struct {
@@ -34,9 +33,9 @@ type Service struct {
 	// enable:true is equivalent to "systemctl enable servicename", enable:false is equivalent to "systemctl disable servicename"
 	Enable				     bool							  `yaml:"enable,omitempty" json:"enable" servicectl_group:"servicectl"`
 	StartonBoot				 bool							  `yaml:"start_on_boot,omitempty" json:"start_on_boot" servicectl_group:"servicectl"`
-	StartedonBoot            bool
+	StartedonBoot            bool                             `yaml:"started_on_boot,omitempty" json:"started_on_boot" servicectl_group:"servicectl"`
 	// shows the status of the service running | dead | stopped
-	Status	                 string
+	Status	                 string                           `yaml:"status,omitempty" json:"status" servicectl_group:"servicectl"`
 	// period to update the status parameter mentioned above
 	StatusUpdatePeriod       uint64                           `yaml:"status_update_period,omitempty" json:"status_update_period" servicectl_group:"servicectl"`
 	// restart the service if set to true and set it back to false if restart successful.
@@ -45,7 +44,7 @@ type Service struct {
 	StartService             bool                             `yaml:"start_service,omitempty" json:"start_service" servicectl_group:"servicectl"`
 	// stop the service if set to true and set it back to false if stop successful.
 	StopService              bool                             `yaml:"stop_service,omitempty" json:"stop_service" servicectl_group:"servicectl"`
-	IsEnabled                bool
-	IsRunning 				 bool
+	IsEnabled                bool                             `yaml:"is_enabled,omitempty" json:"is_enabled" servicectl_group:"servicectl"`
+	IsRunning 				 bool                             `yaml:"is_running,omitempty" json:"is_running" servicectl_group:"servicectl"`
 }
 

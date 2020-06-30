@@ -16,15 +16,10 @@ package servicectl
 // limitations under the License.
 
 import (
-	"errors"
 	"reflect"
-	"strconv"
-	"strings"
+	"fmt"
 
-	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestroSpecs"
 )
 
 // ChangeHook is base struct for our class
@@ -42,7 +37,7 @@ func ConfigChangeHandler(configgroup string, fieldchanged string, futvalue inter
 	//fmt.Printf("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
 	switch configgroup {
 	case "servicectl":
-		instance.ServicectlConfigChange(fieldchanged, futvalue, curvalue, index)
+		inst.ServicectlConfigChange(fieldchanged, futvalue, curvalue, index)
 	default:
 		//fmt.Printf("\nConfigChangeHook:Unknown field or group: %s:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
 	}
@@ -57,7 +52,7 @@ func (cfgHook ChangeHook) ChangesStart(configgroup string) {
 	inst := GetInstance()
 	for _, service := range inst.servicectlConfigRunning {
 		service := service
-		inst.servicectlConfig.Services = append(inst.servicectlConfig.Services, &service)
+		inst.servicectlConfig.Services = append(inst.servicectlConfig.Services, service)
 	}
 }
 

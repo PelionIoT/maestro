@@ -45,6 +45,8 @@ type NetIfConfigPayload struct {
 	// use either this or IfName, index is a non-zero positive integer
 	// IfName IPv4 Broadcast Addr. If empty, set automaticallyt `yaml:"if_index" json:"if_index" netgroup:"if"`
 	// use DHCP?
+	IfIndex int `yaml:"if_index" json:"if_index" netgroup:"if"`
+
 	DhcpV4Enabled bool `yaml:"dhcpv4" json:"dhcpv4" netgroup:"ipv4"`
 	// IPv4 Address
 	IPv4Addr string `yaml:"ipv4_addr" json:"ipv4_addr" netgroup:"ipv4"`

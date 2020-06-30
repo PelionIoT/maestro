@@ -5,18 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
-	"sync"
-	"time"
-	"unsafe"
 
-	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/defaults"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestro/wwrmi"
 	"github.com/armPelionEdge/maestroSpecs"
 	"github.com/armPelionEdge/stow"
 	"github.com/boltdb/bolt"
@@ -69,7 +62,7 @@ type ServicectlManagerInstance struct {
 
 	// current config state
 	servicectlConfigRunning  []maestroSpecs.Service
-	servicectlConfig         *maestroSpecs.ServiceCtlConfigPayload
+	servicectlConfig         maestroSpecs.ServicectlConfigPayload
 	CurrConfigCommit  ConfigCommit
 
 	// Configs to be used for connecting to devicedb
@@ -130,8 +123,6 @@ func GetInstance() *ServicectlManagerInstance {
 
 		instance = newServicectlManagerInstance()
 
-		instance.servicectlConfig = new(maestroSpecs.ServiceCtlConfigPayload)
-
 		storage.RegisterStorageUser(instance)
 		// internalTicker = time.NewTicker(time.Second * time.Duration(defaults.TASK_MANAGER_CLEAR_INTERVAL))
 		// controlChan = make(chan *controlToken, 100) // buffer up to 100 events
@@ -155,7 +146,7 @@ func (servicectlManager *ServicectlManagerInstance) submitConfigAndSync(config [
 
 	for _, service := range config {
 		service := service
-		ddbServicectlConfig.Services = append(ddbServicectlConfig.Services, &service)
+		ddbServicectlConfig.Services = append(ddbServicectlConfig.Services, service)
 	}
 	log.MaestroInfof("servicectlManager: Updating devicedb config.\n")
 	err := servicectlManager.ddbConfigClient.Config(DDBServicectlConfigName).Put(&ddbServicectlConfig)
@@ -204,8 +195,6 @@ func (servicectlManager *ServicectlManagerInstance) submitConfig(config []maestr
 				err := servicectlManager.servicectlConfigDB.Put(servicename, config[n])
 				if err != nil {
 					log.MaestroErrorf("servicectlManager: Problem (1) storing config for interface [%s]: %s\n", config[n].Name, err)
-				} else {
-					ResetServiceCtl(config[n])
 				}
 			}
 		} else {
@@ -249,15 +238,13 @@ func (servicectlManager *ServicectlManagerInstance) SetAllServiceConfig(services
 		return
 	}
 	for n := 0; n < len(services); n++ {
-		var str []string
-		str[0] = services[n].Name
 		if(services[n].Enable) {
-			enablement_info, EnableUnitFileChange, err := systemd.EnableUnitFiles(str, false, false)
+			enablement_info, EnableUnitFileChange, err := systemd.EnableUnitFiles([]string{services[n].Name}, false, false)
 			log.MaestroInfof("Enabling service %s  Results: %v , %v, %v",services[n].Name, enablement_info, EnableUnitFileChange, err)
 			fmt.Printf("%v , %v, %v", enablement_info, EnableUnitFileChange, err)
 			services[n].IsEnabled = true
 		} else {
-			DisableUnitFileChange, err := systemd.DisableUnitFiles(str, false)
+			DisableUnitFileChange, err := systemd.DisableUnitFiles([]string{services[n].Name}, false)
 			fmt.Printf("%v, %v", DisableUnitFileChange, err)
 			services[n].IsEnabled = false
 		}
@@ -305,7 +292,8 @@ func (servicectlManager *ServicectlManagerInstance) SetAllServiceConfig(services
 			}
 			
 		}
-		ServiceState, err := systemd.GetUnitProperty(services[n].Name, "SubState")
+		ServiceState, _ := systemd.GetUnitProperty(services[n].Name, "SubState")
+		fmt.Printf("%v servicestate\n",ServiceState)
 		services[n].Status = ServiceState.Value.Value().(string)
 		log.MaestroInfof("Current Status of the service %s : %s",services[n].Name, services[n].Status)
 		if(services[n].Status == "running") {
@@ -338,6 +326,8 @@ func (servicectlManager *ServicectlManagerInstance) initDeviceDBConfig() error {
 	} else {
 		log.MaestroInfof("servicectlManager: successfully read config from devicedb\n")
 	}
+	//setup the services using the config
+	servicectlManager.SetAllServiceConfig(inst.servicectlConfig.Services)
 
 	return err
 }
@@ -356,10 +346,11 @@ func (servicectlManager *ServicectlManagerInstance) SetupDeviceDBConfig() (err e
 	}
 
 	err = servicectlManager.ddbConfigClient.Config(DDBServicectlConfigName).Get(&ddbServicectlConfig)
+	fmt.Printf("reaching here \n\n\n\n")
 	if err != nil {
 		for _, service := range servicectlManager.servicectlConfigRunning {
 			service := service
-			ddbServicectlConfig.Services = append(ddbServicectlConfig.Services, &service)
+			ddbServicectlConfig.Services = append(ddbServicectlConfig.Services, service)
 		}
 		log.MaestroDebugf("servicectlManager: No servicectl config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config.\n", err)
 		err = servicectlManager.ddbConfigClient.Config(DDBServicectlConfigName).Put(&ddbServicectlConfig)
@@ -374,15 +365,15 @@ func (servicectlManager *ServicectlManagerInstance) SetupDeviceDBConfig() (err e
 		var temp maestroSpecs.ServicectlConfigPayload
 		for _, service := range servicectlManager.servicectlConfigRunning {
 			service := service
-			temp.Services = append(temp.Services, &service)
+			temp.Services = append(temp.Services, service)
 		}
 		identical, _, _, err := configServicectlAna.DiffChanges(temp, ddbServicectlConfig)
 		if !identical && (err == nil) {
 			//The configs are different, lets go ahead reconfigure the intfs
 			log.MaestroInfof("servicectlManager: New servicectl config found from devicedb, reconfigure servicectl using new config\n")
 			servicectlManager.servicectlConfigRunning = make([]maestroSpecs.Service, len(ddbServicectlConfig.Services))
-			for i, service := range ddbServicectlConfig.Services {
-				servicectlManager.servicectlConfigRunning[i] = *service
+			for _, service := range ddbServicectlConfig.Services {
+				servicectlManager.servicectlConfigRunning = append(servicectlManager.servicectlConfigRunning, service)
 			}
 			//setup the services using the config
 			servicectlManager.SetAllServiceConfig(servicectlManager.servicectlConfigRunning)
@@ -406,7 +397,7 @@ func (servicectlManager *ServicectlManagerInstance) SetupDeviceDBConfig() (err e
 	//directly updating the running config(this.servicectlConfigRunning).
 	for _, service := range servicectlManager.servicectlConfigRunning {
 		service := service
-		origServicectlConfig.Services = append(origServicectlConfig.Service, &service)
+		origServicectlConfig.Services = append(origServicectlConfig.Services, service)
 	}
 
 	log.MaestroInfof("adding servicectl monitor config\n")
@@ -427,16 +418,12 @@ func InitServicectlManager(config *maestroConfig.YAMLMaestroConfig) (err error) 
 	inst.ddbConnConfig = config.DDBConnConfig
 		
 	//read servicectl config from config file
-	NoOfServices := len(config.Services)
+	//NoOfServices := len(config.Services)
 	
 	for _, service := range config.Services {
 		service := service
-		inst.servicectlConfig.Services = append(ddbServicectlConfig.Services, &service)
+		inst.servicectlConfig.Services = append(inst.servicectlConfig.Services, service)
 	}
-
-
-	//setup the services using the config
-	inst.SetAllServiceConfig(inst.servicectlConfig.Services)
 
 	log.MaestroInfof("servicectlManager: Initializing %v %v\n", inst.servicectlConfigRunning, inst.ddbConnConfig)
 
