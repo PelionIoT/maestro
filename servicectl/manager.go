@@ -327,7 +327,7 @@ func (servicectlManager *ServicectlManagerInstance) initDeviceDBConfig() error {
 		log.MaestroInfof("servicectlManager: successfully read config from devicedb\n")
 	}
 	//setup the services using the config
-	servicectlManager.SetAllServiceConfig(inst.servicectlConfig.Services)
+	servicectlManager.SetAllServiceConfig(servicectlManager.servicectlConfig.Services)
 
 	return err
 }
