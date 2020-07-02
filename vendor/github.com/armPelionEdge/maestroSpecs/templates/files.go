@@ -151,7 +151,7 @@ func (this *FileTemplateTicket) MaybeGenerateFile() (err error, wrotefile bool, 
 			info, err2 := os.Lstat(dir)
 			if err2 != nil {
 				if os.IsNotExist(err2) {
-					err = os.MkdirAll(dir, this.Filemode)
+					err = os.MkdirAll(dir, 0755) // directories should be readable (r+x) by all
 					if err != nil {
 						return
 					}
