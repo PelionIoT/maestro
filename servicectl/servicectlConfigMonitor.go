@@ -18,14 +18,17 @@ package servicectl
 import (
 	"reflect"
 	"fmt"
-
-	"github.com/armPelionEdge/maestro/log"
+	"strings"
+	"strconv"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 // ChangeHook is base struct for our class
 type ChangeHook struct {
 	//struct implementing ConfigChangeHook intf
 }
+
+var ApplyChange bool
 
 //ConfigChangeHandler is the go routine which waits on configChangeRequestChan and when it
 //receives a message which is ConfigChangeInfo object, it calls corresponding
@@ -49,10 +52,12 @@ func (cfgHook ChangeHook) ChangesStart(configgroup string) {
 	fmt.Printf("ConfigChangeHook:ChangesStart: %s\n", configgroup)
 	// FIXME!
 	// clear all the changes here? elsewhere?
+	ApplyChange = false
 	inst := GetInstance()
+	inst.servicectlConfig.Services = nil
 	for _, service := range inst.servicectlConfigRunning {
 		service := service
-		inst.servicectlConfig.Services = append(inst.servicectlConfig.Services, service)
+		inst.servicectlConfig.Services = append(inst.servicectlConfig.Services, &service)
 	}
 }
 
@@ -83,8 +88,16 @@ func (cfgHook ChangeHook) ChangesComplete(configgroup string) (acceptallchanges 
 	//jsstruct2, _ := json.Marshal(inst.logConfigFuture)
 	//fmt.Printf("Applying: \n")
 	//fmt.Printf("%s\n", string(jsstruct2))
-	inst := GetInstance()
-	inst.SetAllServiceConfig(inst.servicectlConfig.Services)
+	if(ApplyChange) {
+		inst := GetInstance()
+		var temp []maestroSpecs.Service
+		for _, service := range inst.servicectlConfig.Services {
+			service := service
+			temp = append(temp, *service)
+		} 
+		inst.SetAllServiceConfig(temp)
+	}
+	
 
 
 	return false //return false as we would apply only those we successfully processed
@@ -100,25 +113,47 @@ func (cfgHook ChangeHook) ChangesComplete(configgroup string) (acceptallchanges 
 
 //Function to process servicetl config change
 func (inst *ServicectlManagerInstance) ServicectlConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	fmt.Printf("NameConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	
+    splits := strings.Split(fieldchanged, ".")
 
-	switch fieldchanged {
+	targetIndex, _ := strconv.Atoi(strings.TrimLeft(strings.TrimRight(splits[0], "]"), "Services["))
+	fieldName := splits[1]
+    fmt.Printf("ServicectlConfigChange: %s old:%v new:%v index:%v targetIndex:%v fieldName:%v\n", fieldchanged, curvalue, futvalue, index, targetIndex, fieldName)
+	switch fieldName {
 	case "Name":
 		inst.servicectlConfig.Services[index].Name = reflect.ValueOf(futvalue).String()
+		ApplyChange = true
 	case "StatusUpdatePeriod":
 		inst.servicectlConfig.Services[index].StatusUpdatePeriod = uint64(reflect.ValueOf(futvalue).Uint())
 	case "StartService":
 		inst.servicectlConfig.Services[index].StartService = reflect.ValueOf(futvalue).Bool()
+		if (inst.servicectlConfig.Services[index].StartService) {
+			ApplyChange = true
+		}
 	case "RestartService":
 		inst.servicectlConfig.Services[index].RestartService = reflect.ValueOf(futvalue).Bool()
+		if (inst.servicectlConfig.Services[index].RestartService) {
+			ApplyChange = true
+		}
 	case "StopService":
 		inst.servicectlConfig.Services[index].StopService = reflect.ValueOf(futvalue).Bool()
-	case "Enable":
-		inst.servicectlConfig.Services[index].Enable = reflect.ValueOf(futvalue).Bool()
+		if (inst.servicectlConfig.Services[index].StopService) {
+			ApplyChange = true
+		}
+	case "EnableService":
+		inst.servicectlConfig.Services[index].EnableService = reflect.ValueOf(futvalue).Bool()
+		if (inst.servicectlConfig.Services[index].EnableService) {
+			ApplyChange = true
+		}
+	case "DisableService":
+		inst.servicectlConfig.Services[index].DisableService = reflect.ValueOf(futvalue).Bool()
+		if (inst.servicectlConfig.Services[index].DisableService) {
+			ApplyChange = true
+		}
 	case "StartonBoot":
 		inst.servicectlConfig.Services[index].StartonBoot = reflect.ValueOf(futvalue).Bool()
 	default:
-		log.MaestroWarnf("NameConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+
 	}
 }
 

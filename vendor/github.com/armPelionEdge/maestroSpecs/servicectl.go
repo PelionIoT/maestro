@@ -24,14 +24,16 @@ import (
 
 
 type ServicectlConfigPayload struct {
-	Services []Service `yaml:"services" json:"services" servicectl_group:"services"`
+	Services []*Service `yaml:"services" json:"services" servicectl_group:"services"`
 }
 
 type Service struct {
 	//name of the service
 	Name                     string                           `yaml:"name,omitempty" json:"name" servicectl_group:"servicectl"`
-	// enable:true is equivalent to "systemctl enable servicename", enable:false is equivalent to "systemctl disable servicename"
-	Enable				     bool							  `yaml:"enable,omitempty" json:"enable" servicectl_group:"servicectl"`
+	// enable_service:true is equivalent to "systemctl enable servicename"
+	EnableService				     bool							  `yaml:"enable_service,omitempty" json:"enable_service" servicectl_group:"servicectl"`
+	//disable_service:true is equivalent to "systemctl disable servicename"
+	DisableService				     bool							  `yaml:"disable_service,omitempty" json:"disable_service" servicectl_group:"servicectl"`
 	StartonBoot				 bool							  `yaml:"start_on_boot,omitempty" json:"start_on_boot" servicectl_group:"servicectl"`
 	StartedonBoot            bool                             `yaml:"started_on_boot,omitempty" json:"started_on_boot" servicectl_group:"servicectl"`
 	// shows the status of the service running | dead | stopped
