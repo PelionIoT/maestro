@@ -3,9 +3,10 @@
 
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/xenial64"
-  config.vm.network "private_network", type: "dhcp"
-  config.vm.network "private_network", ip: "172.28.128.1", auto_config: false
-  config.vm.network "private_network", ip: "172.28.129.2", auto_config: false
+  config.disksize.size = "20GB"
+  config.vm.network "private_network", ip: "172.28.128.10"
+  config.vm.network "private_network", ip: "172.28.129.5", auto_config: false
+  config.vm.network "private_network", ip: "172.28.130.2", auto_config: false
   config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "~/.ssh/id_rsa"
   config.vm.provision "file", source: "~/.ssh/known_hosts", destination: "~/.ssh/known_hosts"
   config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
