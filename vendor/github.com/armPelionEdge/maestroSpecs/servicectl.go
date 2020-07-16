@@ -50,3 +50,8 @@ type Service struct {
 	IsRunning 				 bool                             `yaml:"is_running,omitempty" json:"is_running" servicectl_group:"servicectl"`
 }
 
+type ServiceStatus struct {
+	Status	                 string
+	IsEnabled                bool
+	IsRunning 				 bool
+}

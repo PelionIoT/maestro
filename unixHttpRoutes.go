@@ -33,6 +33,7 @@ import (
 	"github.com/armPelionEdge/maestro/events"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/logconfig"
+	"github.com/armPelionEdge/maestro/servicectl"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/networking"
 	"github.com/armPelionEdge/maestro/processes"
@@ -88,6 +89,9 @@ func AddProcessRoutes(router *httprouter.Router) {
 
 	router.POST("/log/target", handlePostLogTarget)
 	router.GET("/log/target", handleGetLogTarget)
+
+	router.GET("/services/:servicename", handleGetServiceStatus)
+	router.PUT("/services/:servicename/:operation", handleControlService)
 
 	router.GET("/alive", handleAlive)
 
@@ -274,6 +278,50 @@ func handleDeleteLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func handleGetServiceStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	service := ps.ByName("servicename")
+	defer r.Body.Close()
+	inst := servicectl.GetInstance()
+	if inst != nil {
+		servicestatus, err := inst.GetServiceStatus(service)
+		if (err!= nil) {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		} else {
+			body, err := json.Marshal(servicestatus)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+			} else {
+				w.WriteHeader(http.StatusOK)
+				w.Write(body)
+			}
+		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"no servicectl manager\"}"))
+	}
+}
+
+func handleControlService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	service := ps.ByName("servicename")
+	operation := ps.ByName("operation")
+	defer r.Body.Close()
+	inst := servicectl.GetInstance()
+	if inst != nil {
+		err := inst.ControlService(service, operation)
+		if (err!= nil) {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}		
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"no servicectl manager\"}"))
+	}
 }
 
 func handlePutNetworkInterfaces(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

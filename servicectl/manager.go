@@ -131,6 +131,105 @@ func GetInstance() *ServicectlManagerInstance {
 	return instance
 }
 
+func (servicectlManager *ServicectlManagerInstance) GetServiceStatus(servicename string) (stat maestroSpecs.ServiceStatus, er error) {
+	var status maestroSpecs.ServiceStatus
+	systemd, err := dbus.NewSystemdConnection()
+	if err != nil {
+		log.MaestroErrorf("servicectlManager: Error establishing connection to systemd %v\n", err)
+		return status, err
+	}
+	ServiceActiveState, err := systemd.GetUnitProperty(servicename,"ActiveState")
+	if(err != nil) {
+		systemd.Close()
+		return status, err
+	}
+	ServiceSubState, err := systemd.GetUnitProperty(servicename, "SubState")
+	if(err != nil) {
+		systemd.Close()
+		return status, err
+	}
+	ServiceUnitFileState, err := systemd.GetUnitProperty(servicename, "UnitFileState")
+	if(err != nil) {
+		systemd.Close()
+		return status, err
+	}
+	status.Status = fmt.Sprintf("%s(%s)",ServiceActiveState.Value.Value().(string) ,ServiceSubState.Value.Value().(string))
+	if( ServiceSubState.Value.Value().(string) == "running") {
+		status.IsRunning = true
+	} else {
+		status.IsRunning = false
+	}
+	if(ServiceUnitFileState.Value.Value().(string) == "enabled") {
+		status.IsEnabled = true
+	} else {
+		status.IsEnabled = false
+	}
+	systemd.Close()
+    return status, nil
+}
+
+func (servicectlManager *ServicectlManagerInstance) ControlService(servicename string, operation string) (err error) {
+	systemd, err := dbus.NewSystemdConnection()
+	if err != nil {
+		log.MaestroErrorf("servicectlManager: Error establishing connection to systemd %v\n", err)
+		return err
+	}
+	if(operation == "enable") {
+		EnableUnits := []string{}
+		EnableUnits = append(EnableUnits, servicename)
+		fmt.Printf("%v \n", EnableUnits)
+		enablement_info, EnableUnitFileChange, err := systemd.EnableUnitFiles(EnableUnits, false, false)
+		log.MaestroInfof("Enabling service %s  Results: %v , %v, %v",servicename, enablement_info, EnableUnitFileChange, err)
+		fmt.Printf("%v , %v, %v", enablement_info, EnableUnitFileChange, err)
+		systemd.Close()
+		return err
+	} else if(operation == "disable"){
+		DisableUnits := []string{}
+		DisableUnits = append(DisableUnits, servicename)
+		fmt.Printf("%v \n", DisableUnits)
+		DisableUnitFileChange, err := systemd.DisableUnitFiles(DisableUnits, false)
+		log.MaestroInfof("Disabling service %s  Results: %v, %v, %v",servicename, DisableUnitFileChange, err, DisableUnits)
+		fmt.Printf("%v, %v", DisableUnitFileChange, err)
+		systemd.Close()
+		return err
+	} else if(operation == "start") {
+		id, err := systemd.StartUnit(servicename, "replace", nil)
+		if err != nil {
+			log.MaestroErrorf("servicectlManager: Error while starting service %s : %v", servicename, err)
+		} else {
+			log.MaestroInfof("Started service %s with PID %v",servicename, id)
+		}
+		systemd.Close()
+		return err	
+	} else if(operation == "stop") {
+		id, err := systemd.StopUnit(servicename, "replace", nil)
+		fmt.Printf("%v %v ", id, err)
+		if err != nil {
+			log.MaestroErrorf("servicectlManager: Error while stopping service %s : %v", servicename, err)
+		} else {
+			log.MaestroInfof("Stopped service %s with PID %v",servicename, id)
+		}
+		systemd.Close()
+		return err		
+	} else if(operation == "restart") {
+		id, err := systemd.RestartUnit(servicename, "replace", nil)
+		fmt.Printf("%v %v ", id, err)
+		if err != nil {
+			log.MaestroErrorf("servicectlManager: Error  while restarting service %s : %v", servicename, err)
+		} else {
+			log.MaestroInfof("Restarted service %s with PID %v",servicename, id)
+		}
+		systemd.Close()
+		return err
+	} else {
+		log.MaestroErrorf("servicectlManager: Error Operation not supported")
+		systemd.Close()
+		return fmt.Errorf("servicectlManager: Error Operation not supported")
+	}
+	systemd.Close()
+	return nil
+}
+
 
 func validateServicectlConfig(logconf maestroSpecs.Service) (ok bool, problem string) {
 	log.MaestroInfof("in validateServicectlConfig\n")
