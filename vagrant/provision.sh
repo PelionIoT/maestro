@@ -51,10 +51,11 @@ export MAESTRO_LOGS=/var/log/maestro
 export EDGE_CLIENT_CERT=$EDGE_CLIENT_RESOURCES/client.crt
 export EDGE_CLIENT_KEY=$EDGE_CLIENT_RESOURCES/client.key
 export EDGE_CLIENT_CA=$EDGE_CLIENT_RESOURCES/myCA.pem
+export COVERITY_HOME=/home/vagrant/cov-analysis-linux64-2020.03
+export PATH=$PATH:$COVERITY_HOME/bin
 
 function site_id() { cat $DEVICEDB_SRC/hack/certs/site_id; }
 function relay_id() { cat $DEVICEDB_SRC/hack/certs/device_id; }
-
 # shorthand for 'devicedb cluster' which provides reasonable defaults
 function dc() {
     local site=$(site_id)
@@ -182,11 +183,9 @@ chmod +x /usr/sbin/clear_devicedb
 # Create a systemctl service that always run devicedb on reboot
 echo "[Unit]
 Description=DeviceDB Edge
-
 [Service]
 Type=simple
 ExecStart=/usr/sbin/devicedb_edge
-
 [Install]
 WantedBy=multi-user.target
 " > /etc/systemd/system/devicedb_edge.service
