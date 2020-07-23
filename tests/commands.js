@@ -43,6 +43,9 @@ module.exports = class Commands {
             kill_maestro: 'vagrant ssh -c "sudo pkill maestro"',
             check_dhcp: 'vagrant ssh -c "ps -aef | grep dhcp"',
             ip_addr: 'vagrant ssh -c "ip addr show {{interface}}"',
+            service_state: 'vagrant ssh -c "sudo systemctl status {{servicename}}"',
+            disable_service: 'vagrant ssh -c "sudo systemctl disable {{servicename}}"',
+            stop_service: 'vagrant ssh -c "sudo systemctl stop {{servicename}}"',
             ip_flush: 'vagrant ssh -c "sudo ip addr flush dev eth1; sudo ip addr flush dev eth2"',
             get_device_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/device_id"',
             get_site_id: 'vagrant ssh -c "cat ' + devicedb_src + '/hack/certs/site_id"',
@@ -58,6 +61,7 @@ module.exports = class Commands {
 
             maestro_shell_get: 'vagrant ssh -c "sudo curl -XGET --unix-socket /tmp/maestroapi.sock http:{{url}}"',
             maestro_shell_put: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
+            maestro_shell_put_without_payload: 'vagrant ssh -c "sudo curl -XPUT --unix-socket /tmp/maestroapi.sock http:{{url}}"',
             maestro_shell_post: 'vagrant ssh -c "sudo curl -XPOST --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
             maestro_shell_delete: 'vagrant ssh -c "sudo curl -XDELETE --unix-socket /tmp/maestroapi.sock http:{{url}} -d \'{{payload}}\'"',
 
@@ -121,6 +125,51 @@ module.exports = class Commands {
             }
             this.cb(false,interface_up);
         }.bind({ctx: this, cb: cb}));
+    }
+
+        /**
+     * Get state of a sydtemd service using systemctl commands
+     * @param {String} servicename - Name of the service
+     * @param {callback} cb - Callback to run when done
+     **/
+    check_service_state(servicename, cb)
+    {
+        let command = Commands.list.service_state.replace('{{servicename}}', servicename);
+        this.run_shell(command, function(stdout) {
+            let arr = stdout.split('\n');
+            var is_enabled = false
+            var is_running = false
+            var not_found = false
+            for (var i in arr) {
+                let line = arr[i].trim();
+                let words = line.split(' ');
+
+                if( words.length >= 2 && i==1 && words[1] === 'not-found') {
+                    not_found = true
+                    this.cb(not_found,false,false)
+                    return
+                }
+                if( words.length >= 4 && i==1 && words[3] === 'disabled;') {
+                    is_enabled = false
+                } else if(words.length >= 4 && i==1 && words[3] === 'enabled;') {
+                    is_enabled = true
+                }
+                if( words.length >= 3 && i==2 && words[2] === '(dead)') {
+                    is_running = false
+                } else if(words.length >= 3 && i==2 && words[2] === '(running)') {
+                    is_running = true
+                }
+            }
+            this.cb(not_found,is_enabled, is_running);
+        }.bind({ctx: this, cb: cb}));
+    }
+
+    get_service_to_default_state(servicename)
+    {
+        let command = Commands.list.disable_service.replace('{{servicename}}', servicename);
+        this.run_shell(command, nil);
+        let command = Commands.list.stop_service.replace('{{servicename}}', servicename);
+        this.run_shell(command, nil);
     }
 
     check_log_existence(filenames, done)
@@ -295,6 +344,13 @@ module.exports = class Commands {
                 this(result);
             }.bind(cb));
         }
+    }
+
+    maestro_api_control_service(servicename, operation)
+    {
+        let command = Commands.list.maestro_shell_put_without_payload;
+        command = command.replace('{{url}}', '/services/' + servicename + '/' + operation);
+        this.run_shell(command, nil);
     }
 
     maestro_api_set_ip_address(ctx, iface, ip_address)

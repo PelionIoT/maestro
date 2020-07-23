@@ -285,6 +285,74 @@ describe('Maestro Config', function() {
         });
 
     });
+
+    /**
+     * Service control tests
+     **/
+    describe('ServiceCtl', function() {
+
+        before(function(done) {
+            this.timeout(timeout);
+            this.done = done;
+
+            // Get the site ID to connect to devicedb properly
+            maestro_commands.get_certs(function(certs) {
+                this.certs = certs;
+                this.done();
+            }.bind(this));
+        });
+
+        beforeEach(function(done) {
+            this.timeout(timeout);
+
+            maestro_commands.get_service_to_default_state('exampleservice.service');
+            maestro_commands.get_service_to_default_state('exampleservice1.service');
+        });
+
+        it('should enable/start/disable/start_on_boot service', function(done) {
+            this.timeout(timeout);
+
+            // Create the config
+            let view = {
+                network: {
+                    interfaces: [
+                        {if_name: 'eth1', clear_addresses: true, existing: 'replace', dhcpv4: true}
+                    ],
+                },
+                services: [
+                    {name: "exampleservice.service", start_on_boot: false, enable_service: true, start_service: true},
+                    {name: "exampleservice1.service", start_on_boot: true, disable_service: true}
+                ],
+                config_end: true
+            };
+
+            maestro_commands.maestro_workflow(YAML.stringify(view),
+
+            // Function to run when done with the workflow
+            function() {
+                // Compare the IP address of the VM to verify maestro set the IP properly
+                maestro_commands.check_service_state('exampleservice.service', function(not_found, is_enabled, is_running) {
+                    assert(!not_found, 'Service exampleservice not found');
+                    assert(is_running, 'Service exampleservice is not running');
+                    assert(is_enabled, 'Service exampleservice is not enabled');
+                    // Compare the IP address of the VM to verify maestro set the IP properly
+                    maestro_commands.check_service_state('exampleservice1.service', function(not_found, is_enabled, is_running) {
+                        assert(!not_found, 'Service exampleservice not found');
+                        assert(is_running, 'Service exampleservice is not running');
+                        assert(!is_enabled, 'Service exampleservice is not disabled');
+                        this.done();
+                    }.bind(this));
+                }.bind(this));
+            }.bind({done: done}),
+
+            // Function to run whenever a new stream of data comes accross STDOUT
+            function(data) {
+                return data.includes('Enabling service exampleservice.service') && data.includes('Started service exampleservice.service') && data.includes('Disabling service exampleservice1.service') && data.includes('Started service exampleservice1.service');
+            }.bind()
+        );
+        });
+
+    });
 });
 
 describe('Maestro API', function() {
@@ -372,6 +440,73 @@ describe('Maestro API', function() {
             this.timeout(timeout);
             this.done = done;
             maestro_commands.maestro_api_set_ip_address(this, 'eth2', '10.229.229.229');
+        });
+    });
+
+        /**
+     * Servicectl tests
+     **/
+    describe('ServiceCtl', function() {
+
+        it('should start the service', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+            maestro_commands.get_service_to_default_state('exampleservice.service');
+            maestro_commands.check_service_state('exampleservice.service', function(not_found, is_enabled, is_running) {
+                this.is_enabled = is_enabled;
+                this.is_running = is_running;
+                this.not_found = not_found;
+            }.bind(this));
+            assert.equal(false, this.is_running);
+            maestro_commands.maestro_api_control_service('exampleservice.service', 'start');
+            maestro_commands.check_service_state('exampleservice.service', function(not_found, is_enabled, is_running) {
+                this.is_enabled = is_enabled;
+                this.is_running = is_running;
+                this.not_found = not_found;
+            }.bind(this));
+            assert.equal(true, this.is_running);
+            this.done();
+        });
+
+        it('should enable the service', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+            maestro_commands.get_service_to_default_state('exampleservice.service');
+            maestro_commands.check_service_state('exampleservice.service', function(not_found, is_enabled, is_running) {
+                this.is_enabled = is_enabled;
+                this.is_running = is_running;
+                this.not_found = not_found;
+            }.bind(this));
+            assert.equal(false, this.is_enabled);
+            maestro_commands.maestro_api_control_service('exampleservice.service', 'enable');
+            maestro_commands.check_service_state('exampleservice.service', function(not_found, is_enabled, is_running) {
+                this.is_enabled = is_enabled;
+                this.is_running = is_running;
+                this.not_found = not_found;
+            }.bind(this));
+            assert.equal(true, this.is_enabled);
+            this.done();
+        });
+
+        it('should get the status of the service', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+            maestro_commands.check_service_state('exampleservice.service', function(not_found, is_enabled, is_running) {
+                this.is_enabled = is_enabled;
+                this.is_running = is_running;
+                this.not_found = not_found;
+            }.bind(this));
+            let command = Commands.list.maestro_shell_get;
+            command = command.replace('{{url}}', '/services/exampleservice.service');
+            maestro_commands.run_shell(command, function(service_status_payload) {
+                let service_status = JSON.parse(service_status_payload);
+
+                assert.equal(false, this.not_found);
+                assert.equal(service_status.IsEnabled, this.is_enabled);
+                assert.equal(service_status.IsRunning, this.is_running);
+
+                this.done();
+            }.bind(this));
         });
     });
 
@@ -545,6 +680,26 @@ describe('DeviceDB', function() {
      * Logging tests
      **/
     describe('Logging', function() {
+
+        beforeEach(function(done) {
+            this.timeout(timeout);
+            let command = Commands.list.remove_logs.replace('{{filename}}', '/var/log/maestro/maestro.log*');
+            maestro_commands.run_shell(command, done);
+        });
+
+        it('should add the warn filter to the file log target', function(done) {
+            this.timeout(timeout);
+            this.done = done;
+            maestro_commands.devicedb_set_log_filter(this, this.file_target, ['warn'], function(result) {
+                maestro_commands.maestro_api_verify_log_filters(this.file_target, ['warn', this.file_target_default_filter], this.done);
+            }.bind(this));
+        });
+    });
+
+        /**
+     * Servicectl tests
+     **/
+    describe('ServiceCtl', function() {
 
         beforeEach(function(done) {
             this.timeout(timeout);
