@@ -34,7 +34,7 @@ end
 
 Vagrant.configure("2") do |config|
 
-  config.vm.define :testing do |test|
+  config.vm.define :test, primary: true do |test|
     set_up_base_box test
     set_testing_network_configs test
     shared_config test
