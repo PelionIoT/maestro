@@ -83,15 +83,17 @@ On Windows also do the following:
 VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "chmod 400 ~/.ssh/id_rsa"
 ```
 
+Use Pelion portal to obtain a file called `mbed_cloud_dev_credentials.c` and place the file in your maestro directory.
+
 Then build maestro and its dependencies. You can run this whenever you desire as long as the VM is online
 
 On Linux or Mac:
 ```bash
-vagrant ssh -c "build_maestro"
+vagrant ssh -c "build_all"
 ```
 On Windows:
 ```bash
-VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "build_maestro"
+VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "build_all"
 ```
 
 ### Running

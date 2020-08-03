@@ -27,3 +27,5 @@ _testmain.go
 .DS_Store
 
 .vagrant
+
+mbed_cloud_dev_credentials.c

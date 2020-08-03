@@ -3,7 +3,7 @@
 # Install prerequisite packages
 add-apt-repository ppa:rmescandon/yq
 apt-get update
-apt-get install -y build-essential python wget git nodejs-legacy npm m4 docker.io docker-compose uuid yq jq
+apt-get install -y build-essential python wget git nodejs-legacy npm m4 docker.io docker-compose uuid yq jq libc6-dev cmake lcov gcovr valgrind python2.7 python-pip mercurial
 systemctl start docker
 systemctl enable docker
 
@@ -14,6 +14,29 @@ npm cache clean -f
 npm install -g n
 n stable
 apt-get install --reinstall nodejs-legacy
+
+pip install mbed-cli
+
+# Tinyproxy configuration
+cat <<'EOF' >/etc/tinyproxy/tinyproxy.conf
+User tinyproxy
+Group tinyproxy
+Port 8888
+Timeout 180
+DefaultErrorFile "/usr/share/tinyproxy/default.html"
+StatFile "/usr/share/tinyproxy/stats.html"
+LogFile "/var/log/tinyproxy/tinyproxy.log"
+LogLevel Info
+PidFile "/var/run/tinyproxy/tinyproxy.pid"
+MaxClients 20
+MinSpareServers 1
+MaxSpareServers 3
+StartServers 2
+MaxRequestsPerChild 0
+ViaProxyName "tinyproxy"
+DisableViaHeader Yes
+EOF
+chmod 644 /etc/tinyproxy/tinyproxy.conf
 
 # Install docker-compose
 sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -36,18 +59,24 @@ export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOROOT/bin:$GOBIN
 
 export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
+export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
+export MAESTRO_SHELL_SRC=$GOPATH/src/github.com/armPelionEdge/maestro-shell
+export PELION_EDGE_SRC=$GOPATH/src/github.com/armPelionEdge
 
 export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
-export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
+
 export EDGE_CLIENT_RESOURCES=/etc/devicedb/shared
 export CLOUD_HOST=localhost
 export CLOUD_URI=ws://$CLOUD_HOST:8080/sync
+
 export EDGE_DATA_DIRECTORY=/var/lib/devicedb/data
 export EDGE_SNAP_DIRECTORY=/var/lib/devicedb/snapshots
 export EDGE_LISTEN_PORT=9090
 export EDGE_LOG_LEVEL=info
+
 export MAESTRO_CERTS=/var/lib/maestro/certs
 export MAESTRO_LOGS=/var/log/maestro
+
 export EDGE_CLIENT_CERT=$EDGE_CLIENT_RESOURCES/client.crt
 export EDGE_CLIENT_KEY=$EDGE_CLIENT_RESOURCES/client.key
 export EDGE_CLIENT_CA=$EDGE_CLIENT_RESOURCES/myCA.pem
@@ -191,8 +220,45 @@ WantedBy=multi-user.target
 " > /etc/systemd/system/devicedb_edge.service
 chmod +x /etc/systemd/system/devicedb_edge.service
 
+# Create a systemctl service that always run devicedb on reboot
+echo "[Unit]
+Description=Mbed Edge
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/edge-core -o 8081
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+" > /etc/systemd/system/edge-core.service
+chmod +x /etc/systemd/system/edge-core.service
+
 # Reload systemctl with the new devicedb_edge service
 systemctl daemon-reload
 
 # Provide a default host for devicedb that will be configured on build
 echo "127.0.0.1       unconfigured-devicedb-host"  >> /etc/hosts
+
+# Symlink the build script so changes to the build script are immediate
+ln -s /vagrant/vagrant/components/build_edge_utils.sh /usr/sbin/build_edge_utils
+ln -s /vagrant/vagrant/components/build_edge.sh /usr/sbin/build_edge
+ln -s /vagrant/vagrant/components/build_devicedb.sh /usr/sbin/build_devicedb
+ln -s /vagrant/vagrant/components/build_maestro_shell.sh /usr/sbin/build_maestro_shell
+ln -s /vagrant/vagrant/components/build_maestro.sh /usr/sbin/build_maestro
+ln -s /vagrant/vagrant/build.sh /usr/sbin/build_all
+chmod +x /usr/sbin/build_edge_utils
+chmod +x /usr/sbin/build_edge
+chmod +x /usr/sbin/build_devicedb
+chmod +x /usr/sbin/build_maestro_shell
+chmod +x /usr/sbin/build_all
+
+# Setup default email and name for github. Needed to apply patches
+git config --global user.email "red@arm.com"
+git config --global user.name "Arm Consulting Engineering"
+
+# Set go get to use SSH instead of https due to the private devicedb repo
+git config --global url.git@github.com:.insteadOf https://github.com/
+
+chmod 600 /home/vagrant/.ssh/id_rsa
