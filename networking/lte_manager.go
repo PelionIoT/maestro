@@ -1,4 +1,5 @@
 package networking
+
 // Copyright (c) 2018, Arm Limited and affiliates.
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -16,80 +17,82 @@ package networking
 
 import (
 	"github.com/armPelionEdge/maestro/log"
+
+	"fmt"
 )
 
-// Returns array of string names for all available modems
+// AvailableModems returns array of string names for all available modems
 func AvailableModems() ([]string, error) {
-    log.MaestroInfof("[STUB] would call\n>mmcli -L\nor equivalent\n")
-    //Implementation TBD
-    //This routine should either return all modems returned by mmcli -L, i.e.
-    //all physical modems
-    //or
-    //return all interface names of type gsm which exist in the current config
-    modems := make([]string, 0)
-    return modems, nil
+	log.MaestroInfof("[STUB] would call\n>mmcli -L\nor equivalent\n")
+	//Implementation TBD
+	//This routine should either return all modems returned by mmcli -L, i.e.
+	//all physical modems
+	//or
+	//return all interface names of type gsm which exist in the current config
+	modems := make([]string, 0)
+	return modems, nil
 }
 
-// Returns whether SIM is recognized in the modem and it is registered to the network
+// IsModemRegistered returns whether SIM is recognized in the modem and it is registered to the network
 func IsModemRegistered(index string) bool {
-    log.MaestroInfof("[STUB]  would call\n>mmcli -m %s\nor equivalent\n", index)
-    //Implementation TBD
+	log.MaestroInfof("[STUB]  would call\n>mmcli -m %s\nor equivalent\n", index)
+	//Implementation TBD
 
-    return true
+	return true
 }
 
-func AddLTEInterface(serial string, connection-name string, apn string) error {
-    log.MaestroInfof("[STUB]  would call\n")
-    log.MaestroInfof(">nmcli con add type gsm ifname %s con-name %s apn %s\n", serial, connection-name, apn)
-    log.MaestroInfof("or equivalent\n")
-    //Implementation TBD
+// AddLTEInterface adds a network interface for the modem
+func AddLTEInterface(ifName string, connectionName string, apn string) error {
+	log.MaestroInfof("[STUB]  would call\n")
+	log.MaestroInfof(">nmcli con add type gsm ifname %s con-name %s apn %s\n", ifName, connectionName, apn)
+	log.MaestroInfof("or equivalent\n")
+	//Implementation TBD
 
-    return nil
+	return nil
 }
 
-func BringUpModem(connection-name string) error {
-    log.MaestroInfof("[STUB] would call\n>nmcli con up %s\nor equivalent\n", connection-name)
-    //Implementation TBD
+func BringUpModem(connectionName string) error {
+	log.MaestroInfof("[STUB] would call\n>nmcli con up %s\nor equivalent\n", connectionName)
+	//Implementation TBD
 
-    return nil
+	return nil
 }
 
+func ConnectModem(index string, serial string, connectionName string, apn string) error {
+	log.MaestroInfof("Connecting modem %s on srial interface %s with name % to APN %s\n",
+		index, serial, connectionName, apn)
 
-func ConnectModem(index string, serial string, connection-name string, apn string) error {
-    log.MaestroInfof("Connecting modem %s on srial interface %s with name % to APN %s\n",
-        index, serial, connection-name, apn)
+	//TODO - once Available modems is registered, verify index is valid
+	//modemfound := false
+	//for _, idx := range AvailableModems() {
+	//   if idx == index {
+	//      modemfound = true
+	//      break
+	//   }
+	//}
+	//if !modemfound {
+	//   return fmt.Errorf("Modem %s not available", index")
+	//}
 
-    //TODO - once Available modems is registered, verify index is valid
-    //modemfound := false
-    //for _, idx := range AvailableModems() {
-    //   if idx == index {
-    //      modemfound = true
-    //      break
-    //   }
-    //}
-    //if !modemfound {
-    //   return fmt.Errorf("Modem %s not available", index")
-    //}
+	if !IsModemRegistered(index) {
+		return fmt.Errorf("Modem %s SIM not present or registered")
+	}
 
-    if !IsModemRegistered(index) {
-        return fmt.Errorf("Modem %s SIM not present or registered")
-    }
+	err := AddLTEInterface(serial, connectionName, apn)
 
-    err := AddLTEInterface(serial, connection-name, apn)
+	if err != nil {
+		log.MaestroErrorf("Unable to add LTE interface ( serial %s connection %s, apn %s): %s\n",
+			serial, connectionName, apn, err.Error())
+		return fmt.Errorf("Iterface not added")
+	}
 
-    if err != nil {
-        log.MaestroErrorf("Unable to add LTE interface ( serial %s connection %s, apn %s): %s\n",
-                          serial, connection-name, apn, err.Error())
-        return fmt.Errorf("Iterface not added")
-    }
+	err = BringUpModem(connectionName)
 
-    err = BringUpModem(connection-name)
+	if err != nil {
+		log.MaestroErrorf("Unable to bring up modem (connection %s): %s\n",
+			connectionName, err.Error())
+		return fmt.Errorf("Modem not up")
+	}
 
-    if err != nil {
-        log.MaestroErrorf("Unable to bring up modem (connection %s): %s\n",
-                          connection-name, err.Error())
-        return fmt.Errorf("Modem not up")
-    }
-
-    return nil
+	return nil
 }

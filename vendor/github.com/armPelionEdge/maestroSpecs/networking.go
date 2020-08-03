@@ -71,8 +71,8 @@ type NetIfConfigPayload struct {
 	WiFiSettings *WiFiSettings `yaml:"wifi" json:"wifi" netgroup:"wifi"`
 
 	// Type of connection.  e.g. wifi or lte
-	ConnectionType string `yaml:"type" json:"type"`
-	// Modem serial device
+	Type string `yaml:"type" json:"type"`
+	// Modem serial device.  It is possible to use "*" to refer to any available modem.
 	SerialDevice string `yaml:"serial" json:"serial"`
 	// APN
 	AccessPointName string `yaml:"apn" json:"apn"`
