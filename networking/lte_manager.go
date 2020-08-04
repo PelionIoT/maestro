@@ -23,7 +23,7 @@ import (
 
 // AvailableModems returns array of string names for all available modems
 func AvailableModems() ([]string, error) {
-	log.Log.Infof("[STUB] would call\n>mmcli -L\nor equivalent\n")
+	log.MaestroInfof("[STUB] would call\n>mmcli -L\nor equivalent\n")
 	//Implementation TBD
 	//This routine should either return all modems returned by mmcli -L, i.e.
 	//all physical modems
@@ -35,7 +35,7 @@ func AvailableModems() ([]string, error) {
 
 // IsModemRegistered returns whether SIM is recognized in the modem and it is registered to the network
 func IsModemRegistered(index string) bool {
-	log.Log.Infof("[STUB]  would call\n>mmcli -m %s\nor equivalent\n", index)
+	log.MaestroInfof("[STUB]  would call\n>mmcli -m %s\nor equivalent\n", index)
 	//Implementation TBD
 
 	return true
@@ -43,23 +43,23 @@ func IsModemRegistered(index string) bool {
 
 // AddLTEInterface adds a network interface for the modem
 func AddLTEInterface(ifName string, connectionName string, apn string) error {
-	log.Log.Infof("[STUB]  would call\n")
-	log.Log.Infof(">nmcli con add type gsm ifname %s con-name %s apn %s\n", ifName, connectionName, apn)
-	log.Log.Infof("or equivalent\n")
+	log.MaestroInfof("[STUB]  would call\n")
+	log.MaestroInfof(">nmcli con add type gsm ifname %s con-name %s apn %s\n", ifName, connectionName, apn)
+	log.MaestroInfof("or equivalent\n")
 	//Implementation TBD
 
 	return nil
 }
 
 func BringUpModem(connectionName string) error {
-	log.Log.Infof("[STUB] would call\n>nmcli con up %s\nor equivalent\n", connectionName)
+	log.MaestroInfof("[STUB] would call\n>nmcli con up %s\nor equivalent\n", connectionName)
 	//Implementation TBD
 
 	return nil
 }
 
 func ConnectModem(index string, serial string, connectionName string, apn string) error {
-	log.Log.Infof("Connecting modem %s on srial interface %s with name % to APN %s\n",
+	log.MaestroInfof("Connecting modem %s on srial interface %s with name % to APN %s\n",
 		index, serial, connectionName, apn)
 
 	//TODO - once Available modems is registered, verify index is valid
