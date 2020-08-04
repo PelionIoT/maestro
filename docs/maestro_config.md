@@ -62,6 +62,25 @@ Breakdown:
 * `dhcpv4` - REQUIRED. `true` for DHCP interfaces.
 * `hw_addr` - REQUIRED. MAC address to use for the interface.
 
+### LTE interface
+
+```
+- if_name: lte1
+  existing: override
+  dhcpv4: true
+  type: lte
+  serial: ttyLTE
+  apn: my_apn
+```
+
+Breakdown:
+* `if_name` - REQUIRED. Name of the interface Maestro modifies.
+* `existing` - OPTIONAL. Tells Maestro to `replace` or `override` the existing saved interface.
+* `dhcpv4` - REQUIRED. `true` for DHCP interfaces.
+* `type` - REQUIRED. Tells Maestro the type of connection, `lte` for LTE interfaces.
+* `serial` - REQUIRED. Modem serial device.  It is possible to use "*" to refer to any available modem.
+* `apn` - REQUIRED. Access point name.
+
 ## DeviceDB
 
 To connect to a deviceDB server, add:
