@@ -70,6 +70,13 @@ type NetIfConfigPayload struct {
 	// WiFi settings, if any
 	WiFiSettings *WiFiSettings `yaml:"wifi" json:"wifi" netgroup:"wifi"`
 
+	// Type of connection.  e.g. wifi or lte
+	Type string `yaml:"type" json:"type"`
+	// Modem serial device.  It is possible to use "*" to refer to any available modem.
+	SerialDevice string `yaml:"serial" json:"serial"`
+	// APN
+	AccessPointName string `yaml:"apn" json:"apn"`
+
 	// IEEE8021x is the IEEE 802.1x auth settings
 	IEEE8021x *IEEE8021x `yaml:"ieee8021x" json:"ieee8021x" netgroup:"IEEE8021x"`
 

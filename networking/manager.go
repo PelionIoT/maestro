@@ -1842,6 +1842,12 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 						errout = err
 						return
 					}
+
+					// For LTE connections, we need to ask modem manager to create the interface
+					if ifconfig.Type == "lte" {
+						AddLTEInterface(ifconfig.SerialDevice, ifconfig.IfName, ifconfig.AccessPointName)
+					}
+
 					// second, determine if that interface exists, and get it's index and name (one is required to be known)
 					//					ifname, ifindex, err := GetInterfaceIndexAndName(ifconfig.IfName, ifconfig.IfIndex)
 					var ifname string
