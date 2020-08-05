@@ -120,16 +120,10 @@ cd networking # Open networking tests
 go test -v -run DhcpRequest # Run DhcpRequest test
 ```
 
-#### System Tests
+#### Feature Tests
 
-On the host machine, run the following commands:
-Note: Make sure you had built using `vagrant up` and `vagrant ssh -c "build_maestro"` before running tests.
-
-```bash
-cd tests # Go to SysTests folder
-npm i # Only run once to download dependencies
-npm test # Run mocha test suite
-```
+To run tests that test maestro's interactions with other Pelion Edge products, see:
+https://github.com/armPelionEdge/dev-pelion-edge
 
 ## Additional Features/Information
 
