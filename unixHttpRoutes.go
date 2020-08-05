@@ -83,6 +83,10 @@ func AddProcessRoutes(router *httprouter.Router) {
 	router.GET("/net/events", handleSubscribeNetworkEvents)
 	router.GET("/net/events/:subscription", handleGetLatestNetworkEvents)
 
+	router.GET("/net/dns", handleGetDNS)
+	router.POST("/net/dns", handlePostDNS)
+	router.DELETE("/net/dns", handleDeleteDNS)
+
 	router.POST("/log/filter", handlePostLogFilter)
 	router.DELETE("/log/filter", handleDeleteLogFilter)
 
@@ -274,6 +278,86 @@ func handleDeleteLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func handleGetDNS(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	inst := networking.GetInstance()
+	if inst != nil {
+		dnsarray, err := inst.GetDNS()
+		if err == nil {
+			w.WriteHeader(http.StatusOK)
+			dnsjson, _ := json.Marshal(dnsarray)
+			w.Write(dnsjson)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"no network manager\"}"))
+	}
+	defer r.Body.Close()
+
+}
+
+func handlePostDNS(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	inst := networking.GetInstance()
+
+	config := new(maestroSpecs.NetworkConfigPayload)
+
+	if inst != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			json.Unmarshal(body, &config)
+			for _, dns := range config.Nameservers {
+				err = inst.AddDNS(dns)
+			}
+			if err == nil {
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+			}
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"no network manager\"}"))
+	}
+	defer r.Body.Close()
+
+}
+
+func handleDeleteDNS(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	inst := networking.GetInstance()
+
+	config := new(maestroSpecs.NetworkConfigPayload)
+
+	if inst != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			json.Unmarshal(body, &config)
+			for _, dns := range config.Nameservers {
+				err = inst.DeleteDNS(dns)
+			}
+			if err == nil {
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+			}
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
+		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"no network manager\"}"))
+	}
+	defer r.Body.Close()
+
 }
 
 func handlePutNetworkInterfaces(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

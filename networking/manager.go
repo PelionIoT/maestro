@@ -412,6 +412,135 @@ func (this *networkManagerInstance) StorageClosed(instance storage.MaestroDBStor
 
 }
 
+/*
+	function: GetDNS
+
+	get an array of the dns address used on the device
+
+	parameters:
+	none.
+
+	returns
+	[]string - array of string with dns ip's
+	error - any errors
+*/
+func (this *networkManagerInstance) GetDNS() ([]string, error) {
+	//var err error
+	dns := make([]string, 0)
+
+	dns = append(dns, this.networkConfig.Nameservers...)
+
+	return dns, nil
+}
+
+/*
+	function: AddDNS
+
+	add a dns address to use for name resolution
+
+	parameters:
+	dns string - the dns you wish to add
+
+	returns
+	error - any errors
+*/
+func (this *networkManagerInstance) AddDNS(dns string) error {
+
+	//update the nameservers in the config
+	this.networkConfig.Nameservers = append(this.networkConfig.Nameservers, dns)
+
+	//make it live
+	this.applyDNS()
+
+	return nil
+}
+
+/*
+	function: removeElement
+
+	delete the value from the given array and return
+	a new array
+
+	parameters:
+	array []string - the array to remove the value from
+	value string   - value to remove
+
+	returns:
+	the new array minus the value
+*/
+func removeElement(array []string, value string) []string {
+	index := indexOf(array, value)
+	if index != -1 {
+		return append(array[:index], array[index+1:]...)
+	} else {
+		return array
+	}
+}
+
+/*
+	function: indexOf
+
+	parameters:
+	array []string
+	value string)
+
+	returns:
+	index of element or -1 if not found
+*/
+func indexOf(array []string, value string) int {
+	for i, _ := range array {
+		if array[i] == value {
+			return i
+		}
+	}
+
+	return -1
+}
+
+/*
+	function: applyDNS
+
+	make DNS changes live
+
+	parameters:
+	none
+
+	returns:
+	nothing
+*/
+func (this *networkManagerInstance) applyDNS() {
+	//make the config active
+	instance.submitConfig(instance.networkConfig)
+	instance.setupInterfaces()
+	instance.CurrConfigCommit.ConfigCommitFlag = false
+	instance.CurrConfigCommit.LastUpdateTimestamp = time.Now().Format(time.RFC850)
+	instance.CurrConfigCommit.TotalCommitCountFromBoot = instance.CurrConfigCommit.TotalCommitCountFromBoot + 1
+
+	instance.finalizeDns()
+}
+
+/*
+	function: DeleteDNS
+
+	remove a dns address to used for name resolution
+
+	parameters:
+	dns string - the dns you wish to remove
+
+	returns
+	error - any errors
+*/
+func (this *networkManagerInstance) DeleteDNS(dns string) error {
+
+	//delete the nameserver in the config
+	this.networkConfig.Nameservers = removeElement(this.networkConfig.Nameservers, dns)
+
+	//make it live
+	this.applyDNS()
+
+	return nil
+}
+
 func (this *networkManagerInstance) SetInterfacesAsJson(data []byte) error {
 
 	var err error
