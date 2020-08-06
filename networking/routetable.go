@@ -176,44 +176,55 @@ func (table *routingTable) findPreferredRoute() (ok bool, ifname string, route *
 	return
 }
 
-func (table *routingTable) setPreferredRoute(removeDefaultRoute bool) (err error) {
+func (table *routingTable) setPreferredRoute(overrideDefaultRoute bool) (err error) {
 	table.lock.Lock()
 	// was their an old route, remove it.
-	if table.oldDefaultRoute != nil { //} && (table.oldDefaultRoute != table.defaultRoute) {
+	if table.oldDefaultRoute != nil && overrideDefaultRoute { //} && (table.oldDefaultRoute != table.defaultRoute) {
 		table.lock.Unlock()
 		netlink.RouteDel(table.oldDefaultRoute)
 		table.lock.Lock()
 	}
 	// update the route if it changed
 	//	if table.oldDefaultRoute != table.defaultRoute {
-	route := table.defaultRoute
-	table.lock.Unlock()
-	if route != nil {
-		err = netlink.RouteAdd(route)
-		if err != nil && err.Error() == "file exists" && removeDefaultRoute {
-			// get the link index for this interface
-			// _, ifindex, err2 := GetInterfaceIndexAndName(table.primaryDefaultRouteIf, 0)
-
-			// if err2 != nil {
-			// 	return
-			// }
-
-			existing := &netlink.Route{
-				Dst: &net.IPNet{
-					IP:   net.IPv4(0, 0, 0, 0),
-					Mask: net.IPv4Mask(0, 0, 0, 0),
-				},
-				// LinkIndex: ifindex,
-			}
-
-			err2 := netlink.RouteDel(existing)
-			if err2 != nil {
-				err = fmt.Errorf("Could not delete default route: %s", err2.Error())
-				return
-			}
-
+	if(overrideDefaultRoute) {
+		route := table.defaultRoute
+		table.lock.Unlock()
+		if route != nil {
 			err = netlink.RouteAdd(route)
+			if err != nil && err.Error() == "file exists" {
+				// get the link index for this interface
+				// _, ifindex, err2 := GetInterfaceIndexAndName(table.primaryDefaultRouteIf, 0)
+
+				// if err2 != nil {
+				// 	return
+				// }
+
+				existing := &netlink.Route{
+					Dst: &net.IPNet{
+						IP:   net.IPv4(0, 0, 0, 0),
+						Mask: net.IPv4Mask(0, 0, 0, 0),
+					},
+					// LinkIndex: ifindex,
+				}
+
+				err2 := netlink.RouteDel(existing)
+				if err2 != nil {
+					err = fmt.Errorf("Could not delete default route: %s", err2.Error())
+					return
+				}
+
+				err = netlink.RouteAdd(route)
+			}
 		}
+	} else {
+		table.defaultRoute = &netlink.Route{
+			Dst: &net.IPNet{
+				IP:   net.IPv4(0, 0, 0, 0),
+				Mask: net.IPv4Mask(0, 0, 0, 0),
+			},
+			// LinkIndex: ifindex,
+		}
+		table.lock.Unlock()
 	}
 	// } else {
 	// 	table.lock.Unlock()
