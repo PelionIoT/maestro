@@ -446,11 +446,17 @@ func (this *networkManagerInstance) GetDNS() ([]string, error) {
 */
 func (this *networkManagerInstance) AddDNS(dns string) error {
 
+	//create a blank update
+	var newConfig maestroSpecs.NetworkConfigPayload
+
 	//update the nameservers in the config
-	this.networkConfig.Nameservers = append(this.networkConfig.Nameservers, dns)
+	newConfig.Nameservers = append(this.networkConfig.Nameservers, dns)
+
+	//make replace
+	newConfig.Existing = "override"
 
 	//make it live
-	this.applyDNS()
+	this.applyDNS(newConfig)
 
 	return nil
 }
@@ -508,14 +514,12 @@ func indexOf(array []string, value string) int {
 	returns:
 	nothing
 */
-func (this *networkManagerInstance) applyDNS() {
-	//make the config active
-	instance.submitConfig(instance.networkConfig)
-	instance.setupInterfaces()
-	instance.CurrConfigCommit.ConfigCommitFlag = false
-	instance.CurrConfigCommit.LastUpdateTimestamp = time.Now().Format(time.RFC850)
-	instance.CurrConfigCommit.TotalCommitCountFromBoot = instance.CurrConfigCommit.TotalCommitCountFromBoot + 1
+func (this *networkManagerInstance) applyDNS(config maestroSpecs.NetworkConfigPayload) {
 
+	//make the config active
+	instance.submitConfig(&config)
+
+	//write out the dns files
 	instance.finalizeDns()
 }
 
@@ -532,11 +536,16 @@ func (this *networkManagerInstance) applyDNS() {
 */
 func (this *networkManagerInstance) DeleteDNS(dns string) error {
 
+	//create a blank update
+	var newConfig maestroSpecs.NetworkConfigPayload
+
 	//delete the nameserver in the config
-	this.networkConfig.Nameservers = removeElement(this.networkConfig.Nameservers, dns)
+	newConfig.Nameservers = removeElement(this.networkConfig.Nameservers, dns)
+
+	newConfig.Existing = "override"
 
 	//make it live
-	this.applyDNS()
+	this.applyDNS(newConfig)
 
 	return nil
 }
@@ -817,6 +826,37 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 		}
 
 	}
+
+	//id of the dns in db
+	dnsid := string("nameservers")
+
+	//the stored db
+	var storedconfig []string
+
+	//get the stored dns servers
+	this.networkConfigDB.Get(dnsid, &storedconfig)
+
+	if config.Existing == "replace" {
+		//erase and replace the nameservers
+		storedconfig = nil
+		storedconfig = append(storedconfig, config.Nameservers...)
+
+		//store name servers
+		this.networkConfigDB.Put(dnsid, storedconfig)
+	} else if config.Existing == "override" {
+		if len(config.Nameservers) > 0 {
+			//erase and replace the nameservers
+			storedconfig = nil
+			storedconfig = append(storedconfig, config.Nameservers...)
+
+			//store name servers
+			this.networkConfigDB.Put(dnsid, storedconfig)
+		}
+	}
+
+	//store to active config
+	instance.networkConfig.Nameservers = nil
+	instance.networkConfig.Nameservers = append(instance.networkConfig.Nameservers, storedconfig...)
 }
 
 func (this *networkManagerInstance) getIfFromDb(ifname string) (ret *NetworkInterfaceData) {
