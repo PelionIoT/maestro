@@ -742,7 +742,9 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 	this.networkConfig = config
 
 	//reset all current config if this function is called again
-	this.resetLinks()
+	if len(config.Interfaces) > 0 {
+		this.resetLinks()
+	}
 
 	// NOTE: this is only for the config file initial start
 	// NOTE: the database must already be loaded and read
