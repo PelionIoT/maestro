@@ -45,14 +45,14 @@ script:
   # Run unit tests
   - cd "../../${upstream}"
   - DEBUG=1 DEBUG2=1 ./build.sh
-  - ( cd sysstats && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v )
-  - ( cd maestroConfig && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v )
-  - ( cd vendor/github.com/armPelionEdge/maestroSpecs && LD_LIBRARY_PATH=../greasego/deps/lib/ go test -v )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigSimpleUpdateInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run ConfigCommitUpdateInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigNameserversUpdateInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigUpdateInDDBMultipleInterfaces )
+  - ( cd sysstats && LD_LIBRARY_PATH=../../maestro/greasego/deps/lib/ go test -v )
+  - ( cd maestroConfig && LD_LIBRARY_PATH=../../maestro/greasego/deps/lib/ go test -v )
+  - ( cd vendor/github.com/armPelionEdge/maestroSpecs && LD_LIBRARY_PATH=../../../../../greasego/deps/lib/ go test -v )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/greasego/deps/lib/ go test -v -run NetworkConfigInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/greasego/deps/lib/ go test -v -run NetworkConfigSimpleUpdateInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/greasego/deps/lib/ go test -v -run ConfigCommitUpdateInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/greasego/deps/lib/ go test -v -run NetworkConfigNameserversUpdateInDDB )
+  - ( cd networking && LD_LIBRARY_PATH=../../maestro/greasego/deps/lib/ go test -v -run NetworkConfigUpdateInDDBMultipleInterfaces )
 
 matrix:
   include:

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/defaults"
+	"github.com/armPelionEdge/maestro/greasego"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/storage"
@@ -453,7 +453,7 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 	if config.LinuxKernelLog && config.LinuxKernelLogLegacy {
 		return errors.New("Invalid Config: You can't have both linuxKernelLog: true AND linuxKernelLogLegacy: true. Choose one")
 	}
-	
+
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 	greasego.StartGreaseLib(func() {

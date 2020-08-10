@@ -49,7 +49,7 @@ To verify that your changes above are active, choose a verification type listed 
 
 1. Run maestro-shell with the following command.
     ```
-    sudo LD_LIBRARY_PATH=/home/vagrant/work/gostuff/src/github.com/armPelionEdge/maestro/vendor/github.com/armPelionEdge/greasego/deps/lib /home/vagrant/work/gostuff/bin/maestro-shell
+    sudo LD_LIBRARY_PATH=/home/vagrant/work/gostuff/src/github.com/armPelionEdge/maestro/greasego/deps/lib /home/vagrant/work/gostuff/bin/maestro-shell
     ```
 1. Inside of maestro-shell run the command
     ```

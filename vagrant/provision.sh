@@ -37,7 +37,7 @@ export PATH=$PATH:$GOROOT/bin:$GOBIN
 
 export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
 
-export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
+export LD_LIBRARY_PATH=$MAESTRO_SRC/greasego/deps/lib
 export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
 export EDGE_CLIENT_RESOURCES=/etc/devicedb/shared
 export CLOUD_HOST=localhost

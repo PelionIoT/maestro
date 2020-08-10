@@ -35,10 +35,6 @@
 			"Rev": "f82339e508174d94537cf178144d810d19a6ed41"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/greasego",
-			"Rev": "5b578dd9578b693c0938392a8cb4efbe76ec3918"
-		},
-		{
 			"ImportPath": "github.com/armPelionEdge/hashmap",
 			"Rev": "f8b224fcaf91ddc6dc3d4ddff4cb69d0e56afc10"
 		},

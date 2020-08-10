@@ -20,9 +20,9 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/armPelionEdge/greasego"
 	"github.com/armPelionEdge/maestro/debugging"
 	"github.com/armPelionEdge/maestro/events"
+	"github.com/armPelionEdge/maestro/greasego"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/sysstats"
 	"github.com/armPelionEdge/maestro/utils"
@@ -409,7 +409,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 }
 
 func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byte) (err error) {
-	
+
 	// copy(client.activeBuffer.data[lenactive:],godata)
 	// return
 	buflen := len(godata)

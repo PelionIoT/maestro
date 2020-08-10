@@ -1,8 +1,44 @@
-// +build arm arm64
-
 package greasego
 
 // see notes here on libtcmalloc issues: https://github.com/gperftools/gperftools/issues/39
+
+/*
+#cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu -L${SRCDIR}/deps/lib
+#cgo LDFLAGS: -lgrease -lstdc++ -lm -ltcmalloc_minimal
+#cgo CFLAGS: -I${SRCDIR}/deps/include
+#define GREASE_IS_LOCAL 1
+#include <stdio.h>
+#include <stdlib.h>
+#include "grease_lib.h"
+#include "bindings.h"
+*/
+import "C"
+
+// import "C" has to be on it's own line, or go compiler freaks out
+import (
+	"fmt"
+	"reflect"
+	"strings"
+	"sync"
+	"unsafe"
+	//	"sync/atomic"
+)
+
+// no longer including these, as they are statically in libgrease: -luv -lTW
+//-static-libgcc
+// # cgo LDFLAGS: /usr/lib/x86_64-linux-gnu/libunwind-coredump.so.0
+
+// I can't get this to work right now. I think when the fix for cgo command is put in it will:
+// https://github.com/golang/go/issues/16651
+/*
+# cgo LDFLAGS: -L/usr/lib/gcc/x86_64-linux-gnu/4.8
+# cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu -Wl,-Bdynamic /usr/lib/x86_64-linux-gnu/libunwind-coredump.so.0 -Wl,-Bstatic
+# cgo LDFLAGS: -Wl,-whole-archive ${SRCDIR}/deps/lib/libtcmalloc_minimal.a -Wl,-no-whole-archive
+# cgo LDFLAGS: /usr/lib/gcc/x86_64-linux-gnu/4.8.4/libstdc++.a ${SRCDIR}/deps/lib/libgrease.a ${SRCDIR}/deps/lib/libuv.a ${SRCDIR}/deps/lib/libTW.a ${SRCDIR}/deps/lib/libre2.a  -lstdc++ /usr/lib/x86_64-linux-gnu/libm.a
+# cgo CFLAGS: -I${SRCDIR}/deps/include
+# define GREASE_IS_LOCAL 1
+# include "grease_lib.h"
+*/
 
 //
 // Copyright (c) 2019 ARM Limited and affiliates.
@@ -28,32 +64,9 @@ package greasego
 // SOFTWARE.
 //
 
-/*
-#cgo LDFLAGS: -L${SRCDIR}/deps/lib
-#cgo LDFLAGS: -lgrease -lstdc++ -lm -ltcmalloc_minimal -lm -lpthread -pthread
-#cgo CFLAGS: -I${SRCDIR}/deps/include DEBUG(-DDEBUG_BINDINGS)
-#define GREASE_IS_LOCAL 1
-#include <stdio.h>
-#include <stdlib.h>
-#include "grease_lib.h"
-#include "bindings.h"
-*/
-import "C"
-
-// import "C" has to be on it's own line, or go compiler freaks out
-import (
-	"fmt"
-	"reflect"
-	"strings"
-	"sync"
-	"unsafe"
-	//	"sync/atomic"
-)
-
 const GREASE_LIB_OK int = 0
 const GREASE_LIB_NOT_FOUND int = 0x01E00000
 
-// no longer including these, as they are statically in libgrease: -luv -lTW
 // This interface is for providing a special callback to called when the
 // greaseLib starts
 type GreaseLibStartCB func()
@@ -679,6 +692,7 @@ func do_addTargetCB(err *C.GreaseLibError, info *C.GreaseLibStartedTargetInfo) {
 		if goerr != nil {
 			fmt.Printf("Error on Callback: %d\n", goerr.Errno)
 		}
+
 		optsid = int((*info).optsId)
 		//		fmt.Printf("HERE2222 do_addTargetCB %d\n",optsid)
 		addTargetCallbackMapMutex.Lock()
@@ -926,20 +940,30 @@ func convertFilterToCGreaseLib(opts *GreaseLibFilter) {
 
 func AddFilter(opts *GreaseLibFilter) int {
 	convertFilterToCGreaseLib(opts)
-	return int(C.GreaseLib_addFilter(&opts._binding))
+	ret := int(C.GreaseLib_addFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func DisableFilter(opts *GreaseLibFilter) int {
-	return int(C.GreaseLib_disableFilter(&opts._binding))
+	ret := int(C.GreaseLib_disableFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func EnableFilter(opts *GreaseLibFilter) int {
-	return int(C.GreaseLib_enableFilter(&opts._binding))
+	ret := int(C.GreaseLib_enableFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func ModifyFilter(opts *GreaseLibFilter) int {
-	convertFilterToCGreaseLib(opts)
-	return int(C.GreaseLib_modifyFilter(&opts._binding))
+	ret := int(C.GreaseLib_modifyFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 func DeleteFilter(opts *GreaseLibFilter) int {
-	return int(C.GreaseLib_deleteFilter(&opts._binding))
+	C.GreaseLib_fillFilterId(&opts._binding)
+	ret := int(C.GreaseLib_deleteFilter(&opts._binding))
+	C.greasego_reset_all_logMetas()
+	return ret
 }
 
 const GREASE_LIB_SINK_UNIXDGRAM uint32 = 0x1
