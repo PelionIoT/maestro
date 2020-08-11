@@ -518,9 +518,6 @@ func (this *networkManagerInstance) applyDNS(config maestroSpecs.NetworkConfigPa
 
 	//make the config active
 	instance.submitConfig(&config)
-
-	//write out the dns files
-	instance.finalizeDns()
 }
 
 /*
@@ -859,6 +856,9 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 	//store to active config
 	instance.networkConfig.Nameservers = nil
 	instance.networkConfig.Nameservers = append(instance.networkConfig.Nameservers, storedconfig...)
+
+	//write out the dns files
+	instance.finalizeDns()
 }
 
 func (this *networkManagerInstance) getIfFromDb(ifname string) (ret *NetworkInterfaceData) {
