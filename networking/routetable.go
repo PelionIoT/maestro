@@ -176,17 +176,17 @@ func (table *routingTable) findPreferredRoute() (ok bool, ifname string, route *
 	return
 }
 
-func (table *routingTable) setPreferredRoute(overrideDefaultRoute bool) (err error) {
+func (table *routingTable) setPreferredRoute(setDefaultRoute bool) (err error) {
 	table.lock.Lock()
-	// was their an old route, remove it.
-	if table.oldDefaultRoute != nil && overrideDefaultRoute { //} && (table.oldDefaultRoute != table.defaultRoute) {
-		table.lock.Unlock()
-		netlink.RouteDel(table.oldDefaultRoute)
-		table.lock.Lock()
-	}
-	// update the route if it changed
-	//	if table.oldDefaultRoute != table.defaultRoute {
-	if(overrideDefaultRoute) {
+	if(setDefaultRoute) {
+		// was there an old route, remove it.
+		if table.oldDefaultRoute != nil { //} && (table.oldDefaultRoute != table.defaultRoute) {
+			table.lock.Unlock()
+			netlink.RouteDel(table.oldDefaultRoute)
+			table.lock.Lock()
+		}
+		// update the route if it changed
+		//	if table.oldDefaultRoute != table.defaultRoute {
 		route := table.defaultRoute
 		table.lock.Unlock()
 		if route != nil {

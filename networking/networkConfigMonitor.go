@@ -244,8 +244,8 @@ func (inst *networkManagerInstance) ProcessRouteConfigChange(fieldchanged string
 		inst.networkConfig.Interfaces[index].RoutePriority = int(reflect.ValueOf(futvalue).Int())
 	case "Routes":
 		inst.networkConfig.Interfaces[index].Routes = reflect.ValueOf(futvalue).Interface().([]string)
-	case "DontOverrideDefaultRoute":
-		inst.networkConfig.DontOverrideDefaultRoute = reflect.ValueOf(futvalue).Bool()
+	case "DontSetDefaultRoute":
+		inst.networkConfig.DontSetDefaultRoute = reflect.ValueOf(futvalue).Bool()
 	default:
 		log.MaestroWarnf("\nProcessRouteConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 	}
