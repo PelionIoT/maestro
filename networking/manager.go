@@ -1331,7 +1331,7 @@ DhcpLoop:
 				ok, ifpref, r := this.primaryTable.findPreferredRoute()
 				if ok {
 					log.MaestroWarnf("NetworkManager:(DhcpLoop) preferred default route is on if %s - %+v\n", ifpref, r)
-					err = this.primaryTable.setPreferredRoute(!this.networkConfig.DontOverrideDefaultRoute)
+					err = this.primaryTable.setPreferredRoute(!this.networkConfig.DontSetDefaultRoute)
 					if err == nil {
 						log.MaestroWarnf("NetworkManager: set default route to %s %+v\n", ifpref, r)
 					} else {
@@ -1755,7 +1755,7 @@ func (mgr *networkManagerInstance) finalizePrimaryRoutes() {
 	log.MaestroDebugf("NetworkManager: finalizePrimaryRoutes: if %s - %+v (ok=%v)\n", ifpref, r, ok)
 	if ok {
 		log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
-		err := mgr.primaryTable.setPreferredRoute(!mgr.networkConfig.DontOverrideDefaultRoute)
+		err := mgr.primaryTable.setPreferredRoute(!mgr.networkConfig.DontSetDefaultRoute)
 		if err == nil {
 			log.MaestroDebugf("NetworkManager: set default route to %s %+v\n", ifpref, r)
 		} else {
