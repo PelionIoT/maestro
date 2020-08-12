@@ -3,7 +3,7 @@
 # Install prerequisite packages
 add-apt-repository ppa:rmescandon/yq
 apt-get update
-apt-get install -y build-essential python wget git nodejs-legacy npm m4 docker.io docker-compose uuid yq jq
+apt-get install -y build-essential python curl git nodejs-legacy npm m4 docker.io docker-compose uuid yq jq
 systemctl start docker
 systemctl enable docker
 
@@ -21,11 +21,9 @@ sudo chmod +x /usr/local/bin/docker-compose
 sudo usermod -aG docker vagrant
 
 # Download GO
-wget https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz
-tar xvzf go1.13.5.linux-amd64.tar.gz
-rm go1.13.5.linux-amd64.tar.gz
-rm -rf /opt/go
-mv go /opt/go
+curl -L https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz | tar xz && \
+    rm -rf /opt/go && \
+    mv go /opt/go
 
 # Set GO environment variables
 cat <<'EOF' >/etc/profile.d/envvars.sh
