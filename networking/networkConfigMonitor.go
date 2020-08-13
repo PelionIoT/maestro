@@ -16,6 +16,7 @@ package networking
 // limitations under the License.
 
 import (
+	"fmt"
 	"io/ioutil"
 	"reflect"
 	"strings"
@@ -366,6 +367,7 @@ func ConfigApplyHandler(jobConfigApplyRequestChan <-chan bool) {
 		if applyChange {
 			instance = GetInstance()
 			log.MaestroInfof("ConfigApplyHandler::Processing apply change: %v\n", instance.CurrConfigCommit.ConfigCommitFlag)
+			fmt.Printf("submitting a network config change")
 			instance.submitConfig(instance.networkConfig)
 			//Setup the intfs using new config
 			instance.setupInterfaces()

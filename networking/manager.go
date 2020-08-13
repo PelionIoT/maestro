@@ -1082,7 +1082,7 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 //SetupDeviceDBConfig reads the config from devicedb and if its new it applies the new config.
 //It also sets up the config update handlers for all the tags/groups.
 func (this *networkManagerInstance) SetupDeviceDBConfig() error {
-
+	fmt.Printf("\n\n --> entering setupdevicedb()\n\n")
 	var err error
 	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
 
@@ -1093,15 +1093,24 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 		return errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
 	}
 
+	fmt.Printf("\n\n --> getting devicedb config\n\n")
 	err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
+
+	fmt.Printf("maestrodb config: %+v\n", this.networkConfig)
+	fmt.Printf("devicedb config: %+v\n", ddbNetworkConfig)
+
 	if err != nil {
 		log.MaestroWarnf("NetworkManager: No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
+
+		fmt.Printf("\n\n --> no devicedb config so making one\n\n")
 		err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
 		if err != nil {
 			log.MaestroErrorf("NetworkManager: Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
 			return errors.New(fmt.Sprintf("\nUnable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err))
 		}
 	} else {
+
+		fmt.Printf("\n\n --> found devicedb config\n\n")
 		//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
 		log.MaestroInfof("NetworkManager: Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
 		identical, _, _, err := configAna.DiffChanges(this.networkConfig, ddbNetworkConfig)
@@ -1109,6 +1118,8 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 			//The configs are different, lets go ahead reconfigure the intfs
 			log.MaestroDebugf("NetworkManager: New network config found from devicedb, reconfigure nework using new config\n")
 			this.networkConfig = &ddbNetworkConfig
+
+			fmt.Printf("\n\n --> submitting diffed devicedb config\n\n")
 			this.submitConfig(this.networkConfig)
 			//Setup the intfs using new config
 			this.setupInterfaces()
@@ -1119,6 +1130,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 				log.MaestroErrorf("NetworkManager: Failed to set hostname (ignoring...): %v\n", err)
 			}
 		} else {
+			fmt.Printf("\n\n --> devicedb config identical\n\n")
 			log.MaestroInfof("NetworkManager: New network config found from devicedb, but its same as boot config, no need to re-configure\n")
 		}
 	}
@@ -1128,6 +1140,8 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	this.CurrConfigCommit.ConfigCommitFlag = false
 	this.CurrConfigCommit.LastUpdateTimestamp = ""
 	this.CurrConfigCommit.TotalCommitCountFromBoot = 0
+
+	fmt.Printf("\n\n --> commit put\n\n")
 	err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
 	if err != nil {
 		log.MaestroErrorf("NetworkManager: Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
