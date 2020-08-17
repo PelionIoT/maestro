@@ -132,19 +132,21 @@ chmod 777 $MAESTRO_LOGS
 
 # Create a script to go to the maestro source and run maestro so maestro has access to its' configuration files
 # Allows a user to run 'sudo maestro' and have everything work out
-echo "#!/bin/bash -ue
+cat <<'EOF' > /usr/sbin/maestro
+#!/bin/bash -ue
 . /etc/profile.d/envvars.sh
 cd $MAESTRO_SRC
 exec $GOBIN/maestro
-" > /usr/sbin/maestro
+EOF
 chmod +x /usr/sbin/maestro
 
 # Do the same for maestro-shell
-echo "#!/bin/bash -ue
+cat <<'EOF' > /usr/sbin/maestro-shell
+#!/bin/bash -ue
 . /etc/profile.d/envvars.sh
 cd $GOPATH/src/github.com/armPelionEdge/maestro-shell
 exec $GOBIN/maestro-shell
-" > /usr/sbin/maestro-shell
+EOF
 chmod +x /usr/sbin/maestro-shell
 
 # Set the network interface to eth0 instead of Ubuntu 16.04 default enp0s3
@@ -160,15 +162,17 @@ iface eth0 inet dhcp
 " > /etc/network/interfaces.d/50-cloud-init.cfg
 
 # Add a script to start devicedb as an edge node
-echo "#!/bin/bash -ue
+cat <<'EOF' > /usr/sbin/devicedb_edge
+#!/bin/bash -ue
 . /etc/profile.d/envvars.sh
 cd $DEVICEDB_SRC
 devicedb start -conf $EDGE_CLIENT_RESOURCES/devicedb.conf
-" > /usr/sbin/devicedb_edge
+EOF
 chmod +x /usr/sbin/devicedb_edge
 
 # Add a script to clear devicedb edge and cloud
-echo "#!/bin/bash -ue
+cat <<'EOF' > /usr/sbin/clear_devicedb
+#!/bin/bash -ue
 . /etc/profile.d/envvars.sh
 cd $DEVICEDB_SRC
 docker stop devicedb_devicedb-cloud_1
@@ -177,7 +181,7 @@ sudo systemctl stop devicedb_edge
 rm -rf $EDGE_DATA_DIRECTORY/*
 docker-compose up -d
 sudo systemctl start devicedb_edge
-" > /usr/sbin/clear_devicedb
+EOF
 chmod +x /usr/sbin/clear_devicedb
 
 # Create a systemctl service that always run devicedb on reboot
