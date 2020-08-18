@@ -33,10 +33,11 @@ export GOPATH=/home/vagrant/work/gostuff
 export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOROOT/bin:$GOBIN
 
-export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
+export MAESTRO_SRC=$HOME/maestro
+export MAESTROSHELL_SRC=$GOPATH/src/github.com/armPelionEdge/maestro-shell
+export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
 
 export LD_LIBRARY_PATH=$MAESTRO_SRC/greasego/deps/lib
-export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
 export EDGE_CLIENT_RESOURCES=/etc/devicedb/shared
 export CLOUD_HOST=localhost
 export CLOUD_URI=ws://$CLOUD_HOST:8080/sync
