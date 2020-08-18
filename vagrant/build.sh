@@ -14,11 +14,16 @@ git config --global user.name "Vagrant User"
 git config --global url.git@github.com:.insteadOf https://github.com/
 
 # Import GO project maestro
-go get github.com/armPelionEdge/maestro || true
+if [ ! -d $MAESTRO_SRC ]; then
+    mkdir -p $(dirname $MAESTRO_SRC)
+    cd $(dirname $MAESTRO_SRC)
+    git clone git@github.com:armPelionEdge/maestro.git
+fi
 
 # Go to newly created maestro directory to check out the
 # proper version
 cd $MAESTRO_SRC
+
 # Add the locally synced maestro folder as a remote.  This folder
 # is synced from the host system into the VM by Vagrant.
 MAESTRO_SYNC_SRC=/vagrant
@@ -38,12 +43,20 @@ fi
 # Build maestro
 DEBUG=1 DEBUG2=1 ./build.sh
 
+# Move out of the maestro folder, otherwise the next
+# go-get command will add the package as a dependency
+# to maestro
+cd $HOME
+
 # Import GO project maestro-shell
-go get github.com/armPelionEdge/maestro-shell || true
-cd $MAESTRO_SRC/../maestro-shell
-./build-deps.sh
-go build
-go install github.com/armPelionEdge/maestro-shell
+if [ ! -d $MAESTROSHELL_SRC ]; then
+    mkdir -p $(dirname $MAESTROSHELL_SRC)
+    cd $(dirname $MAESTROSHELL_SRC)
+    git clone git@github.com:armPelionEdge/maestro-shell
+    cd maestro-shell
+    ./build-deps.sh
+    go build -o $GOBIN/maestro-shell github.com/armPelionEdge/maestro-shell
+fi
 
 # Generate identity certificates to use to connect to Pelion
 cd $MAESTRO_SRC/..
@@ -56,7 +69,7 @@ if [ ! -d edge-utils ]; then
 fi
 
 # Import project devicedb
-go get github.com/armPelionEdge/devicedb || true
+go get github.com/armPelionEdge/devicedb
 
 # Startup devicedb cloud in background
 cd ${DEVICEDB_SRC}
