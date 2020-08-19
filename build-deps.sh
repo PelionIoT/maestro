@@ -31,22 +31,13 @@ THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 pushd "${THIS_DIR}"
 
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps/libuv-v1.10.1"
-
-if [ ! -d build ]; then
-    git clone https://chromium.googlesource.com/external/gyp.git build/gyp
-fi
-
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps"
-./install-deps.sh
-
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego"
-./build-deps.sh
-
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego"
-
-# build greasego
-./build.sh
+# we use go mod download instead of git-clone so that we obtain the version
+# in go.mod
+go mod download
+GREASEGO_SRC=$(go list -f {{.Dir}} -m github.com/armPelionEdge/greasego)
+cp -r ${GREASEGO_SRC} ./greasego
+cd greasego
+make
 
 popd
 

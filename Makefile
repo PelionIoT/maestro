@@ -19,7 +19,7 @@ ALLOBJS= $($<:%.cpp=%.o)
 
 DEBUG_OPTIONS=-rdynamic -D_TW_TASK_DEBUG_THREADS_ -DLOGGER_HEAVY_DEBUG
 #-D_TW_BUFBLK_DEBUG_STACK_
-CFLAGS= $(DEBUG_OPTIONS) $(GLIBCFLAG) -D_TW_DEBUG -I./include  -D__DEBUG   -fPIC -Ivendor/github.com/armPelionEdge/greasego/deps/include
+CFLAGS= $(DEBUG_OPTIONS) $(GLIBCFLAG) -D_TW_DEBUG -I./include  -D__DEBUG   -fPIC -Igreasego/deps/include
 
 DEBUG_CFLAGS= -g -DERRCMN_DEBUG_BUILD
 
@@ -61,6 +61,12 @@ OBJS_NAMES= $(SRCS_CPP:%.cc=$%.o) $(SRCS_C:%.c=%.o)
 ## overwritten. That's not bad, however, because we have a static 
 ## library that already contains the needed object file.
 
+all: greasego
+	go build
+
+greasego:
+	./build-deps.sh
+
 $(OUTPUT_DIR)/%.o: %.cc
 	$(CXX) $(CXXFLAGS) $(CFLAGS) -c $< -o $@
 
@@ -82,4 +88,5 @@ clean:
 	-rm -rf Debug
 	-rm -f $(TWSOLIBNAME) $(TWSONAME) $(TWSOVERSION)
 	-rm -f bindings.a
+	-rm -rf greasego
 # DO NOT DELETE
