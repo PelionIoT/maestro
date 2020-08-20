@@ -16,7 +16,9 @@ package logconfig
 // limitations under the License.
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -43,7 +45,7 @@ func ConfigChangeHandler(configgroup string, fieldchanged string, futvalue inter
 		inst.logConfigFuture = make([]maestroSpecs.LogTarget, 1)
 	}
 
-	//fmt.Printf("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
+	fmt.Printf("ConfigChangeHandler:: group:%s field:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
 	switch configgroup {
 	case "file":
 		instance.FileConfigChange(fieldchanged, futvalue, curvalue, index)
@@ -56,14 +58,14 @@ func ConfigChangeHandler(configgroup string, fieldchanged string, futvalue inter
 	case "opts":
 		instance.OptsConfigChange(fieldchanged, futvalue, curvalue, index)
 	default:
-		//fmt.Printf("\nConfigChangeHook:Unknown field or group: %s:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
+		fmt.Printf("\nConfigChangeHook:Unknown field or group: %s:%s old:%v new:%v\n", configgroup, fieldchanged, curvalue, futvalue)
 	}
 }
 
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
 // if there is at least one change to report
 func (cfgHook ChangeHook) ChangesStart(configgroup string) {
-	//fmt.Printf("ConfigChangeHook:ChangesStart: %s\n", configgroup)
+	fmt.Printf("ConfigChangeHook:ChangesStart: %s\n", configgroup)
 
 	logManager := GetInstance()
 
@@ -79,13 +81,13 @@ func (cfgHook ChangeHook) ChangesStart(configgroup string) {
 // It will always be called after ChangesStart is called
 // If SawChange return true, then the value of futvalue will replace the value of current value
 func (cfgHook ChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
-	//fmt.Printf("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
+	fmt.Printf("ConfigChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 	/*if configChangeRequestChan != nil {
 		fieldnames := strings.Split(fieldchanged, ".")
-		//fmt.Printf("ConfigChangeHook:fieldnames: %v\n", fieldnames)
+		fmt.Printf("ConfigChangeHook:fieldnames: %v\n", fieldnames)
 		configChangeRequestChan <- ConfigChangeInfo{configgroup, fieldnames[len(fieldnames)-1], fieldchanged, futvalue, curvalue, index}
 	} else {
-		//fmt.Printf("ConfigChangeHook:Config change chan is nil, unable to process change")
+		fmt.Printf("ConfigChangeHook:Config change chan is nil, unable to process change")
 	}*/
 	ConfigChangeHandler(configgroup, fieldchanged, futvalue, curvalue, index)
 
@@ -95,13 +97,13 @@ func (cfgHook ChangeHook) SawChange(configgroup string, fieldchanged string, fut
 // ChangesComplete is called when all changes for a specific configgroup tagname
 // If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
 func (cfgHook ChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
-	//fmt.Printf("ConfigChangeHook:ChangesComplete: %s\n", configgroup)
+	fmt.Printf("ConfigChangeHook:ChangesComplete: %s\n", configgroup)
 
-	//inst := GetInstance()
+	inst := GetInstance()
 
-	//jsstruct2, _ := json.Marshal(inst.logConfigFuture)
-	//fmt.Printf("Applying: \n")
-	//fmt.Printf("%s\n", string(jsstruct2))
+	jsstruct2, _ := json.Marshal(inst.logConfigFuture)
+	fmt.Printf("Applying: \n")
+	fmt.Printf("%s\n", string(jsstruct2))
 
 	return false //return false as we would apply only those we successfully processed
 }
@@ -112,7 +114,7 @@ func (cfgHook ChangeHook) ChangesComplete(configgroup string) (acceptallchanges 
 
 //AddLogFilter is the function to update the live running filters
 func AddLogFilter(filterConfig maestroSpecs.LogFilter) error {
-	//fmt.Printf("in AddLogFilter\n")
+	fmt.Printf("in AddLogFilter\n")
 	targID := greasego.GetTargetId(filterConfig.Target)
 	if targID == 0 {
 		return errors.New("target does not exist")
@@ -144,7 +146,7 @@ func AddLogFilter(filterConfig maestroSpecs.LogFilter) error {
 
 //DeleteLogFilter is used to remove an existing log filter from the live running logs is maestro
 func DeleteLogFilter(filterConfig maestroSpecs.LogFilter) error {
-	//fmt.Printf("in DeleteLogFilter\n")
+	fmt.Printf("in DeleteLogFilter\n")
 	targID := greasego.GetTargetId(filterConfig.Target)
 	if targID == 0 {
 		return errors.New("target does not exist")
@@ -180,7 +182,7 @@ func DeleteLogFilter(filterConfig maestroSpecs.LogFilter) error {
 
 //FileConfigChange Function to process Target config change
 func (inst *logManagerInstance) FileConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	//fmt.Printf("FileConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	fmt.Printf("FileConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 
 	splits := strings.Split(fieldchanged, ".")
 
@@ -197,7 +199,7 @@ func (inst *logManagerInstance) FileConfigChange(fieldchanged string, futvalue i
 
 //NameConfigChange Function to process Target config change
 func (inst *logManagerInstance) NameConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	//fmt.Printf("NameConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	fmt.Printf("NameConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 
 	splits := strings.Split(fieldchanged, ".")
 
@@ -214,23 +216,23 @@ func (inst *logManagerInstance) NameConfigChange(fieldchanged string, futvalue i
 
 //FiltersConfigChange Function to process filter config change
 func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	//fmt.Printf("FiltersConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	fmt.Printf("FiltersConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 
-	//jsstruct2, _ := json.Marshal(inst.logConfigRunning)
-	//fmt.Printf("Running: \n")
-	//fmt.Printf("%s\n", string(jsstruct2))
+	jsstruct2, _ := json.Marshal(inst.logConfigRunning)
+	fmt.Printf("Running: \n")
+	fmt.Printf("%s\n", string(jsstruct2))
 
-	//jsstruct3, _ := json.Marshal(inst.logConfigFuture)
-	//fmt.Printf("future before: \n")
-	//fmt.Printf("%s\n", string(jsstruct3))
+	jsstruct3, _ := json.Marshal(inst.logConfigFuture)
+	fmt.Printf("future before: \n")
+	fmt.Printf("%s\n", string(jsstruct3))
 
-	//fmt.Printf("typeof=%s\n", reflect.TypeOf(futvalue))
+	fmt.Printf("typeof=%s\n", reflect.TypeOf(futvalue))
 
 	//pull our indexes out of the field name since we have 2
 	splits := strings.Split(fieldchanged, ".")
 
 	for i := 0; i < len(splits); i++ {
-		//fmt.Printf("index: %d value: %s\n", i, splits[i])
+		fmt.Printf("index: %d value: %s\n", i, splits[i])
 	}
 	targetIndex, _ := strconv.Atoi(strings.TrimLeft(strings.TrimRight(splits[0], "]"), "Targets["))
 
@@ -240,9 +242,9 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 	if reflect.TypeOf(futvalue).String() == "[]maestroSpecs.LogFilter" {
 		filters := futvalue.([]maestroSpecs.LogFilter)
 
-		//jsstruct, _ := json.Marshal(filters)
-		//fmt.Printf("new: \n")
-		//fmt.Printf("%s\n", string(jsstruct))
+		jsstruct, _ := json.Marshal(filters)
+		fmt.Printf("new: \n")
+		fmt.Printf("%s\n", string(jsstruct))
 
 		inst.logConfigFuture[targetIndex].Filters = filters
 
@@ -255,11 +257,11 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 			fieldName = splits[2]
 		}
 
-		//fmt.Printf("targetIndex=%d\n", targetIndex)
-		//fmt.Printf("filterIndex=%d\n", filterIndex)
-		//fmt.Printf("fieldName=%s\n", fieldName)
-		//fmt.Printf("inst.logConfigFuture length=%d\n", len(inst.logConfigFuture))
-		//fmt.Printf("inst.logConfigFuture[targetIndex].Filters length=%d\n", len(inst.logConfigFuture[targetIndex].Filters))
+		fmt.Printf("targetIndex=%d\n", targetIndex)
+		fmt.Printf("filterIndex=%d\n", filterIndex)
+		fmt.Printf("fieldName=%s\n", fieldName)
+		fmt.Printf("inst.logConfigFuture length=%d\n", len(inst.logConfigFuture))
+		fmt.Printf("inst.logConfigFuture[targetIndex].Filters length=%d\n", len(inst.logConfigFuture[targetIndex].Filters))
 
 		//if we don't have any targets
 		if inst.logConfigFuture == nil {
@@ -287,7 +289,7 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 			}
 		}
 
-		//fmt.Printf("running file name=%s\n", inst.logConfigOriginal[targetIndex].File)
+		fmt.Printf("running file name=%s\n", inst.logConfigOriginal[targetIndex].File)
 		inst.logConfigFuture[targetIndex].File = inst.logConfigOriginal[targetIndex].File
 
 		switch fieldName {
@@ -312,9 +314,9 @@ func (inst *logManagerInstance) FiltersConfigChange(fieldchanged string, futvalu
 			log.MaestroWarnf("FiltersConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 		}
 
-		//jsstruct, _ := json.Marshal(inst.logConfigFuture)
-		//fmt.Printf("future after: \n")
-		//fmt.Printf("%s\n", string(jsstruct))
+		jsstruct, _ := json.Marshal(inst.logConfigFuture)
+		fmt.Printf("future after: \n")
+		fmt.Printf("%s\n", string(jsstruct))
 
 	}
 }
@@ -326,7 +328,7 @@ func (inst *logManagerInstance) ApplyChanges() {
 		inst.logConfigFuture = make([]maestroSpecs.LogTarget, 1)
 	}
 
-	//fmt.Printf("Entering ApplyChanges()\n")
+	fmt.Printf("Entering ApplyChanges()\n")
 	filterslen := len(inst.logConfigFuture[0].Filters)
 
 	//get the target id
@@ -334,11 +336,11 @@ func (inst *logManagerInstance) ApplyChanges() {
 
 	//make sure its legit
 	if targID == 0 {
-		//fmt.Printf("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfigFuture[0].Name)
+		fmt.Printf("FiltersConfigChange: Target ID not found for Target Name: %s\n", inst.logConfigFuture[0].Name)
 		return
 	}
 
-	//fmt.Printf("targId=%d\n", targID)
+	fmt.Printf("targId=%d\n", targID)
 
 	// if the existing target at index has a name and if the incoming filter specifies a target name,
 	// then verify the names match
@@ -346,7 +348,7 @@ func (inst *logManagerInstance) ApplyChanges() {
 		for i := 0; i < filterslen; i++ {
 			targetName := inst.logConfigFuture[0].Filters[i].Target
 			if len(targetName) > 0 && (inst.logConfigFuture[0].Name != targetName) {
-				//fmt.Printf("FiltersConfigChange: filter.Target.Name doesn't match existing target at index 0\n")
+				fmt.Printf("FiltersConfigChange: filter.Target.Name doesn't match existing target at index 0\n")
 				return
 			}
 		}
@@ -397,7 +399,7 @@ func (inst *logManagerInstance) ApplyChanges() {
 	// override  = only modify the differences in the targets filters
 	////////////////////////////////////////////////////////////////////
 	if inst.logConfigFuture[0].Existing == "override" {
-		//fmt.Printf("inside override\n")
+		fmt.Printf("inside override\n")
 		// For override we need to walk all of our existing filters and add
 		// the missing elements
 		for _, filter := range inst.logConfigFuture[0].Filters {
@@ -436,15 +438,15 @@ func (inst *logManagerInstance) ApplyChanges() {
 			}
 		}
 	} else {
-		//fmt.Printf("inside replace\n")
+		fmt.Printf("inside replace\n")
 		// For "replace" behavior, we delete all existing filters for the given target
 		for w := 0; w < len(inst.logConfigFuture); w++ {
 			for x := 0; x < len(LogTargets); x++ {
 				if LogTargets[x].File == inst.logConfigFuture[w].File {
-					//fmt.Printf("Delete file=%s filters\n", LogTargets[x].File)
+					fmt.Printf("Delete file=%s filters\n", LogTargets[x].File)
 					for y := 0; y < len(LogTargets[x].Filters); y++ {
 						DeleteLogFilter(LogTargets[x].Filters[y])
-						//fmt.Printf("Deleted: %s\n", LogTargets[x].Filters[y].Levels)
+						fmt.Printf("Deleted: %s\n", LogTargets[x].Filters[y].Levels)
 						//LogTargets[x].Filters[y] = maestroSpecs.LogFilter{}
 					}
 				}
@@ -452,14 +454,14 @@ func (inst *logManagerInstance) ApplyChanges() {
 		}
 	}
 
-	//fmt.Printf("Performed: %s\n", inst.logConfigFuture[0].Existing)
+	fmt.Printf("Performed: %s\n", inst.logConfigFuture[0].Existing)
 
 	// now that we have override or replace setup we just add all the filters back
 	for x := 0; x < len(inst.logConfigFuture); x++ {
 		for y := 0; y < filterslen; y++ {
 			// configure greasego
 			AddLogFilter(inst.logConfigFuture[x].Filters[y])
-			//fmt.Printf("Added: %s\n", inst.logConfigFuture[x].Filters[y].Levels)
+			fmt.Printf("Added: %s\n", inst.logConfigFuture[x].Filters[y].Levels)
 		}
 	}
 	//store the config back to the database
@@ -471,15 +473,15 @@ func (inst *logManagerInstance) ApplyChanges() {
 
 //FormatConfigChange Function to process format config change
 func (inst *logManagerInstance) FormatConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	//fmt.Printf("FormatConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	fmt.Printf("FormatConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 }
 
 //OptsConfigChange Function to process opts config change
 func (inst *logManagerInstance) OptsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
-	//fmt.Printf("OptsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	fmt.Printf("OptsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 
-	instance.logConfigFuture[index].Existing = reflect.ValueOf(futvalue).String()
-	//fmt.Printf("existing=%s\n", instance.logConfigFuture[index].Existing)
+	inst.logConfigFuture[0].Existing = reflect.ValueOf(futvalue).String()
+	fmt.Printf("existing=%s\n", inst.logConfigFuture[0].Existing)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -493,19 +495,19 @@ type CommitConfigChangeHook struct {
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
 // if there is at least one change to report
 func (cfgHook CommitConfigChangeHook) ChangesStart(configgroup string) {
-	//fmt.Printf("CommitChangeHook:ChangesStart: %s\n", configgroup)
+	fmt.Printf("CommitChangeHook:ChangesStart: %s\n", configgroup)
 
 	inst := GetInstance()
 	//only apply this after getting all the filters
-	//fmt.Printf("In config group if\n")
+	fmt.Printf("In config group if\n")
 
-	//jsstruct, _ := json.Marshal(inst.logConfigRunning)
-	//fmt.Printf("Running: \n")
-	//fmt.Printf("%s\n", string(jsstruct))
+	jsstruct, _ := json.Marshal(inst.logConfigRunning)
+	fmt.Printf("Running: \n")
+	fmt.Printf("%s\n", string(jsstruct))
 
-	//jsstruct2, _ := json.Marshal(inst.logConfigFuture)
-	//fmt.Printf("Applying: \n")
-	//fmt.Printf("%s\n", string(jsstruct2))
+	jsstruct2, _ := json.Marshal(inst.logConfigFuture)
+	fmt.Printf("Applying: \n")
+	fmt.Printf("%s\n", string(jsstruct2))
 
 	//here is where we will add our filters
 	inst.ApplyChanges()
@@ -518,7 +520,7 @@ func (cfgHook CommitConfigChangeHook) ChangesStart(configgroup string) {
 // It will always be called after ChangesStart is called
 // If SawChange return true, then the value of futvalue will replace the value of current value
 func (cfgHook CommitConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
-	//fmt.Printf("CommitChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
+	fmt.Printf("CommitChangeHook:SawChange: %s:%s old:%v new:%v index:%d\n", configgroup, fieldchanged, curvalue, futvalue, index)
 
 	return false //return false as we would apply only those we successfully processed
 }
@@ -526,6 +528,6 @@ func (cfgHook CommitConfigChangeHook) SawChange(configgroup string, fieldchanged
 // ChangesComplete is called when all changes for a specific configgroup tagname
 // If ChangesComplete returns true, then all changes in that group will be assigned to the current struct
 func (cfgHook CommitConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
-	//fmt.Printf("CommitChangeHook:ChangesComplete: %s\n", configgroup)
+	fmt.Printf("CommitChangeHook:ChangesComplete: %s\n", configgroup)
 	return false //return false as we would apply only those we successfully processed
 }

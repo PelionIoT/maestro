@@ -379,17 +379,17 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 // will only look at field names which are in 'current' and which are public, and which have identical types.
 func (a *ConfigAnalyzer) CallChanges(current interface{}, future interface{}) (identical bool, noaction bool, err error) {
 
-	log.MaestroInfof("Calling diff changes\n")
+	fmt.Printf("Calling diff changes\n")
 	identical, noaction, allchanges, err := a.DiffChanges(current, future)
 
 	// walk through changes, calling the callbacks as needed
 	if !noaction {
-		log.MaestroInfof("found diff!\n")
+		fmt.Printf("found diff!\n")
 		for _, c := range allchanges {
 			a.callGroupChanges(c)
 		}
 	} else {
-		log.MaestroInfof("no diff!\n")
+		fmt.Printf("no diff!\n")
 	}
 
 	return

@@ -7,14 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/armPelionEdge/devicedb/client"
-	"github.com/armPelionEdge/devicedb/client_relay"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
 	"io/ioutil"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/armPelionEdge/devicedb/client"
+	"github.com/armPelionEdge/devicedb/client_relay"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 //Constants used in the logic for connecting to devicedb
@@ -58,7 +59,7 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 	//Make a copy of original config
 	prevconfig := config
 	for {
-		//log.MaestroWarnf("configMonitor: waiting on Next:%s", configName)
+		fmt.Printf("configMonitor: waiting on Next:%s", configName)
 		exists := configWatcher.Next(updatedConfig)
 
 		if !exists {
@@ -69,9 +70,9 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 		//log.MaestroWarnf("[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
 		same, noaction, err := configAnalyzer.CallChanges(prevconfig, updatedConfig)
 		if err != nil {
-			log.MaestroErrorf("Error from CallChanges: %s\n", err.Error())
+			fmt.Printf("Error from CallChanges: %s\n", err.Error())
 		} else {
-			log.MaestroInfof("CallChanges ret same=%+v noaction=%+v\n", same, noaction)
+			fmt.Printf("CallChanges ret same=%+v noaction=%+v\n", same, noaction)
 		}
 
 		//Make a copy of previous config
@@ -121,6 +122,7 @@ type ConfigWrapper struct {
 	Name  string      `json:"name"`
 	Relay string      `json:"relay"`
 	Body  interface{} `json:"body"`
+	Id    string      `json:"id"`
 }
 
 // This function creates and returns a singleton DDBRelayConfigClient
@@ -222,7 +224,7 @@ func NewDDBRelayConfigClient(tlsConfig *tls.Config, uri string, relay string, pr
 
 // Config return a config instance which is a monitoring client that specified by the given config name
 func (ddbClient *DDBRelayConfigClient) Config(name string) Config {
-	configName := fmt.Sprintf("%v.%v.%v", ddbClient.Prefix, ddbClient.Relay, name)
+	configName := name //fmt.Sprintf("%v.%v.%v", ddbClient.Prefix, ddbClient.Relay, name)
 
 	return &DDBConfig{
 		Key:          configName,
@@ -254,7 +256,9 @@ func (rcc *DDBRelayConfigClient) IsAvailable() bool {
 // parsed as the format that client specified, otherwise it will return false when the config
 // value could not be parsed as expecting format
 func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
-	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{ddbConfig.Key})
+
+	name := fmt.Sprintf("%v.%v.%v", ddbConfig.ConfigClient.Prefix, ddbConfig.ConfigClient.Relay, ddbConfig.Key)
+	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{name})
 	if err != nil {
 		log.MaestroErrorf("DDBConfig.Get(): Failed to get the matched config from the devicedb. Error: %v", err)
 		return err
@@ -307,18 +311,20 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 		if err == nil {
 			var config ConfigWrapper
 			config.Body = string([]byte(bodyJSON))
-			config.Relay = ""
+			config.Relay = ddbConfig.ConfigClient.Relay
 			config.Name = ddbConfig.Key
+			config.Id = "" //ddbConfig.ConfigClient.Relay
 
 			//Marshal the storage object to put into deviceDB
-			bodyJSON, err := json.Marshal(&config)
+			payloadJSON, err := json.Marshal(&config)
 
 			//log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
 			if err == nil {
 				var devicedbClientBatch *client.Batch
 				ctx, _ := context.WithCancel(context.Background())
 				devicedbClientBatch = client.NewBatch()
-				devicedbClientBatch.Put(ddbConfig.Key, string([]byte(bodyJSON)), "")
+				name := fmt.Sprintf("%v.%v.%v", ddbConfig.ConfigClient.Prefix, ddbConfig.ConfigClient.Relay, ddbConfig.Key)
+				devicedbClientBatch.Put(name, string([]byte(payloadJSON)), "")
 				err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
 				if err != nil {
 					log.MaestroErrorf("DDBConfig.Put(): %v", err)
@@ -423,8 +429,10 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 
 // For the error channel, it will just simply print out the logs from the devicedb
 func (watcher *DDBWatcher) handleWatcher() {
-	//log.MaestroWarnf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
-	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{watcher.Config.Key}, []string{}, 0)
+	fmt.Printf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
+
+	name := fmt.Sprintf("%v.%v.%v", watcher.Config.ConfigClient.Prefix, watcher.Config.ConfigClient.Relay, watcher.Config.Key)
+	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{name}, []string{}, 0)
 
 	// drain up the channel to avoid deadlock
 	defer func() {
@@ -445,7 +453,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 		case update, ok := <-updates:
 
 			if !ok {
-				log.MaestroErrorf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher")
+				fmt.Printf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher")
 				break
 			}
 
@@ -458,7 +466,8 @@ func (watcher *DDBWatcher) handleWatcher() {
 			var configLen int
 			configLen = len(sortableConfigs)
 			if configLen == 0 {
-				log.MaestroInfof("DDBConfig.handleWatcher(): configLen == 0")
+				fmt.Printf("Got a unknown config: %+v\n", sortableConfigs[0])
+				fmt.Printf("DDBConfig.handleWatcher(): configLen == 0")
 				watcher.Updates <- ""
 				continue
 			}
@@ -467,22 +476,23 @@ func (watcher *DDBWatcher) handleWatcher() {
 			err := json.Unmarshal([]byte(sortableConfigs[0]), &config)
 			if err == nil {
 				bodyJSON := fmt.Sprintf("%v", config.Body)
+				fmt.Printf("Got a known config: %s\n", bodyJSON)
 				watcher.Updates <- string(bodyJSON)
 			} else {
-				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])
+				fmt.Printf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])
 			}
 
 		case err, ok := <-errors:
-			log.MaestroErrorf("DDBConfig.handleWatcher() received an error from the watcher. Error: %v", err)
+			fmt.Printf("DDBConfig.handleWatcher() received an error from the watcher. Error: %v", err)
 			if !ok {
-				log.MaestroWarnf("DDBConfig.handleWatcher() the DeviceDB monitor encounter a protocol error and have already cancelled the watcher")
+				fmt.Printf("DDBConfig.handleWatcher() the DeviceDB monitor encounter a protocol error and have already cancelled the watcher")
 				break
 			}
 
 		case _, ok := <-watcher.handleWatcherControl:
-			log.MaestroErrorf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered")
+			fmt.Printf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered")
 			if !ok {
-				log.MaestroWarnf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore")
+				fmt.Printf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore")
 				break
 			}
 		}
