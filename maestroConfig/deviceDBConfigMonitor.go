@@ -7,14 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/armPelionEdge/devicedb/client"
-	"github.com/armPelionEdge/devicedb/client_relay"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
 	"io/ioutil"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/armPelionEdge/devicedb/client"
+	"github.com/armPelionEdge/devicedb/client_relay"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 //Constants used in the logic for connecting to devicedb
@@ -62,7 +63,7 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 		exists := configWatcher.Next(updatedConfig)
 
 		if !exists {
-			fmt.Printf("Configuration %s no longer exists or not be watched, no need to listen anymore\n", configName)
+			log.MaestroDebugf("Configuration %s no longer exists or not be watched, no need to listen anymore\n", configName)
 			break
 		}
 
@@ -222,10 +223,9 @@ func NewDDBRelayConfigClient(tlsConfig *tls.Config, uri string, relay string, pr
 
 // Config return a config instance which is a monitoring client that specified by the given config name
 func (ddbClient *DDBRelayConfigClient) Config(name string) Config {
-	configName := fmt.Sprintf("%v.%v.%v", ddbClient.Prefix, ddbClient.Relay, name)
 
 	return &DDBConfig{
-		Key:          configName,
+		Key:          name,
 		Bucket:       ddbClient.Bucket,
 		ConfigClient: ddbClient,
 	}
@@ -249,12 +249,19 @@ func (rcc *DDBRelayConfigClient) IsAvailable() bool {
 	return true
 }
 
+// get the devicedb key used for this config monitor
+func (ddbConfig *DDBConfig) DeviceDBKey() string {
+	return fmt.Sprintf("%v.%v.%v", ddbConfig.ConfigClient.Prefix, ddbConfig.ConfigClient.Relay, ddbConfig.Key)
+}
+
 // Get function will get the config with the expecting format and fill it into the parameter t.
 // It will return nil error when there is no such config exists or the config value could be
 // parsed as the format that client specified, otherwise it will return false when the config
 // value could not be parsed as expecting format
 func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
-	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{ddbConfig.Key})
+
+	//get given key from devicedb
+	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{ddbConfig.DeviceDBKey()})
 	if err != nil {
 		log.MaestroErrorf("DDBConfig.Get(): Failed to get the matched config from the devicedb. Error: %v", err)
 		return err
@@ -307,18 +314,21 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 		if err == nil {
 			var config ConfigWrapper
 			config.Body = string([]byte(bodyJSON))
-			config.Relay = ""
+			config.Relay = ddbConfig.ConfigClient.Relay
 			config.Name = ddbConfig.Key
 
 			//Marshal the storage object to put into deviceDB
-			bodyJSON, err := json.Marshal(&config)
+			payloadJSON, err := json.Marshal(&config)
 
 			//log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
 			if err == nil {
 				var devicedbClientBatch *client.Batch
 				ctx, _ := context.WithCancel(context.Background())
 				devicedbClientBatch = client.NewBatch()
-				devicedbClientBatch.Put(ddbConfig.Key, string([]byte(bodyJSON)), "")
+
+				//put the data into devicedb
+				devicedbClientBatch.Put(ddbConfig.DeviceDBKey(), string([]byte(payloadJSON)), "")
+
 				err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
 				if err != nil {
 					log.MaestroErrorf("DDBConfig.Put(): %v", err)
@@ -423,8 +433,10 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 
 // For the error channel, it will just simply print out the logs from the devicedb
 func (watcher *DDBWatcher) handleWatcher() {
-	//log.MaestroWarnf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
-	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{watcher.Config.Key}, []string{}, 0)
+	log.MaestroDebugf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
+
+	//watch the given devicedb key
+	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{watcher.Config.DeviceDBKey()}, []string{}, 0)
 
 	// drain up the channel to avoid deadlock
 	defer func() {
@@ -458,6 +470,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 			var configLen int
 			configLen = len(sortableConfigs)
 			if configLen == 0 {
+				log.MaestroDebugf("Got a unknown config: %+v\n", sortableConfigs[0])
 				log.MaestroInfof("DDBConfig.handleWatcher(): configLen == 0")
 				watcher.Updates <- ""
 				continue
@@ -467,6 +480,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 			err := json.Unmarshal([]byte(sortableConfigs[0]), &config)
 			if err == nil {
 				bodyJSON := fmt.Sprintf("%v", config.Body)
+				log.MaestroDebugf("Got a known config: %s\n", bodyJSON)
 				watcher.Updates <- string(bodyJSON)
 			} else {
 				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])

@@ -478,8 +478,8 @@ func (inst *logManagerInstance) FormatConfigChange(fieldchanged string, futvalue
 func (inst *logManagerInstance) OptsConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	//fmt.Printf("OptsConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
 
-	instance.logConfigFuture[index].Existing = reflect.ValueOf(futvalue).String()
-	//fmt.Printf("existing=%s\n", instance.logConfigFuture[index].Existing)
+	inst.logConfigFuture[index].Existing = reflect.ValueOf(futvalue).String()
+	//fmt.Printf("existing=%s\n", inst.logConfigFuture[index].Existing)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
