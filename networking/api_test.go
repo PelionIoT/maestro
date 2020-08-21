@@ -119,6 +119,24 @@ Outer:
 
 }
 
+func TestAvailableModems(t *testing.T) {
+    modems, err := AvailableModems()
+
+    if err != nil {
+        log.Fatalf("AvailableModems returns non-nil err [%s]\n", err.Error())
+    }
+    fmt.Printf("%d available modems:\n", len(modems))
+    fmt.Printf("%q\n", modems)
+
+}
+
+func TestConnectModem (t *testing.T) {
+    err := ConnectModem("0", "tty1234", "wlanX", "myapn")
+    if err != nil {
+        log.Fatalf("ConnectModem returns non-nil err [%s]\n", err.Error())
+    }
+}
+
 func showDhcpRequestProgress(state int, addinfo string) (keepgoing bool) {
 	fmt.Printf("showDhcpRequestProgress: state: %v addinfo: %v\n", state, addinfo)
 	keepgoing = true
