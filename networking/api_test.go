@@ -91,8 +91,8 @@ Outer:
 		case update := <-ch:
 			fmt.Printf("Got link update: %+v\n", update)
 
-			//            fmt.Printf("Waiting and then reading if status\n")
-			//            time.Sleep(time.Millisecond * 5000)
+			//    fmt.Printf("Waiting and then reading if status\n")
+			//    time.Sleep(time.Millisecond * 5000)
 
 			// attrs, err := GetLinkStatusByName(update.Attrs().Name)
 
@@ -117,6 +117,24 @@ Outer:
 
 	}
 
+}
+
+func TestAvailableModems(t *testing.T) {
+	modems, err := AvailableModems()
+
+	if err != nil {
+		log.Fatalf("AvailableModems returns non-nil err [%s]\n", err.Error())
+	}
+	fmt.Printf("%d available modems:\n", len(modems))
+	fmt.Printf("%q\n", modems)
+
+}
+
+func TestConnectModem (t *testing.T) {
+	err := ConnectModem("0", "tty1234", "wlanX", "myapn")
+	if err != nil {
+		log.Fatalf("ConnectModem returns non-nil err [%s]\n", err.Error())
+	}
 }
 
 func showDhcpRequestProgress(state int, addinfo string) (keepgoing bool) {
@@ -1201,7 +1219,7 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 		IPv4Addr:       "178.10.8.1",
 		IPv4Mask:       24,
 		IPv4BCast:      "192.168.78.255",
-		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.10", "178.255.255.255", "178.10.255.255"}, {"178.10.11.10", "178.255.255.255", "178.10.255.255"}},
+		AliasAddrV4:    []maestroSpecs.AliasAddressV4{{"178.10.10.10", "178.255.255.255", "178.10.255.255"}, {"178.10.11.10", "178.255.255.255", "178.10.255.255"}},
 		Existing:       "override",
 	}
 	ifconfig6 := &maestroSpecs.NetIfConfigPayload{
@@ -1212,7 +1230,7 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 		IPv4Addr:       "178.10.8.2",
 		IPv4Mask:       24,
 		IPv4BCast:      "192.168.78.255",
-		AliasAddrV4:	[]maestroSpecs.AliasAddressV4{{"178.10.10.11", "178.255.255.255", "178.255.255.255"}, {"178.10.11.11", "178.255.255.255", "178.10.255.255"}},
+		AliasAddrV4:    []maestroSpecs.AliasAddressV4{{"178.10.10.11", "178.255.255.255", "178.255.255.255"}, {"178.10.11.11", "178.255.255.255", "178.10.255.255"}},
 		Existing:       "override",
 	}
 	updatedConfig2.Interfaces = append(updatedConfig2.Interfaces, ifconfig5)
