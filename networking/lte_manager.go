@@ -17,68 +17,86 @@ package networking
 
 import (
 	"github.com/armPelionEdge/maestro/log"
-
 	"fmt"
+	"strings"
+	"strconv"
+	"os/exec"
 )
+
+// Parses the index string from the modem path name returned by mmcli -L
+// or portion of that path name
+// e.g. all of the following return "0"
+// indexFromPath("    /org/freedesktop/ModemManager1/Modem/0 [VENDOR] ACME [1234:5678]")
+// indexFromPath("/org/freedesktop/ModemManager1/Modem/0 [VENDOR] ACME [1234:5678]")
+// indexFromPath("/org/freedesktop/ModemManager1/Modem/0")
+// indexFromPath("0")
+func indexFromPath(path string) string{
+	filepath := strings.Fields(path)[0]
+	nodes := strings.Split(filepath, "/")
+	return nodes[len(nodes) - 1]
+}
 
 // AvailableModems returns array of string names for all available modems
 func AvailableModems() ([]string, error) {
-	log.MaestroInfof("[STUB] would call\n>mmcli -L\nor equivalent\n")
-	//Implementation TBD
-	//This routine should either return all modems returned by mmcli -L, i.e.
-	//all physical modems
-	//or
-	//return all interface names of type gsm which exist in the current config
-	modems := make([]string, 0)
-	return modems, nil
+	mmcli_out, err := exec.Command("mmcli", "-L").Output()
+	if err != nil {
+		return make([]string, 0), err
+	}
+	lines := strings.Split(string(mmcli_out), "\n")
+	for n, line := range lines {
+		if strings.HasPrefix(line, "Found") {
+			num_modems, errconv := strconv.Atoi(strings.Fields(line)[1])
+			if errconv != nil {
+				log.MaestroErrorf("Unexpected output format from mmcli:\n%s\n", mmcli_out)
+				return make([]string, 0), fmt.Errorf("Unable to parse mmcli output")
+			}
+			return lines[n+1:n+num_modems+1], nil
+		}
+	} 
+	return make([]string, 0), nil
+
 }
 
 // IsModemRegistered returns whether SIM is recognized in the modem and it is registered to the network
 func IsModemRegistered(index string) bool {
-	log.MaestroInfof("[STUB]  would call\n>mmcli -m %s\nor equivalent\n", index)
-	//Implementation TBD
-
-	return true
+	err := exec.Command("mmcli", "-m", index).Run()
+	return (err == nil)
 }
 
 // AddLTEInterface adds a network interface for the modem
 func AddLTEInterface(ifName string, connectionName string, apn string) error {
-	log.MaestroInfof("[STUB]  would call\n")
-	log.MaestroInfof(">nmcli con add type gsm ifname %s con-name %s apn %s\n", ifName, connectionName, apn)
-	log.MaestroInfof("or equivalent\n")
-	//Implementation TBD
-
-	return nil
+	return exec.Command("nmcli", "con", "add", "type", "gsm", "ifname", ifName, "con-name", connectionName, "apn", apn).Run()
 }
 
 func BringUpModem(connectionName string) error {
-	log.MaestroInfof("[STUB] would call\n>nmcli con up %s\nor equivalent\n", connectionName)
-	//Implementation TBD
-
-	return nil
+	return exec.Command("nmcli", "con", "up", connectionName).Run()
 }
 
 func ConnectModem(index string, serial string, connectionName string, apn string) error {
-	log.MaestroInfof("Connecting modem %s on srial interface %s with name % to APN %s\n",
+	log.MaestroInfof("Connecting modem %s on serial interface %s with name %s to APN %s\n",
 		index, serial, connectionName, apn)
 
-	//TODO - once Available modems is registered, verify index is valid
-	//modemfound := false
-	//for _, idx := range AvailableModems() {
-	//   if idx == index {
-	//      modemfound = true
-	//      break
-	//   }
-	//}
-	//if !modemfound {
-	//   return fmt.Errorf("Modem %s not available", index")
-	//}
+	indexnum := indexFromPath(index)
 
-	if !IsModemRegistered(index) {
-		return fmt.Errorf("Modem %s SIM not present or registered")
+	avail_modems, err:= AvailableModems()
+	modemfound := false
+	if err == nil {
+		for _, idx := range avail_modems {
+		   if indexFromPath(idx) == indexnum {
+			  modemfound = true
+			  break
+		   }
+		}
+	}
+	if !modemfound {
+		return fmt.Errorf("Modem %s not available", index)
 	}
 
-	err := AddLTEInterface(serial, connectionName, apn)
+	if !IsModemRegistered(indexnum) {
+		return fmt.Errorf("Modem %s SIM not present or registered", index)
+	}
+
+	err = AddLTEInterface(serial, connectionName, apn)
 
 	if err != nil {
 		log.MaestroErrorf("Unable to add LTE interface ( serial %s connection %s, apn %s): %s\n",

@@ -2016,7 +2016,16 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 
 					// For LTE connections, we need to ask modem manager to create the interface
 					if ifconfig.Type == "lte" {
-						AddLTEInterface(ifconfig.SerialDevice, ifconfig.IfName, ifconfig.AccessPointName)
+						err = AddLTEInterface(ifconfig.SerialDevice, ifconfig.IfName, ifconfig.AccessPointName)
+						if err != nil {
+							log.MaestroWarnf("Unable to add LTEInterface %s serial %s apn %n.  Interface possibly already exists: %s\n",
+								ifconfig.IfName, ifconfig.SerialDevice, ifconfig.AccessPointName, err.Error())
+						} else {
+							err = BringUpModem(ifconfig.IfName)
+							if err != nil {
+								log.MaestroWarnf("Unable to bringup lte interface %s: Possibly already up: %s\n", ifconfig.IfName, err.Error())
+							}
+						}
 					}
 
 					// second, determine if that interface exists, and get it's index and name (one is required to be known)
