@@ -38,6 +38,7 @@ func indexFromPath(path string) string{
 
 // AvailableModems returns array of string names for all available modems
 func AvailableModems() ([]string, error) {
+    log.MaestroDebugf("XXX > AvailableModems")
     mmcli_out, err := exec.Command("mmcli", "-L").Output()
     if err != nil {
         return make([]string, 0), err
@@ -53,6 +54,7 @@ func AvailableModems() ([]string, error) {
             return lines[n+1:n+num_modems+1], nil
         }
     } 
+    log.MaestroDebugf("XXX < AvailableModems")
     return make([]string, 0), nil
 
 }
@@ -65,14 +67,17 @@ func IsModemRegistered(index string) bool {
 
 // AddLTEInterface adds a network interface for the modem
 func AddLTEInterface(ifName string, connectionName string, apn string) error {
+    log.MaestroDebugf("XXX > AddLTEInterface")
     return exec.Command("nmcli", "con", "add", "type", "gsm", "ifname", ifName, "con-name", connectionName, "apn", apn).Run()
 }
 
 func BringUpModem(connectionName string) error {
+    log.MaestroDebugf("XXX > BringUpModem")
     return exec.Command("nmcli", "con", "up", connectionName).Run()
 }
 
 func ConnectModem(index string, serial string, connectionName string, apn string) error {
+    log.MaestroDebugf("XXX > ConnectModem")
 	log.MaestroInfof("Connecting modem %s on serial interface %s with name %s to APN %s\n",
 		index, serial, connectionName, apn)
 
@@ -111,6 +116,6 @@ func ConnectModem(index string, serial string, connectionName string, apn string
 			connectionName, err.Error())
 		return fmt.Errorf("Modem not up")
 	}
-
+    log.MaestroDebugf("XXX < ConnectModem")
 	return nil
 }
