@@ -288,15 +288,7 @@ func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 
 				var config ConfigWrapper
 				_ = json.Unmarshal([]byte(sortableConfigs[0]), &config)
-				configJSON := fmt.Sprintf("%v", config.Body)
-
-				// parse the value of config.Body into the expecting format
-				err = json.Unmarshal([]byte(configJSON), &t)
-				if err != nil {
-					fmt.Printf("\nDDBConfig.Get() could not parse the configuration value into expected format. Error %v", err)
-					log.MaestroErrorf("DDBConfig.Get() could not parse the configuration value into expected format. Error %v", err)
-					return err
-				}
+				t = config.Body
 			}
 		} else {
 			err = errors.New(fmt.Sprintf("Object %s is deleted", ddbConfig.Key))
@@ -310,32 +302,29 @@ func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 	//Ensure t is not nil
 	if t != nil {
-		bodyJSON, err := json.Marshal(&t)
-		if err == nil {
-			var config ConfigWrapper
-			config.Body = string([]byte(bodyJSON))
-			config.Relay = ddbConfig.ConfigClient.Relay
-			config.Name = ddbConfig.Key
+        var config ConfigWrapper
+        config.Body = t
+        config.Relay = ddbConfig.ConfigClient.Relay
+        config.Name = ddbConfig.Key
 
-			//Marshal the storage object to put into deviceDB
-			payloadJSON, err := json.Marshal(&config)
+        //Marshal the storage object to put into deviceDB
+        payloadJSON, err := json.Marshal(&config)
 
-			//log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
-			if err == nil {
-				var devicedbClientBatch *client.Batch
-				ctx, _ := context.WithCancel(context.Background())
-				devicedbClientBatch = client.NewBatch()
+        //log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
+        if err == nil {
+            var devicedbClientBatch *client.Batch
+            ctx, _ := context.WithCancel(context.Background())
+            devicedbClientBatch = client.NewBatch()
 
-				//put the data into devicedb
-				devicedbClientBatch.Put(ddbConfig.DeviceDBKey(), string([]byte(payloadJSON)), "")
+            //put the data into devicedb
+            devicedbClientBatch.Put(ddbConfig.DeviceDBKey(), string([]byte(payloadJSON)), "")
 
-				err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
-				if err != nil {
-					log.MaestroErrorf("DDBConfig.Put(): %v", err)
-					return err
-				}
-			}
-		}
+            err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
+            if err != nil {
+                log.MaestroErrorf("DDBConfig.Put(): %v", err)
+                return err
+            }
+        }
 	} else {
 		err = errors.New("Put: Invalid argument")
 		log.MaestroErrorf("DDBConfig.Put() Invalid argument. Error %v", err)
@@ -479,9 +468,11 @@ func (watcher *DDBWatcher) handleWatcher() {
 			var config ConfigWrapper
 			err := json.Unmarshal([]byte(sortableConfigs[0]), &config)
 			if err == nil {
-				bodyJSON := fmt.Sprintf("%v", config.Body)
-				log.MaestroDebugf("Got a known config: %s\n", bodyJSON)
-				watcher.Updates <- string(bodyJSON)
+				bodyJSON, err := json.Marshal(config.Body)
+				if err == nil {
+					log.MaestroDebugf("Got a known config: %s\n", bodyJSON)
+					watcher.Updates <- string(bodyJSON)
+				}
 			} else {
 				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])
 			}
