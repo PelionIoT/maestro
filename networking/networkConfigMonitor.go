@@ -142,6 +142,9 @@ func (inst *networkManagerInstance) ProcessDhcpConfigChange(fieldchanged string,
 func (inst *networkManagerInstance) ProcessIfConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessIfConfigChange: %s old:%v new:%v index:%d\n", fieldchanged, curvalue, futvalue, index)
 	switch fieldchanged {
+	case "Type":
+		log.MaestroInfof("ProcessIfConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].Type, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].Type = reflect.ValueOf(futvalue).String()
 	case "IfName":
 		log.MaestroInfof("ProcessIfConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].IfName, reflect.ValueOf(futvalue))
 		inst.networkConfig.Interfaces[index].IfName = reflect.ValueOf(futvalue).String()
@@ -227,7 +230,17 @@ func (inst *networkManagerInstance) ProcessMacConfigChange(fieldchanged string, 
 //Function to process Wifi config change
 func (inst *networkManagerInstance) ProcessWifiConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
 	log.MaestroInfof("ProcessWifiConfigChange: %s old:%v new:%v\n", fieldchanged, curvalue, futvalue)
-	//TODO: No WiFi supports exists as of now
+	switch fieldchanged {
+	case "WifiSsid":
+		log.MaestroInfof("ProcessWifiConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].WifiSsid, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].WifiSsid = reflect.ValueOf(futvalue).String()
+	case "WifiPassword":
+		log.MaestroInfof("ProcessWifiConfigChange: current value %s:%v new:%v\n", fieldchanged, inst.networkConfig.Interfaces[index].WifiPassword, reflect.ValueOf(futvalue))
+		inst.networkConfig.Interfaces[index].WifiPassword = reflect.ValueOf(futvalue).String()
+
+	default:
+		log.MaestroWarnf("\nProcessWifiConfigChange:Unknown field: %s: old:%v new:%v\n", fieldchanged, curvalue, futvalue)
+	}
 }
 
 //Function to process IEEE8021x config change

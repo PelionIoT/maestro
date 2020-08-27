@@ -17,9 +17,6 @@ package maestroSpecs
 
 //    "encoding/json"
 
-type WiFiSettings struct {
-	// TBD
-}
 
 type IEEE8021x struct {
 	// TBD
@@ -40,6 +37,8 @@ const (
 )
 
 type NetIfConfigPayload struct {
+	// Type of connection.  e.g. wifi or lte
+	Type string `yaml:"type" json:"type" netgroup:"if"`
 	// like "eth0"
 	IfName string `yaml:"if_name" json:"if_name" netgroup:"if"`
 	// use either this or IfName, index is a non-zero positive integer
@@ -67,11 +66,11 @@ type NetIfConfigPayload struct {
 	// such as a 20-octet IP for InifiniBand
 	HwAddr string `yaml:"hw_addr" json:"hw_addr" netgroup:"mac"`
 
-	// WiFi settings, if any
-	WiFiSettings *WiFiSettings `yaml:"wifi" json:"wifi" netgroup:"wifi"`
-
-	// Type of connection.  e.g. wifi or lte
-	Type string `yaml:"type" json:"type"`
+	//SSID of the wifi network
+	WifiSsid string `yaml:"wifi_ssid" json:"wifi_ssid" netgroup:"wifi"`
+	//Wifi password
+	WifiPassword string `yaml:"wifi_password" json:"wifi_password" netgroup:"wifi"`
+	
 	// Modem serial device.  It is possible to use "*" to refer to any available modem.
 	SerialDevice string `yaml:"serial" json:"serial"`
 	// APN
