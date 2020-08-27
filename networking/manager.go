@@ -211,7 +211,7 @@ type networkManagerInstance struct {
 	// for persistence
 	db              *bolt.DB
 	networkConfigDB *stow.Store
-	// internal structures - thread safe hashmaps
+	// internal structures
 	byInterfaceName    sync.Map // map of identifier to struct -> 'eth2':&networkInterfaceData{}
 	indexToName        sync.Map
 	watcherWorkChannel chan networkThreadMessage
@@ -562,7 +562,7 @@ func (this *networkManagerInstance) SetInterfacesAsJson(data []byte) error {
 		ok, problem := validateIfConfig(&config)
 		if !ok {
 			log.MaestroErrorf("NetworkManager: Interface config problem: \"%s\"  Skipping interface config.\n", problem)
-			return errors.New("Invalid config")
+			return fmt.Errorf("Invalid config: %s", problem)
 		}
 		log.MaestroDebugf("NetworkManager: SetInterfacesAsJson: Searching for iface IfName=%s\n", config.IfName)
 		var iface = this.getInterfaceData(config.IfName)
@@ -589,7 +589,7 @@ func (this *networkManagerInstance) GetInterfacesAsJson(enabled_only bool, up_on
 
 	this.byInterfaceName.Range(func(key, value interface{}) bool {
 		if value == nil {
-			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
+			debugging.DEBUG_OUT("CORRUPTION in syncmap - have null value pointer\n")
 			return true
 		}
 		// ifname := "<interface name>"
@@ -652,6 +652,12 @@ func validateIfConfig(ifconf *maestroSpecs.NetIfConfigPayload) (ok bool, problem
 		ok = false
 		problem = "Interface is missing IfName / if_name field"
 	}
+	if ifconf.Type == "wifi" {
+		if ifconf.WifiSsid == "" || ifconf.WifiPassword == "" {
+			ok = false
+			problem = "WIFI SSid or password not provided"
+		}
+	}
 	return
 }
 
@@ -698,7 +704,7 @@ func (this *networkManagerInstance) resetLinks() {
 	//This function brings all the intfs down and puts everything back in pristine state
 	this.byInterfaceName.Range(func(key, value interface{}) bool {
 		if value == nil {
-			debugging.DEBUG_OUT("NetworkManager: resetLinks: Invalid Entry in hashmap - have null value pointer\n")
+			debugging.DEBUG_OUT("NetworkManager: resetLinks: Invalid Entry in syncmap - have null value pointer\n")
 			return true
 		}
 		ifname := "<interface name>"
@@ -716,8 +722,8 @@ func (this *networkManagerInstance) resetLinks() {
 				ifdata.dhcpRunning = false
 			}
 			//ifdata := (*NetworkInterfaceData)(item.Value)
-			log.MaestroDebugf("NetworkManager: Remove the interface config/settings from hashmap for if [%s]\n", ifname)
-			//Clear/Remove the interface config/settings from hashmap
+			log.MaestroDebugf("NetworkManager: Remove the interface config/settings from syncmap for if [%s]\n", ifname)
+			//Clear/Remove the interface config/settings from syncmap
 			link, err := GetInterfaceLink(ifname, -1)
 			if err == nil && link != nil {
 				ifname = link.Attrs().Name
@@ -727,7 +733,7 @@ func (this *networkManagerInstance) resetLinks() {
 				if err2 != nil {
 					log.MaestroErrorf("NetworkManager: resetLinks: failed to bring if %s down - %s\n", ifname, err2.Error())
 				}
-				//Now we can remove the entry from hashmap
+				//Now we can remove the entry from syncmap
 				this.byInterfaceName.Delete(key)
 			}
 		}
@@ -977,7 +983,7 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 
 	this.byInterfaceName.Range(func(key, value interface{}) bool {
 		if value == nil {
-			debugging.DEBUG_OUT("CORRUPTION in hashmap - have null value pointer\n")
+			debugging.DEBUG_OUT("CORRUPTION in syncmap - have null value pointer\n")
 			return true
 		}
 		ifname := "<interface name>"
@@ -2067,6 +2073,39 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 								}
 
 							}
+						}
+
+						if(ifconfig.Type == "wifi") {
+							//make sure interface is up before trying to disconnect wifi
+							err := netlink.LinkSetUp(link)
+							if err != nil {
+								log.MaestroErrorf("NetworkManager: failed to bring if %s up while trying to disconnect wifi - %s\n", ifname, err.Error())
+							} else {
+								log.MaestroInfof("NetworkManager:  Link set up for if %s Trying to connect to wifi\n", ifname)
+								status, err2 := DisconnectWifi(ifconfig.IfName)
+								if status == "success" {
+									log.MaestroInfof("NetworkManager:  Wifi disconnected successfully \n")
+								} else {
+									log.MaestroInfof("NetworkManager:  Error while disconnecting wifi: %s %s\n", status, err2.Error())
+								}
+								
+							}
+							//make sure interface is up before trying to connect to wifi
+							err = netlink.LinkSetUp(link)
+							if err != nil {
+								log.MaestroErrorf("NetworkManager: failed to bring if %s up while trying to connect to wifi - %s\n", ifname, err.Error())
+							} else {
+								status, ip, err2 := ConnectToWifi(ifconfig.IfName, ifconfig.WifiSsid, ifconfig.WifiPassword)
+								if status == "address_not_allocated" {
+									log.MaestroInfof("NetworkManager: Wifi Connected to SSID: %s Waiting to get an IP",ifconfig.WifiSsid)
+								} else if status == "connected" {
+									log.MaestroInfof("NetworkManager: Wifi Connected to SSID: %s Got IP %s",ifconfig.WifiSsid, ip)
+								} else {
+									log.MaestroErrorf("NetworkManager: Wifi not connected Error: %s %s", status, err2.Error())
+									errout = err2
+									return
+								}
+							}		
 						}
 
 						// takes the state of the NetIfConfigPayload
