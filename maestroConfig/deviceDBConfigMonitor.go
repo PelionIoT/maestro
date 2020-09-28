@@ -7,14 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/armPelionEdge/devicedb/client"
-	"github.com/armPelionEdge/devicedb/client_relay"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
 	"io/ioutil"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/armPelionEdge/devicedb/client"
+	"github.com/armPelionEdge/devicedb/client_relay"
+	"github.com/armPelionEdge/maestro/log"
+	"github.com/armPelionEdge/maestroSpecs"
 )
 
 //Constants used in the logic for connecting to devicedb
@@ -58,7 +59,7 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 	//Make a copy of original config
 	prevconfig := config
 	for {
-		//log.MaestroWarnf("configMonitor: waiting on Next:%s", configName)
+		fmt.Printf("configMonitor: waiting on Next:%s", configName)
 		exists := configWatcher.Next(updatedConfig)
 
 		if !exists {
@@ -69,9 +70,9 @@ func configMonitor(config interface{}, updatedConfig interface{}, configName str
 		//log.MaestroWarnf("[%s] Configuration %s was updated: \nold:%+v \nnew:%v\n", time.Now(), configName, config, updatedConfig)
 		same, noaction, err := configAnalyzer.CallChanges(prevconfig, updatedConfig)
 		if err != nil {
-			log.MaestroErrorf("Error from CallChanges: %s\n", err.Error())
+			fmt.Printf("Error from CallChanges: %s\n", err.Error())
 		} else {
-			log.MaestroInfof("CallChanges ret same=%+v noaction=%+v\n", same, noaction)
+			fmt.Printf("CallChanges ret same=%+v noaction=%+v\n", same, noaction)
 		}
 
 		//Make a copy of previous config
@@ -452,7 +453,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 		case update, ok := <-updates:
 
 			if !ok {
-				log.MaestroErrorf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher")
+				fmt.Printf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher")
 				break
 			}
 
@@ -465,7 +466,8 @@ func (watcher *DDBWatcher) handleWatcher() {
 			var configLen int
 			configLen = len(sortableConfigs)
 			if configLen == 0 {
-				log.MaestroInfof("DDBConfig.handleWatcher(): configLen == 0")
+				fmt.Printf("Got a unknown config: %+v\n", sortableConfigs[0])
+				fmt.Printf("DDBConfig.handleWatcher(): configLen == 0")
 				watcher.Updates <- ""
 				continue
 			}
@@ -474,22 +476,23 @@ func (watcher *DDBWatcher) handleWatcher() {
 			err := json.Unmarshal([]byte(sortableConfigs[0]), &config)
 			if err == nil {
 				bodyJSON := fmt.Sprintf("%v", config.Body)
+				fmt.Printf("Got a known config: %s\n", bodyJSON)
 				watcher.Updates <- string(bodyJSON)
 			} else {
-				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])
+				fmt.Printf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])
 			}
 
 		case err, ok := <-errors:
-			log.MaestroErrorf("DDBConfig.handleWatcher() received an error from the watcher. Error: %v", err)
+			fmt.Printf("DDBConfig.handleWatcher() received an error from the watcher. Error: %v", err)
 			if !ok {
-				log.MaestroWarnf("DDBConfig.handleWatcher() the DeviceDB monitor encounter a protocol error and have already cancelled the watcher")
+				fmt.Printf("DDBConfig.handleWatcher() the DeviceDB monitor encounter a protocol error and have already cancelled the watcher")
 				break
 			}
 
 		case _, ok := <-watcher.handleWatcherControl:
-			log.MaestroErrorf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered")
+			fmt.Printf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered")
 			if !ok {
-				log.MaestroWarnf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore")
+				fmt.Printf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore")
 				break
 			}
 		}
