@@ -121,6 +121,7 @@ type ConfigWrapper struct {
 	Name  string      `json:"name"`
 	Relay string      `json:"relay"`
 	Body  interface{} `json:"body"`
+	Id    string      `json:"id"`
 }
 
 // This function creates and returns a singleton DDBRelayConfigClient
@@ -222,7 +223,7 @@ func NewDDBRelayConfigClient(tlsConfig *tls.Config, uri string, relay string, pr
 
 // Config return a config instance which is a monitoring client that specified by the given config name
 func (ddbClient *DDBRelayConfigClient) Config(name string) Config {
-	configName := fmt.Sprintf("%v.%v.%v", ddbClient.Prefix, ddbClient.Relay, name)
+	configName := name //fmt.Sprintf("%v.%v.%v", ddbClient.Prefix, ddbClient.Relay, name)
 
 	return &DDBConfig{
 		Key:          configName,
@@ -254,7 +255,9 @@ func (rcc *DDBRelayConfigClient) IsAvailable() bool {
 // parsed as the format that client specified, otherwise it will return false when the config
 // value could not be parsed as expecting format
 func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
-	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{ddbConfig.Key})
+
+	name := fmt.Sprintf("%v.%v.%v", ddbConfig.ConfigClient.Prefix, ddbConfig.ConfigClient.Relay, ddbConfig.Key)
+	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{name})
 	if err != nil {
 		log.MaestroErrorf("DDBConfig.Get(): Failed to get the matched config from the devicedb. Error: %v", err)
 		return err
@@ -307,18 +310,20 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 		if err == nil {
 			var config ConfigWrapper
 			config.Body = string([]byte(bodyJSON))
-			config.Relay = ""
+			config.Relay = ddbConfig.ConfigClient.Relay
 			config.Name = ddbConfig.Key
+			config.Id = "" //ddbConfig.ConfigClient.Relay
 
 			//Marshal the storage object to put into deviceDB
-			bodyJSON, err := json.Marshal(&config)
+			payloadJSON, err := json.Marshal(&config)
 
 			//log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
 			if err == nil {
 				var devicedbClientBatch *client.Batch
 				ctx, _ := context.WithCancel(context.Background())
 				devicedbClientBatch = client.NewBatch()
-				devicedbClientBatch.Put(ddbConfig.Key, string([]byte(bodyJSON)), "")
+				name := fmt.Sprintf("%v.%v.%v", ddbConfig.ConfigClient.Prefix, ddbConfig.ConfigClient.Relay, ddbConfig.Key)
+				devicedbClientBatch.Put(name, string([]byte(payloadJSON)), "")
 				err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
 				if err != nil {
 					log.MaestroErrorf("DDBConfig.Put(): %v", err)
@@ -423,8 +428,10 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 
 // For the error channel, it will just simply print out the logs from the devicedb
 func (watcher *DDBWatcher) handleWatcher() {
-	//log.MaestroWarnf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
-	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{watcher.Config.Key}, []string{}, 0)
+	fmt.Printf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
+
+	name := fmt.Sprintf("%v.%v.%v", watcher.Config.ConfigClient.Prefix, watcher.Config.ConfigClient.Relay, watcher.Config.Key)
+	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{name}, []string{}, 0)
 
 	// drain up the channel to avoid deadlock
 	defer func() {

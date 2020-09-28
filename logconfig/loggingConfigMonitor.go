@@ -16,7 +16,9 @@ package logconfig
 // limitations under the License.
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
