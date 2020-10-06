@@ -33,9 +33,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"sync"
 	"syscall"
 	"time"
@@ -331,6 +333,34 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 		log.MaestroSuccessf("NetworkManager: wrote out DNS resolv.conf (%s) ok\n", path)
 	}
 	debugging.DEBUG_OUT("finalizeDNS() wrote %s ok\n", path)
+
+	// if we are writing dns config to a file other than /etc/resolv.conf, that usually
+	// means we are running on a system that uses resolvconf as a means to integrate multiple
+	// services that need to add dns config to /etc/resolv.conf without stomping on each other.
+	if len(inst.networkConfig.AltResolvConf) > 0 {
+		dnsconfig, err2 := ioutil.ReadFile(inst.networkConfig.AltResolvConf)
+		if err2 != nil {
+			log.MaestroErrorf("NetworkManager: failed to read DNS resolv.conf")
+			return
+		}
+
+		cmd := exec.Command("resolvconf", "-a", "maestro.net")
+
+		stdin, errp := cmd.StdinPipe()
+		if errp != nil {
+			log.MaestroErrorf("NetworkManager: failed to create command pipe for resolvconf: %v", errp)
+			return
+		}
+
+		stdin.Write(dnsconfig)
+		stdin.Close()
+
+		rc := cmd.Run()
+		if rc != nil {
+			log.MaestroDebugf("failed to call resolvconf: %v", rc)
+		}
+	}
+
 	return
 }
 
