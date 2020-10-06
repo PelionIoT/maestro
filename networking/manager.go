@@ -841,22 +841,19 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 	//get the stored dns servers
 	this.networkConfigDB.Get(dnsid, &storedconfig)
 
-	if config.Existing == "replace" {
+	if config.Existing == "replace" || (config.Existing == "override" && len(config.Nameservers) > 0) {
 		//erase and replace the nameservers
 		storedconfig = nil
 		storedconfig = append(storedconfig, config.Nameservers...)
 
 		//store name servers
 		this.networkConfigDB.Put(dnsid, storedconfig)
-	} else if config.Existing == "override" {
-		if len(config.Nameservers) > 0 {
-			//erase and replace the nameservers
-			storedconfig = nil
-			storedconfig = append(storedconfig, config.Nameservers...)
+	} else if config.Existing == "" && len(storedconfig) == 0 {
+		//write to nameservers if nothing exists
+		storedconfig = append(storedconfig, config.Nameservers...)
 
-			//store name servers
-			this.networkConfigDB.Put(dnsid, storedconfig)
-		}
+		//store name servers
+		this.networkConfigDB.Put(dnsid, storedconfig)
 	}
 
 	//store to active config
