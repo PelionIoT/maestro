@@ -140,6 +140,10 @@ func (inst *networkManagerInstance) ProcessDhcpConfigChange(fieldchanged string,
 
 //Function to process if config change
 func (inst *networkManagerInstance) ProcessIfConfigChange(fieldchanged string, futvalue interface{}, curvalue interface{}, index int) {
+	//if we need a new target
+	if index >= len(inst.networkConfig.Interfaces) {
+		inst.networkConfig.Interfaces = append(inst.networkConfig.Interfaces, new(maestroSpecs.NetIfConfigPayload))
+	}
 	log.MaestroInfof("ProcessIfConfigChange: %s old:%v new:%v index:%d\n", fieldchanged, curvalue, futvalue, index)
 	switch fieldchanged {
 	case "Type":
