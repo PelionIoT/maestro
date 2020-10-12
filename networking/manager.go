@@ -729,55 +729,10 @@ func updateIfConfigFromStored(netdata *NetworkInterfaceData) (ok bool, err error
 	return
 }
 
-func (this *networkManagerInstance) resetLinks() {
-	log.MaestroDebugf("NetworkManager: resetLinks: reset all network links\n")
-	//This function brings all the intfs down and puts everything back in pristine state
-	this.byInterfaceName.Range(func(key, value interface{}) bool {
-		if value == nil {
-			debugging.DEBUG_OUT("NetworkManager: resetLinks: Invalid Entry in syncmap - have null value pointer\n")
-			return true
-		}
-		ifname := "<interface name>"
-		ifname, _ = key.(string)
-		log.MaestroDebugf("NetworkManager: found existing key for if [%s]\n", ifname)
-		if value != nil {
-			ifdata := value.(*NetworkInterfaceData)
-			//First kill the DHCP routine if its running
-			if ifdata.dhcpRunning {
-				log.MaestroDebugf("NetworkManager: resetLinks: Stopping DHCP routine for if %s\n", ifname)
-				ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: stop_and_release_IP}
-				// wait on that shutdown
-				<-ifdata.dhcpWaitOnShutdown
-				//Set the flag
-				ifdata.dhcpRunning = false
-			}
-			//ifdata := (*NetworkInterfaceData)(item.Value)
-			log.MaestroDebugf("NetworkManager: Remove the interface config/settings from syncmap for if [%s]\n", ifname)
-			//Clear/Remove the interface config/settings from syncmap
-			link, err := GetInterfaceLink(ifname, -1)
-			if err == nil && link != nil {
-				ifname = link.Attrs().Name
-				// ok - need to bring interface down to set Mac
-				log.MaestroDebugf("NetworkManager: resetLinks: bringing if %s down\n", ifname)
-				err2 := netlink.LinkSetDown(link)
-				if err2 != nil {
-					log.MaestroErrorf("NetworkManager: resetLinks: failed to bring if %s down - %s\n", ifname, err2.Error())
-				}
-				//Now we can remove the entry from syncmap
-				this.byInterfaceName.Delete(key)
-			}
-		}
-		return true
-	})
-}
-
 func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkConfigPayload) {
 	this.networkConfig = config
 
-	//reset all current config if this function is called again
-	if len(config.Interfaces) > 0 {
-		this.resetLinks()
-	}
+	var newNetConfig maestroSpecs.NetworkConfigPayload
 
 	// NOTE: this is only for the config file initial start
 	// NOTE: the database must already be loaded and read
@@ -1006,6 +961,33 @@ func (this *networkManagerInstance) SetInterfaceConfigByName(ifname string, ifco
 	return
 }
 
+func (this *networkManagerInstance) ifdown(ifname string) {
+	ifdata, ok := mgr.byInterfaceName.Load(ifname)
+	if !ok {
+		log.MaestroErrorf("NetworkManager: ifdown unknown interface: %s\n", ifname)
+		return
+	}
+
+	// kill the DHCP routine if its running
+	if ifdata.dhcpRunning {
+		log.MaestroDebugf("NetworkManager: ifdown: Stopping DHCP routine for if %s\n", ifname)
+		ifdata.dhcpWorkerControl <- networkThreadMessage{cmd: stop_and_release_IP}
+		// wait on that shutdown
+		<-ifdata.dhcpWaitOnShutdown
+		ifdata.dhcpRunning = false
+	}
+
+	log.MaestroDebugf("NetworkManager: ifdown: Setting link down for if %s \n", ifname)
+	link, err := GetInterfaceLink(ifname, -1)
+	if err == nil && link != nil {
+		ifname = link.Attrs().Name
+		err2 := netlink.LinkSetDown(link)
+		if err2 != nil {
+			log.MaestroErrorf("NetworkManager: ifdown: failed to set link down for if %s: %s\n", ifname, err2.Error())
+		}
+	}
+}
+
 func (this *networkManagerInstance) setupInterfaces() (err error) {
 
 	this.byInterfaceName.Range(func(key, value interface{}) bool {
@@ -1014,7 +996,6 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 			return true
 		}
 		ifname := "<interface name>"
-		//ifname, _ = item.Key.(string)
 		ifname, _ = key.(string)
 		log.MaestroDebugf("NetworkManager: see existing setup for if [%s]\n", ifname)
 		if value != nil {
@@ -1023,6 +1004,8 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 				log.MaestroErrorf("NetworkManager: Interface [%s] does not have an interface data structure.\n", ifname)
 				return true
 			}
+
+			this.linkdown(ifname)
 
 			var ifconfig *maestroSpecs.NetIfConfigPayload
 
