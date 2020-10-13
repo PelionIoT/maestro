@@ -215,7 +215,6 @@ type networkManagerInstance struct {
 	networkConfigDB *stow.Store
 	// internal structures
 	byInterfaceName    sync.Map // map of identifier to struct -> 'eth2':&networkInterfaceData{}
-	indexToName        sync.Map
 	watcherWorkChannel chan networkThreadMessage
 
 	newInterfaceMutex sync.Mutex
@@ -225,7 +224,8 @@ type networkManagerInstance struct {
 	interfaceThreadCount      int
 	interfaceThreadCountMutex sync.Mutex
 	threadCountChan           chan networkThreadMessage
-	networkConfig             *maestroSpecs.NetworkConfigPayload
+	activeNetworkConfig       *maestroSpecs.NetworkConfigPayload
+	futureNetworkConfig       *maestroSpecs.NetworkConfigPayload
 
 	//Configs to be used for connecting to devicedb
 	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
@@ -247,6 +247,33 @@ type networkManagerInstance struct {
 const DDB_NETWORK_CONFIG_NAME string = "MAESTRO_NETWORK_CONFIG_ID"
 const DDB_NETWORK_CONFIG_COMMIT_FLAG string = "MAESTRO_NETWORK_CONFIG_COMMIT_FLAG"
 const DDB_NETWORK_CONFIG_CONFIG_GROUP_ID string = "netgroup"
+
+// Helpers for building up a new networkConfig
+func (this *networkManagerInstance) StartFutureConfig() error {
+	if nil != this.futureNetworkConfig {
+		return errors.New("Change already in progress")
+	}
+	this.futureNetworkConfig = new(maestroSpecs.NetworkConfigPayload)
+	// seed it with the current settings for implementation reasons in the
+	// devicedb monitor code, for example to make sure that the Interfaces
+	// array is the proper length
+	this.GetNetworkConfig(this.futureNetworkConfig)
+	return nil
+}
+
+func (this *networkManagerInstance) GetFutureConfig() *maestroSpecs.NetworkConfigPayload {
+	return this.futureNetworkConfig
+}
+
+func (this *networkManagerInstance) AbortFutureConfig() {
+	this.futureNetworkConfig = nil
+}
+
+func (this *networkManagerInstance) ApplyFutureConfig() error {
+	this.submitConfig(this.futureNetworkConfig)
+	this.futureNetworkConfig = nil
+	return this.setupInterfaces()
+}
 
 func (inst *networkManagerInstance) getNewDnsBufferForInterface(ifname string) (ret *dnsBuf) {
 	ret = new(dnsBuf)
@@ -274,8 +301,8 @@ func (inst *networkManagerInstance) removeDnsBufferForInterface(ifname string) {
 // or the alternate (AltResolvConf) if set
 func (inst *networkManagerInstance) finalizeDns() (err error) {
 	path := resolvConfPath
-	if len(inst.networkConfig.AltResolvConf) > 0 {
-		path = inst.networkConfig.AltResolvConf
+	if len(inst.activeNetworkConfig.AltResolvConf) > 0 {
+		path = inst.activeNetworkConfig.AltResolvConf
 	}
 
 	var file *os.File
@@ -296,8 +323,8 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 	writer.WriteString(s)
 
 	// if the config had any stated name servers, add them first
-	if len(inst.networkConfig.Nameservers) > 0 {
-		for _, ipS := range inst.networkConfig.Nameservers {
+	if len(inst.activeNetworkConfig.Nameservers) > 0 {
+		for _, ipS := range inst.activeNetworkConfig.Nameservers {
 			// check to make sure its a valid IP, by parsing it using the go net package
 			ip := net.ParseIP(ipS)
 			if ip != nil {
@@ -337,8 +364,8 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 	// if we are writing dns config to a file other than /etc/resolv.conf, that usually
 	// means we are running on a system that uses resolvconf as a means to integrate multiple
 	// services that need to add dns config to /etc/resolv.conf without stomping on each other.
-	if len(inst.networkConfig.AltResolvConf) > 0 {
-		dnsconfig, err2 := ioutil.ReadFile(inst.networkConfig.AltResolvConf)
+	if len(inst.activeNetworkConfig.AltResolvConf) > 0 {
+		dnsconfig, err2 := ioutil.ReadFile(inst.activeNetworkConfig.AltResolvConf)
 		if err2 != nil {
 			log.MaestroErrorf("NetworkManager: failed to read DNS resolv.conf")
 			return
@@ -458,7 +485,7 @@ func (this *networkManagerInstance) GetDNS() ([]string, error) {
 	//var err error
 	dns := make([]string, 0)
 
-	dns = append(dns, this.networkConfig.Nameservers...)
+	dns = append(dns, this.activeNetworkConfig.Nameservers...)
 
 	return dns, nil
 }
@@ -480,7 +507,7 @@ func (this *networkManagerInstance) AddDNS(dns string) error {
 	var newConfig maestroSpecs.NetworkConfigPayload
 
 	//update the nameservers in the config
-	newConfig.Nameservers = append(this.networkConfig.Nameservers, dns)
+	newConfig.Nameservers = append(this.activeNetworkConfig.Nameservers, dns)
 
 	//make replace
 	newConfig.Existing = "override"
@@ -546,8 +573,11 @@ func indexOf(array []string, value string) int {
 */
 func (this *networkManagerInstance) applyDNS(config maestroSpecs.NetworkConfigPayload) {
 
-	//make the config active
+	// persist config to local DB
 	instance.submitConfig(&config)
+
+	// make the dns config active
+	instance.finalizeDns()
 }
 
 /*
@@ -567,7 +597,7 @@ func (this *networkManagerInstance) DeleteDNS(dns string) error {
 	var newConfig maestroSpecs.NetworkConfigPayload
 
 	//delete the nameserver in the config
-	newConfig.Nameservers = removeElement(this.networkConfig.Nameservers, dns)
+	newConfig.Nameservers = removeElement(this.activeNetworkConfig.Nameservers, dns)
 
 	newConfig.Existing = "override"
 
@@ -651,7 +681,7 @@ func GetInstance() *networkManagerInstance {
 	if instance == nil {
 		instance = newNetworkManagerInstance()
 		// provide a blank network config for now (until one is provided)
-		instance.networkConfig = new(maestroSpecs.NetworkConfigPayload)
+		instance.activeNetworkConfig = new(maestroSpecs.NetworkConfigPayload)
 		storage.RegisterStorageUser(instance)
 		// internalTicker = time.NewTicker(time.Second * time.Duration(defaults.TASK_MANAGER_CLEAR_INTERVAL))
 		// controlChan = make(chan *controlToken, 100) // buffer up to 100 events
@@ -729,14 +759,70 @@ func updateIfConfigFromStored(netdata *NetworkInterfaceData) (ok bool, err error
 	return
 }
 
+// writes the config parameter to the maestroDB and to the running config
+//
+// this function stores the new config to maestroDB and updates the network instance's
+// runtime data structures, it does not activate any of the new config on the host system
+// nor does it update DeviceDB
 func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkConfigPayload) {
-	this.networkConfig = config
 
-	var newNetConfig maestroSpecs.NetworkConfigPayload
+	if this.activeNetworkConfig.Disable != config.Disable {
+		this.activeNetworkConfig.Disable = config.Disable
+		log.MaestroInfof("NetworkManager: submitConfig: Disable changed to: %t\n",
+				 this.activeNetworkConfig.Disable)
+	}
 
-	// NOTE: this is only for the config file initial start
-	// NOTE: the database must already be loaded and read
-	// should only be called once. Is only called by InitNetworkManager()
+	if this.activeNetworkConfig.DontSetDefaultRoute != config.DontSetDefaultRoute {
+		this.activeNetworkConfig.DontSetDefaultRoute = config.DontSetDefaultRoute
+		log.MaestroInfof("NetworkManager: submitConfig: DontSetDefaultRoute changed to: %t\n",
+				 this.activeNetworkConfig.DontSetDefaultRoute)
+	}
+
+	if this.activeNetworkConfig.DnsIgnoreDhcp != config.DnsIgnoreDhcp {
+		this.activeNetworkConfig.DnsIgnoreDhcp = config.DnsIgnoreDhcp
+		log.MaestroInfof("NetworkManager: submitConfig: DnsIgnoreDhcp changed to: %t\n",
+				 this.activeNetworkConfig.DnsIgnoreDhcp)
+	}
+
+	if this.activeNetworkConfig.AltResolvConf != config.AltResolvConf {
+		this.activeNetworkConfig.AltResolvConf = config.AltResolvConf
+		log.MaestroInfof("NetworkManager: submitConfig: AltResolvConf changed to: %s\n",
+				 this.activeNetworkConfig.AltResolvConf)
+	}
+
+	if this.activeNetworkConfig.DnsRunLocalCaching != config.DnsRunLocalCaching {
+		this.activeNetworkConfig.DnsRunLocalCaching = config.DnsRunLocalCaching
+		log.MaestroInfof("NetworkManager: submitConfig: DnsRunLocalCaching changed to: %t\n",
+				 this.activeNetworkConfig.DnsRunLocalCaching)
+	}
+
+	if this.activeNetworkConfig.DnsForwardTo != config.DnsForwardTo {
+		this.activeNetworkConfig.DnsForwardTo = config.DnsForwardTo
+		log.MaestroInfof("NetworkManager: submitConfig: DnsForwardTo changed to: %s\n",
+				 this.activeNetworkConfig.DnsForwardTo)
+	}
+
+	if this.activeNetworkConfig.DnsRunRootLookup != config.DnsRunRootLookup {
+		this.activeNetworkConfig.DnsRunRootLookup = config.DnsRunRootLookup
+		log.MaestroInfof("NetworkManager: submitConfig: DnsRunRootLookup changed to: %t\n",
+				 this.activeNetworkConfig.DnsRunRootLookup)
+	}
+
+	if this.activeNetworkConfig.DnsHostsData != config.DnsHostsData {
+		this.activeNetworkConfig.DnsHostsData = config.DnsHostsData
+		log.MaestroInfof("NetworkManager: submitConfig: DnsHostsData changed to: %s\n",
+				 this.activeNetworkConfig.DnsHostsData)
+	}
+
+	if this.activeNetworkConfig.FallbackNameservers != config.FallbackNameservers {
+		this.activeNetworkConfig.FallbackNameservers = config.FallbackNameservers
+		log.MaestroInfof("NetworkManager: submitConfig: FallbackNameservers changed to: %s\n",
+				 this.activeNetworkConfig.FallbackNameservers)
+	}
+
+	// skip Existing
+
+	// update the interfaces map and maestroDB
 	for _, ifconf := range config.Interfaces {
 		log.MaestroInfof("NetworkManager: submitConfig: if %s\n", ifconf.IfName)
 		// look in database
@@ -750,26 +836,17 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 		var storedifconfig NetworkInterfaceData
 		err := this.networkConfigDB.Get(ifname, &storedifconfig)
 		if err != nil {
-			log.MaestroInfof("NetworkManager: submitConfig: Get failed: %v\n", err)
+			log.MaestroInfof("NetworkManager: submitConfig: no stored config found for interface %s: %v\n", ifname, err)
 			if err != stow.ErrNotFound {
 				log.MaestroErrorf("NetworkManager: problem with database on if %s - Get: %s\n", ifname, err.Error())
 			} else {
-				// ret = new(NetworkInterfaceData)
-				// ret.IfName = ifconf.IfName
 				newconf := newIfData(ifconf.IfName, ifconf)
 				this.byInterfaceName.Store(ifname, newconf)
+				// flush the stored config to maestroDB
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
 					log.MaestroErrorf("NetworkManager: Problem (1) storing config for interface [%s]: %s\n", ifconf.IfName, err)
 				}
-				// // ret.RunningIfconfig = new(maestroSpecs.NetIfConfigPayload)
-				// // ret.RunningIfconfig.IfName = ifname
-				// ret.StoredIfconfig = new(maestroSpecs.NetIfConfigPayload)
-				// ret.StoredIfconfig.IfName = ifname
-
-				// this.byInterfaceName.Set(ifname,unsafe.Pointer(ret))
-				// this.commitInterfaceData(ifname)
-				// // this.byInterfaceName.Set(ifname,unsafe.Pointer(ret))
 			}
 		} else {
 			// entry existed, so override
@@ -777,6 +854,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				// same as above, brand new
 				newconf := newIfData(ifconf.IfName, ifconf)
 				this.byInterfaceName.Store(ifname, newconf)
+				// flush to maestroDB
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
 					log.MaestroErrorf("NetworkManager: Problem (2) storing config for interface [%s]: %s\n", ifconf.IfName, err)
@@ -802,7 +880,9 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 					storedifconfig.StoredIfconfig = ifconf
 				}
 				debugging.DEBUG_OUT("storedifconfig: %+v\n", storedifconfig.StoredIfconfig)
+				// copy iface config data to map for easier lookup
 				this.byInterfaceName.Store(ifname, &storedifconfig)
+				// flush to maestroDB
 				err = this.commitInterfaceData(ifname)
 				if err != nil {
 					log.MaestroErrorf("NetworkManager: Problem (3) storing config for interface [%s]: %s\n", ifconf.IfName, err)
@@ -814,9 +894,11 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 				this.byInterfaceName.Store(ifname, &storedifconfig)
 			}
 		}
-
 	}
+	// update the active interfaces array
+	this.copyNetworkConfigInterfaces(this.activeNetworkConfig, config)
 
+	// update nameservers
 	//id of the dns in db
 	dnsid := string("nameservers")
 
@@ -831,22 +913,18 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 		storedconfig = nil
 		storedconfig = append(storedconfig, config.Nameservers...)
 
-		//store name servers
+		//store name servers to maestroDB
 		this.networkConfigDB.Put(dnsid, storedconfig)
 	} else if config.Existing == "" && len(storedconfig) == 0 {
 		//write to nameservers if nothing exists
 		storedconfig = append(storedconfig, config.Nameservers...)
 
-		//store name servers
+		//store name servers to maestroDB
 		this.networkConfigDB.Put(dnsid, storedconfig)
 	}
 
-	//store to active config
-	instance.networkConfig.Nameservers = nil
-	instance.networkConfig.Nameservers = append(instance.networkConfig.Nameservers, storedconfig...)
-
-	//write out the dns files
-	instance.finalizeDns()
+	//update active config
+	this.activeNetworkConfig.Nameservers = storedconfig
 }
 
 func (this *networkManagerInstance) getIfFromDb(ifname string) (ret *NetworkInterfaceData) {
@@ -962,8 +1040,8 @@ func (this *networkManagerInstance) SetInterfaceConfigByName(ifname string, ifco
 }
 
 func (this *networkManagerInstance) ifdown(ifname string) {
-	ifdata, ok := mgr.byInterfaceName.Load(ifname)
-	if !ok {
+	ifdata := this.getInterfaceData(ifname)
+	if ifdata != nil {
 		log.MaestroErrorf("NetworkManager: ifdown unknown interface: %s\n", ifname)
 		return
 	}
@@ -1005,7 +1083,7 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 				return true
 			}
 
-			this.linkdown(ifname)
+			this.ifdown(ifname)
 
 			var ifconfig *maestroSpecs.NetIfConfigPayload
 
@@ -1058,9 +1136,9 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 //This function calls the setupInterfaces with the current config and then start connection with devicedb by calling initDeviceDBConfig
 //Note that call to initDeviceDBConfig is done as a go routine.
 func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
-	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.networkConfig, this.networkConfig.Interfaces)
+	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.activeNetworkConfig, this.activeNetworkConfig.Interfaces)
 
-	if this.networkConfig.Disable == true {
+	if this.activeNetworkConfig.Disable == true {
 		log.MaestroInfo("NetworkManager: Network management is disabled.  No interfaces to bring up.\n")
 		return
 	}
@@ -1095,6 +1173,27 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 	return err
 }
 
+// helper for copying the Interfaces array from one NetworkConfigPayload to another
+func (this *networkManagerInstance) copyNetworkConfigInterfaces(lhs *maestroSpecs.NetworkConfigPayload,
+								rhs *maestroSpecs.NetworkConfigPayload) {
+	lhs.Interfaces = make([]*maestroSpecs.NetIfConfigPayload, len(rhs.Interfaces))
+	for i,v := range rhs.Interfaces {
+		lhs.Interfaces[i] = new(maestroSpecs.NetIfConfigPayload)
+		*lhs.Interfaces[i] = *v
+	}
+}
+
+// create a copy of the active network config
+func (this *networkManagerInstance) GetNetworkConfig(config *maestroSpecs.NetworkConfigPayload) {
+	// start with a shallow copy
+	*config = *this.activeNetworkConfig
+	// copy the Interfaces array
+	this.copyNetworkConfigInterfaces(config, this.activeNetworkConfig)
+	// copy the Nameservers array
+	config.Nameservers = make([]string, len(this.activeNetworkConfig.Nameservers))
+	copy(config.Nameservers, this.activeNetworkConfig.Nameservers)
+}
+
 //SetupDeviceDBConfig reads the config from devicedb and if its new it applies the new config.
 //It also sets up the config update handlers for all the tags/groups.
 func (this *networkManagerInstance) SetupDeviceDBConfig() error {
@@ -1111,8 +1210,8 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 
 	err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
 	if err != nil {
-		log.MaestroWarnf("NetworkManager: No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.networkConfig)
-		err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.networkConfig)
+		log.MaestroWarnf("NetworkManager: No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.activeNetworkConfig)
+		err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(&this.activeNetworkConfig)
 		if err != nil {
 			log.MaestroErrorf("NetworkManager: Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
 			return errors.New(fmt.Sprintf("\nUnable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err))
@@ -1120,12 +1219,11 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	} else {
 		//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
 		log.MaestroInfof("NetworkManager: Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
-		identical, _, _, err := configAna.DiffChanges(this.networkConfig, ddbNetworkConfig)
+		identical, _, _, err := configAna.DiffChanges(this.activeNetworkConfig, ddbNetworkConfig)
 		if !identical && (err == nil) {
 			//The configs are different, lets go ahead reconfigure the intfs
 			log.MaestroDebugf("NetworkManager: New network config found from devicedb, reconfigure nework using new config\n")
-			this.networkConfig = &ddbNetworkConfig
-			this.submitConfig(this.networkConfig)
+			this.submitConfig(&ddbNetworkConfig)
 			//Setup the intfs using new config
 			this.setupInterfaces()
 			//Set the hostname again as we reconfigured the network
@@ -1173,7 +1271,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	var origNetworkConfig, updatedNetworkConfig maestroSpecs.NetworkConfigPayload
 	//Provide a copy of current network config monitor to Config monitor, not the actual config we use, this would prevent config monitor
 	//directly updating the running config(this.networkConfig).
-	origNetworkConfig = *this.networkConfig
+	this.GetNetworkConfig(&origNetworkConfig)
 
 	//Adding monitor config
 	this.ddbConfigClient.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
@@ -1347,7 +1445,7 @@ DhcpLoop:
 				ok, ifpref, r := this.primaryTable.findPreferredRoute()
 				if ok {
 					log.MaestroWarnf("NetworkManager:(DhcpLoop) preferred default route is on if %s - %+v\n", ifpref, r)
-					err = this.primaryTable.setPreferredRoute(!this.networkConfig.DontSetDefaultRoute)
+					err = this.primaryTable.setPreferredRoute(!this.activeNetworkConfig.DontSetDefaultRoute)
 					if err == nil {
 						log.MaestroWarnf("NetworkManager: set default route to %s %+v\n", ifpref, r)
 					} else {
@@ -1429,7 +1527,7 @@ DhcpLoop:
 					// ok, now finalize the default route
 					this.finalizePrimaryRoutes()
 					// setup DNS
-					dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.networkConfig.DnsIgnoreDhcp)
+					dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.activeNetworkConfig.DnsIgnoreDhcp)
 					if dnsset {
 						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 						ifdata.hadDNS = true
@@ -1582,7 +1680,7 @@ DhcpLoop:
 						// }
 						//setupDefaultRouteInPrimaryTable(this,ifdata.RunningIfconfig,)
 						// setup DNS
-						dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.networkConfig.DnsIgnoreDhcp)
+						dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.activeNetworkConfig.DnsIgnoreDhcp)
 						if dnsset {
 							log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 							ifdata.hadDNS = true
@@ -1697,7 +1795,7 @@ DhcpLoop:
 					// 	}
 					// }
 					// setup DNS
-					dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.networkConfig.DnsIgnoreDhcp)
+					dnsset, primarydns, err := AppendDNSResolver(ifdata.RunningIfconfig, leaseinfo, this.getNewDnsBufferForInterface(ifdata.IfName), this.activeNetworkConfig.DnsIgnoreDhcp)
 					if dnsset {
 						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 						ifdata.hadDNS = true
@@ -1771,7 +1869,7 @@ func (mgr *networkManagerInstance) finalizePrimaryRoutes() {
 	log.MaestroDebugf("NetworkManager: finalizePrimaryRoutes: if %s - %+v (ok=%v)\n", ifpref, r, ok)
 	if ok {
 		log.MaestroDebugf("NetworkManager: preferred default route is on if %s - %+v\n", ifpref, r)
-		err := mgr.primaryTable.setPreferredRoute(!mgr.networkConfig.DontSetDefaultRoute)
+		err := mgr.primaryTable.setPreferredRoute(!mgr.activeNetworkConfig.DontSetDefaultRoute)
 		if err == nil {
 			log.MaestroDebugf("NetworkManager: set default route to %s %+v\n", ifpref, r)
 		} else {
@@ -2115,7 +2213,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 									errout = err2
 									return
 								}
-							}		
+							}
 						}
 
 						// takes the state of the NetIfConfigPayload
@@ -2309,18 +2407,19 @@ func (mgr *networkManagerInstance) ValidateTask(task *tasks.MaestroTask) error {
 func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbconfig *maestroConfig.DeviceDBConnConfig) error {
 	log.MaestroInfof("NetworkManager: Initializing %v %v\n", networkconfig, ddbconfig)
 	inst := GetInstance()
-	inst.networkConfig = networkconfig
+	inst.activeNetworkConfig = networkconfig  //shallow copy
 	inst.ddbConnConfig = ddbconfig
 
 	//Setup the config with the given network config
-	if inst.networkConfig != nil {
-		if inst.networkConfig.Disable == false {
+	if inst.activeNetworkConfig != nil {
+		if inst.activeNetworkConfig.Disable == false {
 			log.MaestroInfof("NetworkManager: Submit config read from config file\n")
-			inst.submitConfig(inst.networkConfig)
+			inst.submitConfig(networkconfig)
 		} else {
 			log.MaestroWarnf("NetworkManager: Network configuration Disable flag set to true\n")
 			return nil
 		}
+		log.MaestroInfof("NetworkManager: Submit config read from config file\n")
 	} else {
 		return errors.New("NetworkManager: No network configuration set, unable to cofigure network")
 	}
