@@ -233,6 +233,7 @@ func (logManager *logManagerInstance) submitConfigAndSync(config []maestroSpecs.
 	}
 }
 
+// stores the config parameter to the local DB and updates the running config
 func (logManager *logManagerInstance) submitConfig(config []maestroSpecs.LogTarget) {
 	log.MaestroInfof("in submitConfig\n")
 	logManager.logConfigRunning = config
