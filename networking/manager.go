@@ -759,6 +759,30 @@ func updateIfConfigFromStored(netdata *NetworkInterfaceData) (ok bool, err error
 	return
 }
 
+// sets the active network config interfaces array equal to the values stored in the byInterfaceName map
+func (this *networkManagerInstance) copyInterfacesStoredToActive() {
+	this.activeNetworkConfig.Interfaces = nil
+	this.byInterfaceName.Range(func(key, value interface{}) bool {
+		var ifconfig *maestroSpecs.NetIfConfigPayload
+		if value == nil {
+			return true
+		}
+		ifdata := value.(*NetworkInterfaceData)
+		if ifdata == nil {
+			return true
+		}
+		if ifdata.StoredIfconfig != nil {
+			ifconfig = ifdata.StoredIfconfig
+		} else if ifdata.RunningIfconfig != nil {
+			ifconfig = ifdata.RunningIfconfig
+		} else {
+			return true
+		}
+		this.activeNetworkConfig.Interfaces = append(this.activeNetworkConfig.Interfaces, ifconfig)
+		return true
+	})
+}
+
 // writes the config parameter to the maestroDB and to the running config
 //
 // this function stores the new config to maestroDB and updates the network instance's
@@ -892,8 +916,9 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 			}
 		}
 	}
+
 	// update the active interfaces array
-	this.copyNetworkConfigInterfaces(this.activeNetworkConfig, config)
+	this.copyInterfacesStoredToActive()
 
 	// update nameservers
 	//id of the dns in db
@@ -1170,29 +1195,28 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 	return err
 }
 
-// helper for copying the Interfaces array from one NetworkConfigPayload to another
-func (this *networkManagerInstance) copyNetworkConfigInterfaces(lhs *maestroSpecs.NetworkConfigPayload,
-								rhs *maestroSpecs.NetworkConfigPayload) {
+// perform a deep copy of a network config
+func copyNetworkConfig(lhs *maestroSpecs.NetworkConfigPayload, rhs *maestroSpecs.NetworkConfigPayload) {
 	if lhs == rhs {
-		log.MaestroErrorf("ERROR: copy network interfaces: passed in equal object pointers")
+		log.MaestroErrorf("ERROR: copy network config: passed in same object pointer")
 		return
 	}
+	// start with a shallow copy
+	*lhs = *rhs
+	// copy the Interfaces array
 	lhs.Interfaces = make([]*maestroSpecs.NetIfConfigPayload, len(rhs.Interfaces))
 	for i, v := range rhs.Interfaces {
 		lhs.Interfaces[i] = new(maestroSpecs.NetIfConfigPayload)
 		*lhs.Interfaces[i] = *v
 	}
+	// copy the Nameservers array
+	lhs.Nameservers = make([]string, len(rhs.Nameservers))
+	copy(lhs.Nameservers, rhs.Nameservers)
 }
 
-// create a copy of the active network config
+// copy the active network config
 func (this *networkManagerInstance) GetNetworkConfig(config *maestroSpecs.NetworkConfigPayload) {
-	// start with a shallow copy
-	*config = *this.activeNetworkConfig
-	// copy the Interfaces array
-	this.copyNetworkConfigInterfaces(config, this.activeNetworkConfig)
-	// copy the Nameservers array
-	config.Nameservers = make([]string, len(this.activeNetworkConfig.Nameservers))
-	copy(config.Nameservers, this.activeNetworkConfig.Nameservers)
+	copyNetworkConfig(config, this.activeNetworkConfig)
 }
 
 //SetupDeviceDBConfig reads the config from devicedb and if its new it applies the new config.
@@ -2412,14 +2436,18 @@ func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbcon
 
 	//Setup the config with the given network config
 	if networkconfig != nil {
-		inst.activeNetworkConfig.Disable = networkconfig.Disable
-		if inst.activeNetworkConfig.Disable == false {
-			log.MaestroInfof("NetworkManager: Submit config read from config file\n")
-			inst.submitConfig(networkconfig)
-		} else {
+		log.MaestroInfof("NetworkManager: Loading config from file\n")
+
+		// copy the incoming networkconfig to current state
+		copyNetworkConfig(inst.activeNetworkConfig, networkconfig)
+
+		if inst.activeNetworkConfig.Disable == true {
 			log.MaestroWarnf("NetworkManager: Network configuration Disable flag set to true\n")
 			return nil
 		}
+
+		// call submitConfig to process the config into other local data structures and to push to maestroDB
+		inst.submitConfig(networkconfig)
 	} else {
 		inst.activeNetworkConfig.Disable = true
 		return errors.New("NetworkManager: No network configuration set, unable to cofigure network")
