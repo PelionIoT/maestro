@@ -50,7 +50,6 @@ func SetLoggingLevel(ll string) {
 var goReady = false
 var disabled = false
 
-// DisableGreaseLog is used by test programs
 func DisableGreaseLog() {
 	disabled = true
 }

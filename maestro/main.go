@@ -101,7 +101,12 @@ func main() {
 	versionFlag := flag.Bool("version", false, "Dump version information")
 	debugServerFlag := flag.Bool("debug_loopback", true, "Start a debug loopback on http://127.0.0.1:6060")
 	debugMemory := flag.Bool("debug_mem", true, "Debugging memory stats")
+	logToStdout := flag.Bool("log_to_stdout", false, "Send maestro's log messages to stdout instead of directly to GreaseLog")
 	flag.Parse()
+
+	if *logToStdout {
+		Log.DisableGreaseLog()
+	}
 
 	debugging.DebugPprof(*debugServerFlag)
 	if *debugMemory {
