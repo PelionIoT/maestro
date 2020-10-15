@@ -367,16 +367,16 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 	if len(inst.activeNetworkConfig.AltResolvConf) > 0 {
 		dnsconfig, err2 := ioutil.ReadFile(inst.activeNetworkConfig.AltResolvConf)
 		if err2 != nil {
-			log.MaestroErrorf("NetworkManager: failed to read DNS resolv.conf")
-			return
+			log.MaestroErrorf("NetworkManager: failed to read DNS resolv.conf\n")
+			return err2
 		}
 
 		cmd := exec.Command("resolvconf", "-a", "maestro.net")
 
 		stdin, errp := cmd.StdinPipe()
 		if errp != nil {
-			log.MaestroErrorf("NetworkManager: failed to create command pipe for resolvconf: %v", errp)
-			return
+			log.MaestroErrorf("NetworkManager: failed to create command pipe for resolvconf: %v\n", errp)
+			return errp
 		}
 
 		stdin.Write(dnsconfig)
@@ -384,8 +384,10 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 
 		rc := cmd.Run()
 		if rc != nil {
-			log.MaestroDebugf("failed to call resolvconf: %v", rc)
+			log.MaestroDebugf("failed to call resolvconf: %v\n", rc)
+			return rc
 		}
+		log.MaestroDebugf("successfully called resolvconf\n")
 	}
 
 	return
