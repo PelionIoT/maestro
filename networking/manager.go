@@ -1167,6 +1167,10 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 		return
 	}
 
+	// don't wait for setupInterfaces() to apply DNS, which can be quite a delay
+	// if the interfaces are all dhcp
+	this.finalizeDns()
+
 	//Setup the intfs using initial boot config first
 	this.setupInterfaces()
 
