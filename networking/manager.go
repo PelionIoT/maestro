@@ -766,56 +766,58 @@ func updateIfConfigFromStored(netdata *NetworkInterfaceData) (ok bool, err error
 // nor does it update DeviceDB
 func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkConfigPayload) {
 
-	if this.activeNetworkConfig.DontSetDefaultRoute != config.DontSetDefaultRoute {
-		this.activeNetworkConfig.DontSetDefaultRoute = config.DontSetDefaultRoute
-		log.MaestroInfof("NetworkManager: submitConfig: DontSetDefaultRoute changed to: %t\n",
-				 this.activeNetworkConfig.DontSetDefaultRoute)
-	}
+	if config.Existing == "replace" {
+		if this.activeNetworkConfig.DontSetDefaultRoute != config.DontSetDefaultRoute {
+			this.activeNetworkConfig.DontSetDefaultRoute = config.DontSetDefaultRoute
+			log.MaestroInfof("NetworkManager: submitConfig: DontSetDefaultRoute changed to: %t\n",
+					 this.activeNetworkConfig.DontSetDefaultRoute)
+		}
 
-	if this.activeNetworkConfig.DnsIgnoreDhcp != config.DnsIgnoreDhcp {
-		this.activeNetworkConfig.DnsIgnoreDhcp = config.DnsIgnoreDhcp
-		log.MaestroInfof("NetworkManager: submitConfig: DnsIgnoreDhcp changed to: %t\n",
-				 this.activeNetworkConfig.DnsIgnoreDhcp)
-	}
+		if this.activeNetworkConfig.DnsIgnoreDhcp != config.DnsIgnoreDhcp {
+			this.activeNetworkConfig.DnsIgnoreDhcp = config.DnsIgnoreDhcp
+			log.MaestroInfof("NetworkManager: submitConfig: DnsIgnoreDhcp changed to: %t\n",
+					 this.activeNetworkConfig.DnsIgnoreDhcp)
+		}
 
-	if this.activeNetworkConfig.AltResolvConf != config.AltResolvConf {
-		this.activeNetworkConfig.AltResolvConf = config.AltResolvConf
-		log.MaestroInfof("NetworkManager: submitConfig: AltResolvConf changed to: %s\n",
-				 this.activeNetworkConfig.AltResolvConf)
-	}
+		if this.activeNetworkConfig.AltResolvConf != config.AltResolvConf {
+			this.activeNetworkConfig.AltResolvConf = config.AltResolvConf
+			log.MaestroInfof("NetworkManager: submitConfig: AltResolvConf changed to: %s\n",
+					 this.activeNetworkConfig.AltResolvConf)
+		}
 
-	if this.activeNetworkConfig.DnsRunLocalCaching != config.DnsRunLocalCaching {
-		this.activeNetworkConfig.DnsRunLocalCaching = config.DnsRunLocalCaching
-		log.MaestroInfof("NetworkManager: submitConfig: DnsRunLocalCaching changed to: %t\n",
-				 this.activeNetworkConfig.DnsRunLocalCaching)
-	}
+		if this.activeNetworkConfig.DnsRunLocalCaching != config.DnsRunLocalCaching {
+			this.activeNetworkConfig.DnsRunLocalCaching = config.DnsRunLocalCaching
+			log.MaestroInfof("NetworkManager: submitConfig: DnsRunLocalCaching changed to: %t\n",
+					 this.activeNetworkConfig.DnsRunLocalCaching)
+		}
 
-	if this.activeNetworkConfig.DnsForwardTo != config.DnsForwardTo {
-		this.activeNetworkConfig.DnsForwardTo = config.DnsForwardTo
-		log.MaestroInfof("NetworkManager: submitConfig: DnsForwardTo changed to: %s\n",
-				 this.activeNetworkConfig.DnsForwardTo)
-	}
+		if this.activeNetworkConfig.DnsForwardTo != config.DnsForwardTo {
+			this.activeNetworkConfig.DnsForwardTo = config.DnsForwardTo
+			log.MaestroInfof("NetworkManager: submitConfig: DnsForwardTo changed to: %s\n",
+					 this.activeNetworkConfig.DnsForwardTo)
+		}
 
-	if this.activeNetworkConfig.DnsRunRootLookup != config.DnsRunRootLookup {
-		this.activeNetworkConfig.DnsRunRootLookup = config.DnsRunRootLookup
-		log.MaestroInfof("NetworkManager: submitConfig: DnsRunRootLookup changed to: %t\n",
-				 this.activeNetworkConfig.DnsRunRootLookup)
-	}
+		if this.activeNetworkConfig.DnsRunRootLookup != config.DnsRunRootLookup {
+			this.activeNetworkConfig.DnsRunRootLookup = config.DnsRunRootLookup
+			log.MaestroInfof("NetworkManager: submitConfig: DnsRunRootLookup changed to: %t\n",
+					 this.activeNetworkConfig.DnsRunRootLookup)
+		}
 
-	if this.activeNetworkConfig.DnsHostsData != config.DnsHostsData {
-		this.activeNetworkConfig.DnsHostsData = config.DnsHostsData
-		log.MaestroInfof("NetworkManager: submitConfig: DnsHostsData changed to: %s\n",
-				 this.activeNetworkConfig.DnsHostsData)
-	}
+		if this.activeNetworkConfig.DnsHostsData != config.DnsHostsData {
+			this.activeNetworkConfig.DnsHostsData = config.DnsHostsData
+			log.MaestroInfof("NetworkManager: submitConfig: DnsHostsData changed to: %s\n",
+					 this.activeNetworkConfig.DnsHostsData)
+		}
 
-	if this.activeNetworkConfig.FallbackNameservers != config.FallbackNameservers {
-		this.activeNetworkConfig.FallbackNameservers = config.FallbackNameservers
-		log.MaestroInfof("NetworkManager: submitConfig: FallbackNameservers changed to: %s\n",
-				 this.activeNetworkConfig.FallbackNameservers)
-	}
+		if this.activeNetworkConfig.FallbackNameservers != config.FallbackNameservers {
+			this.activeNetworkConfig.FallbackNameservers = config.FallbackNameservers
+			log.MaestroInfof("NetworkManager: submitConfig: FallbackNameservers changed to: %s\n",
+					 this.activeNetworkConfig.FallbackNameservers)
+		}
 
-	// skip Existing
-	// skip Disable.  we don't handle the case where we enable/disable after initial startup
+		// skip Existing
+		// skip Disable since we don't handle the case where we enable/disable after initial startup
+	}
 
 	// update the interfaces map and maestroDB
 	for _, ifconf := range config.Interfaces {
