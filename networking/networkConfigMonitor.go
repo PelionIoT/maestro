@@ -91,9 +91,9 @@ func (cfgHook NetworkConfigChangeHook) ChangesStart(configgroup string) {
 	instance = GetInstance()
 	err := instance.StartFutureConfig()
 	if err != nil {
-		log.MaestroInfof("ConfigChangeHook:ChangesStart: failed to start networkConfig changes: %s\n", err.Error())
-		instance.AbortFutureConfig()
-		instance.StartFutureConfig()
+		log.MaestroDebugf("ConfigChangeHook:ChangesStart: failed to start new networkConfig changes: %s\n", err.Error())
+		// this is ok since the ChangesStart function is called once per configgroup, and the
+		// NetworkConfigPayload contains multiple configgroups
 	}
 	if configChangeRequestChan == nil {
 		configChangeRequestChan = make(chan ConfigChangeInfo, 100)
