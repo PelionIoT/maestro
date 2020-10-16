@@ -181,7 +181,7 @@ func CreateDDBRelayConfigClient(ddbConnConfig *DeviceDBConnConfig) (*DDBRelayCon
 		if ddbConfigClient.IsAvailable() {
 			break
 		} else {
-			log.MaestroWarnf("maestroConfig: devicedb is not running. retrying in %d seconds", loopWaitTime)
+			log.MaestroWarnf("maestroConfig: devicedb is not running. retrying in %d seconds\n", loopWaitTime)
 			time.Sleep(time.Second * time.Duration(loopWaitTime))
 			totalWaitTime += loopWaitTime
 			//If we cant connect in first 6 minutes, check much less frequently for next 24 hours hoping that devicedb may come up later.
@@ -192,7 +192,7 @@ func CreateDDBRelayConfigClient(ddbConnConfig *DeviceDBConnConfig) (*DDBRelayCon
 
 		//After 24 hours just assume its never going to come up stop waiting for it and break the loop
 		if totalWaitTime >= MAX_DEVICEDB_WAIT_TIME_IN_SECS {
-			log.MaestroErrorf("maestroConfig: devicedb is not running, cannot fetch config from devicedb")
+			log.MaestroErrorf("maestroConfig: devicedb is not running, cannot fetch config from devicedb\n")
 			return nil, errors.New("devicedb is not running, cannot fetch config from devicedb")
 		}
 	}
@@ -242,10 +242,10 @@ type DDBConfig struct {
 func (rcc *DDBRelayConfigClient) IsAvailable() bool {
 	_, err := rcc.Client.Get(context.Background(), rcc.Bucket, []string{"NULL"})
 	if err != nil {
-		log.MaestroErrorf("DDBRelayConfigClient.IsAvailable(): false, Error: %v", err)
+		log.MaestroErrorf("DDBRelayConfigClient.IsAvailable(): false, Error: %v\n", err)
 		return false
 	}
-	log.MaestroInfo("DDBRelayConfigClient.IsAvailable(): true")
+	log.MaestroInfo("DDBRelayConfigClient.IsAvailable(): true\n")
 	return true
 }
 
@@ -263,7 +263,7 @@ func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 	//get given key from devicedb
 	configEntries, err := ddbConfig.ConfigClient.Client.Get(context.Background(), ddbConfig.ConfigClient.Bucket, []string{ddbConfig.DeviceDBKey()})
 	if err != nil {
-		log.MaestroErrorf("DDBConfig.Get(): Failed to get the matched config from the devicedb. Error: %v", err)
+		log.MaestroErrorf("DDBConfig.Get(): Failed to get the matched config from the devicedb. Error: %v\n", err)
 		return err
 	}
 
@@ -321,13 +321,13 @@ func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 
             err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
             if err != nil {
-                log.MaestroErrorf("DDBConfig.Put(): %v", err)
+                log.MaestroErrorf("DDBConfig.Put(): %v\n", err)
                 return err
             }
         }
 	} else {
 		err = errors.New("Put: Invalid argument")
-		log.MaestroErrorf("DDBConfig.Put() Invalid argument. Error %v", err)
+		log.MaestroErrorf("DDBConfig.Put() Invalid argument. Error %v\n", err)
 	}
 	return err
 }
@@ -341,7 +341,7 @@ func (ddbConfig *DDBConfig) Delete() (err error) {
 	//log.MaestroErrorf("DDBConfig.Delete() Deleting key: %s", ddbConfig.Key)
 	err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
 	if err != nil {
-		log.MaestroErrorf("DDBConfig.Delete(): %v", err)
+		log.MaestroErrorf("DDBConfig.Delete(): %v\n", err)
 	}
 
 	return
@@ -389,12 +389,12 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 		//log.MaestroWarnf("DDBConfig.Next() Updates triggered")
 
 		if !ok {
-			log.MaestroWarnf("DDBConfig.Next() Updates channel closed, no need to listen anymore")
+			log.MaestroWarnf("DDBConfig.Next() Updates channel closed, no need to listen anymore\n")
 			break
 		}
 
 		if u == "" {
-			log.MaestroWarnf("DDBWatcher.Next() found that the key has been deleted")
+			log.MaestroWarnf("DDBWatcher.Next() found that the key has been deleted\n")
 			return false
 		}
 
@@ -403,7 +403,7 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 		// we will skip it util we could parse it successfully
 		err := json.Unmarshal([]byte(u), &t)
 		if err != nil {
-			log.MaestroErrorf("DDBWatcher.Next() failed to parse the update into expected format. Error: %v", err)
+			log.MaestroErrorf("DDBWatcher.Next() failed to parse the update into expected format. Error: %v\n", err)
 			continue
 		}
 
@@ -422,7 +422,7 @@ func (watcher *DDBWatcher) Next(t interface{}) bool {
 
 // For the error channel, it will just simply print out the logs from the devicedb
 func (watcher *DDBWatcher) handleWatcher() {
-	log.MaestroDebugf("DDBWatcher.handleWatcher(): bucket:%s key:%s", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
+	log.MaestroDebugf("DDBWatcher.handleWatcher(): bucket:%s key:%s\n", watcher.Config.ConfigClient.Bucket, watcher.Config.Key)
 
 	//watch the given devicedb key
 	updates, errors := watcher.Config.ConfigClient.Client.Watch(context.Background(), watcher.Config.ConfigClient.Bucket, []string{watcher.Config.DeviceDBKey()}, []string{}, 0)
@@ -446,7 +446,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 		case update, ok := <-updates:
 
 			if !ok {
-				log.MaestroErrorf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher")
+				log.MaestroErrorf("DDBConfig.handleWatcher() the DeviceDB monitor encountered a protocol error and have already cancelled the watcher\n")
 				break
 			}
 
@@ -460,7 +460,7 @@ func (watcher *DDBWatcher) handleWatcher() {
 			configLen = len(sortableConfigs)
 			if configLen == 0 {
 				log.MaestroDebugf("Got a unknown config: %+v\n", sortableConfigs[0])
-				log.MaestroInfof("DDBConfig.handleWatcher(): configLen == 0")
+				log.MaestroInfof("DDBConfig.handleWatcher(): configLen == 0\n")
 				watcher.Updates <- ""
 				continue
 			}
@@ -474,20 +474,20 @@ func (watcher *DDBWatcher) handleWatcher() {
 					watcher.Updates <- string(bodyJSON)
 				}
 			} else {
-				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v", err, sortableConfigs[0])
+				log.MaestroWarnf("DDBConfig.handleWatcher(): json.Unmarshal error: %v configs:%v\n", err, sortableConfigs[0])
 			}
 
 		case err, ok := <-errors:
 			log.MaestroErrorf("DDBConfig.handleWatcher() received an error from the watcher. Error: %v", err)
 			if !ok {
-				log.MaestroWarnf("DDBConfig.handleWatcher() the DeviceDB monitor encounter a protocol error and have already cancelled the watcher")
+				log.MaestroWarnf("DDBConfig.handleWatcher() the DeviceDB monitor encounter a protocol error and have already cancelled the watcher\n")
 				break
 			}
 
 		case _, ok := <-watcher.handleWatcherControl:
-			log.MaestroErrorf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered")
+			log.MaestroErrorf("DDBConfig.handleWatcher() -watcher.handleWatcherControl triggered\n")
 			if !ok {
-				log.MaestroWarnf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore")
+				log.MaestroWarnf("DDBConfig.handleWatcher() got channel closed, no need to listen anymore\n")
 				break
 			}
 		}
