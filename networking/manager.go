@@ -1158,7 +1158,7 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 //This function calls the setupInterfaces with the current config and then start connection with devicedb by calling initDeviceDBConfig
 //Note that call to initDeviceDBConfig is done as a go routine.
 func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
-	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %v:%v\n", this.activeNetworkConfig, this.activeNetworkConfig.Interfaces)
+	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %+v\n", this.activeNetworkConfig)
 
 	if this.activeNetworkConfig.Disable == true {
 		log.MaestroInfo("NetworkManager: Network management is disabled.  No interfaces to bring up.\n")
@@ -1187,7 +1187,7 @@ func (this *networkManagerInstance) initDeviceDBConfig() error {
 
 	err = this.SetupDeviceDBConfig()
 	if err != nil {
-		log.MaestroErrorf("NetworkManager: error setting up config using devicedb: %v", err)
+		log.MaestroErrorf("NetworkManager: error setting up config using devicedb: %v\n", err)
 	} else {
 		log.MaestroInfof("NetworkManager: successfully read config from devicedb\n")
 	}
@@ -1229,7 +1229,7 @@ func (this *networkManagerInstance) SetupDeviceDBConfig() error {
 	//Create a config analyzer object, required for registering the config change hook and diff the config objects.
 	configAna := maestroSpecs.NewConfigAnalyzer(DDB_NETWORK_CONFIG_CONFIG_GROUP_ID)
 	if configAna == nil {
-		log.MaestroErrorf("NetworkManager: Failed to create config analyzer object, unable to fetch config from devicedb")
+		log.MaestroErrorf("NetworkManager: Failed to create config analyzer object, unable to fetch config from devicedb\n")
 		return errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
 	}
 
