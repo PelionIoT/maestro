@@ -1019,6 +1019,9 @@ func (this *networkManagerInstance) loadAllInterfaceData() (err error) {
 	var temp NetworkInterfaceData
 	this.networkConfigDB.IterateIf(func(key []byte, val interface{}) bool {
 		ifname := string(key[:])
+		if ifname == "nameservers" {
+			return true
+		}
 		ifdata, ok := val.(*NetworkInterfaceData)
 		if ok {
 			err2 := resetIfDataFromStoredConfig(ifdata)
