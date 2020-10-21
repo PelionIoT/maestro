@@ -270,6 +270,9 @@ func (this *networkManagerInstance) AbortFutureConfig() {
 }
 
 func (this *networkManagerInstance) ApplyFutureConfig() error {
+	if this.futureNetworkConfig == nil {
+		return nil
+	}
 	this.submitConfig(this.futureNetworkConfig)
 	this.futureNetworkConfig = nil
 	return this.setupInterfaces()
@@ -791,6 +794,11 @@ func (this *networkManagerInstance) copyInterfacesStoredToActive() {
 // runtime data structures, it does not activate any of the new config on the host system
 // nor does it update DeviceDB
 func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkConfigPayload) {
+
+	if config == nil {
+		log.MaestroErrorf("NetworkManager: attempt to apply nil config\n")
+		return
+	}
 
 	if config.Existing == "replace" {
 		if this.activeNetworkConfig.DontSetDefaultRoute != config.DontSetDefaultRoute {
