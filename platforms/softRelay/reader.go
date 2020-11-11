@@ -31,15 +31,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/templates"
 
 	// "encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
 
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/log"
 )
 
 // SOFTRELAY_CONFIG_PATH is a path to

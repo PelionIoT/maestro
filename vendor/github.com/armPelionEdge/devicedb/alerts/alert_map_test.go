@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/armPelionEdge/devicedb/alerts"
+	. "github.com/PelionIoT/devicedb/alerts"
 )
 
 var _ = Describe("AlertMap", func() {

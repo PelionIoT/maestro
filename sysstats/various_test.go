@@ -22,7 +22,7 @@ import (
 	"time"
 	"testing"
 
-	"github.com/armPelionEdge/gopsutil/disk"
+	"github.com/PelionIoT/gopsutil/disk"
 )
 
 func TestMain(m *testing.M) {

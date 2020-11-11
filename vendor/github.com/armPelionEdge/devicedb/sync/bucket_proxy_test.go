@@ -1,16 +1,16 @@
 package sync_test
 
 import (
-    . "github.com/armPelionEdge/devicedb/bucket"
-    . "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/merkle"
-    rest "github.com/armPelionEdge/devicedb/rest"
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/client"
-    . "github.com/armPelionEdge/devicedb/raft"
-    . "github.com/armPelionEdge/devicedb/site"
-    . "github.com/armPelionEdge/devicedb/partition"
-    . "github.com/armPelionEdge/devicedb/sync"
+    . "github.com/PelionIoT/devicedb/bucket"
+    . "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/merkle"
+    rest "github.com/PelionIoT/devicedb/rest"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/client"
+    . "github.com/PelionIoT/devicedb/raft"
+    . "github.com/PelionIoT/devicedb/site"
+    . "github.com/PelionIoT/devicedb/partition"
+    . "github.com/PelionIoT/devicedb/sync"
 
     "github.com/coreos/etcd/raft/raftpb"
     "github.com/gorilla/mux"

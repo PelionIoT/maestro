@@ -11,12 +11,12 @@ import (
     "os"
     "time"
 
-    "github.com/armPelionEdge/devicedb/bucket"
-    "github.com/armPelionEdge/devicedb/client"
-    "github.com/armPelionEdge/devicedb/data"
-    "github.com/armPelionEdge/devicedb/server"
-    "github.com/armPelionEdge/devicedb/sync"
-    "github.com/armPelionEdge/devicedb/util"
+    "github.com/PelionIoT/devicedb/bucket"
+    "github.com/PelionIoT/devicedb/client"
+    "github.com/PelionIoT/devicedb/data"
+    "github.com/PelionIoT/devicedb/server"
+    "github.com/PelionIoT/devicedb/sync"
+    "github.com/PelionIoT/devicedb/util"
 )
 
 // Simulates many relays distributed across multiple sites submitting updates at a set rate

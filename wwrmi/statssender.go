@@ -24,10 +24,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/events"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/utils"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/events"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/utils"
 )
 
 func _dummy() { fmt.Printf("") }

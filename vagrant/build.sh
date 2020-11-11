@@ -14,7 +14,7 @@ git config --global user.name "Vagrant User"
 git config --global url.git@github.com:.insteadOf https://github.com/
 
 # Import GO project maestro
-go get github.com/armPelionEdge/maestro || true
+go get github.com/PelionIoT/maestro || true
 
 # Go to newly created maestro directory to check out the
 # proper version
@@ -39,16 +39,16 @@ fi
 DEBUG=1 DEBUG2=1 ./build.sh
 
 # Import GO project maestro-shell
-go get github.com/armPelionEdge/maestro-shell || true
+go get github.com/PelionIoT/maestro-shell || true
 cd $MAESTRO_SRC/../maestro-shell
 ./build-deps.sh
 go build
-go install github.com/armPelionEdge/maestro-shell
+go install github.com/PelionIoT/maestro-shell
 
 # Generate identity certificates to use to connect to Pelion
 cd $MAESTRO_SRC/..
 if [ ! -d edge-utils ]; then
-    git clone git@github.com:armPelionEdge/edge-utils.git
+    git clone git@github.com:PelionIoT/edge-utils.git
     cd edge-utils/debug_scripts/get_new_gw_identity/developer_gateway_identity
     chmod +x generate_self_signed_certs.sh
     # TODO swap out ACCOUNTID and DEVICEID with real IDs, not fake ones
@@ -56,7 +56,7 @@ if [ ! -d edge-utils ]; then
 fi
 
 # Import project devicedb
-go get github.com/armPelionEdge/devicedb || true
+go get github.com/PelionIoT/devicedb || true
 
 # Startup devicedb cloud in background
 cd ${DEVICEDB_SRC}

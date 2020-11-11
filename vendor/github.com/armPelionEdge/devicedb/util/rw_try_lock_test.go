@@ -3,7 +3,7 @@ package util_test
 import (
     "time"
 
-    . "github.com/armPelionEdge/devicedb/util"
+    . "github.com/PelionIoT/devicedb/util"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

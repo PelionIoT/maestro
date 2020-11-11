@@ -7,9 +7,9 @@ import (
     "encoding/json"
     "math"
 
-    . "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/logging"
-    . "github.com/armPelionEdge/devicedb/partition"
+    . "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/logging"
+    . "github.com/PelionIoT/devicedb/partition"
 )
 
 var ETransferCancelled = errors.New("Cancelled")

@@ -21,13 +21,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/defaults"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/defaults"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestroSpecs"
 	"github.com/satori/go.uuid"
-	"github.com/armPelionEdge/stow"
+	"github.com/PelionIoT/stow"
 	"github.com/boltdb/bolt"
 )
 

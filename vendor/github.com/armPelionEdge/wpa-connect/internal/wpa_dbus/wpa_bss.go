@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/godbus/dbus"
-	"github.com/armPelionEdge/wpa-connect/internal/log"
+	"github.com/PelionIoT/wpa-connect/internal/log"
 )
 
 type BSSWPA struct {

@@ -23,9 +23,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/templates"
 	"github.com/mholt/archiver"
 )
 

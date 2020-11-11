@@ -10,11 +10,11 @@ import (
     "errors"
     "context"
     
-    . "github.com/armPelionEdge/devicedb/server"
-    . "github.com/armPelionEdge/devicedb/util"
-    ddbSync "github.com/armPelionEdge/devicedb/sync"
-    "github.com/armPelionEdge/devicedb/client_relay"
-    clientlib "github.com/armPelionEdge/devicedb/client"
+    . "github.com/PelionIoT/devicedb/server"
+    . "github.com/PelionIoT/devicedb/util"
+    ddbSync "github.com/PelionIoT/devicedb/sync"
+    "github.com/PelionIoT/devicedb/client_relay"
+    clientlib "github.com/PelionIoT/devicedb/client"
     
 
     . "github.com/onsi/ginkgo"

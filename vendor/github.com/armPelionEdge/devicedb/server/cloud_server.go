@@ -9,7 +9,7 @@ import (
     "github.com/gorilla/mux"
     "sync"
 
-    . "github.com/armPelionEdge/devicedb/logging"
+    . "github.com/PelionIoT/devicedb/logging"
 )
 
 type CloudServerConfig struct {

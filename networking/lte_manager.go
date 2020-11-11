@@ -16,7 +16,7 @@ package networking
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/log"
 	"fmt"
 	"strings"
 	"strconv"

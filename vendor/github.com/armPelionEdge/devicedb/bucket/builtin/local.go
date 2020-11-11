@@ -1,9 +1,9 @@
 package builtin
 
 import (
-    . "github.com/armPelionEdge/devicedb/bucket"
-    . "github.com/armPelionEdge/devicedb/storage"
-    . "github.com/armPelionEdge/devicedb/resolver/strategies"
+    . "github.com/PelionIoT/devicedb/bucket"
+    . "github.com/PelionIoT/devicedb/storage"
+    . "github.com/PelionIoT/devicedb/resolver/strategies"
 )
 
 type LocalBucket struct {

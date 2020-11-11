@@ -18,9 +18,9 @@ package fsonly
 import (
 	"errors"
 
-	"github.com/armPelionEdge/maestro/platforms/common"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestro/platforms/common"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/templates"
 )
 
 // The template platform reader for a gateway which has no secure storage or hardware encryption chip / TrustZone.

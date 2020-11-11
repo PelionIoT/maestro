@@ -6,10 +6,10 @@ import (
     "sync"
     "time"
 
-    . "github.com/armPelionEdge/devicedb/bucket"
-    . "github.com/armPelionEdge/devicedb/clusterio"
-    . "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/error"
+    . "github.com/PelionIoT/devicedb/bucket"
+    . "github.com/PelionIoT/devicedb/clusterio"
+    . "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/error"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

@@ -1,4 +1,4 @@
 # greasego
-Go bindings for [greaseLib](https://github.com/armPelionEdge/greaseLib)
+Go bindings for [greaseLib](https://github.com/PelionIoT/greaseLib)
 
 Documentations: See source. :)

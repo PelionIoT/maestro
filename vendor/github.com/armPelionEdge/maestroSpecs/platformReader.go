@@ -16,7 +16,7 @@ package maestroSpecs
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestroSpecs/templates"
 )
 
 // PlatformReader interface spec. Exported platforms should expose an instance of this interface named 'PlatformReader'

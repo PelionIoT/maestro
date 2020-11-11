@@ -3,7 +3,7 @@ package netlink
 import (
 	"encoding/binary"
 
-	"github.com/armPelionEdge/netlink/nl"
+	"github.com/PelionIoT/netlink/nl"
 )
 
 var (

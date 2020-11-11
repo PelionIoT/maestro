@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"os"
 
-	wifi "github.com/armPelionEdge/wpa-connect"
+	wifi "github.com/PelionIoT/wpa-connect"
 	"time"
 )
 

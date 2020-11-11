@@ -21,10 +21,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/greasego"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/maestroConfig"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 // ChangeHook is base struct for our class

@@ -3,10 +3,10 @@ package sync
 import (
     "context"
 
-    . "github.com/armPelionEdge/devicedb/client"
-    . "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/merkle"
-    . "github.com/armPelionEdge/devicedb/raft"
+    . "github.com/PelionIoT/devicedb/client"
+    . "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/merkle"
+    . "github.com/PelionIoT/devicedb/raft"
 )
 
 type MerkleTreeProxy interface {

@@ -4,13 +4,13 @@ Maestro RMI payload specifications
 ### Overview
 
 Maestro provides managment of the following:
-* **Job Management**: Jobs are usually one or more pieces of software which can be started & stopped. <br>See [jobsAndImages.go](https://github.com/armPelionEdge/maestroSpecs/blob/master/jobsAndImages.go#L329)
+* **Job Management**: Jobs are usually one or more pieces of software which can be started & stopped. <br>See [jobsAndImages.go](https://github.com/PelionIoT/maestroSpecs/blob/master/jobsAndImages.go#L329)
 
-* **Software image management**: Jobs need software to run. Image management handles the movement, installation, deletion and version control of software used by a Job. Job definitions may reside, but an image may be updated. If the image is updated, the Job is simply started, the image is updated, and then the Job is restarted. <br>See [jobsAndImages.go](https://github.com/armPelionEdge/maestroSpecs/blob/master/jobsAndImages.go#L299)
+* **Software image management**: Jobs need software to run. Image management handles the movement, installation, deletion and version control of software used by a Job. Job definitions may reside, but an image may be updated. If the image is updated, the Job is simply started, the image is updated, and then the Job is restarted. <br>See [jobsAndImages.go](https://github.com/PelionIoT/maestroSpecs/blob/master/jobsAndImages.go#L299)
 
-* **Config management**: Jobs usually have a 'configuration' piece. This config may be a simple string of data, or may be one or many complex configuration files. These configs need to be moved, stored and made available to a Job. <br>See [config.go](https://github.com/armPelionEdge/maestroSpecs/blob/master/configs.go#L10)
+* **Config management**: Jobs usually have a 'configuration' piece. This config may be a simple string of data, or may be one or many complex configuration files. These configs need to be moved, stored and made available to a Job. <br>See [config.go](https://github.com/PelionIoT/maestroSpecs/blob/master/configs.go#L10)
 
-* **Templates & containers**: Many jobs use similar forms and require similar resources. Templates allow defining of common procedures such as start commands, resource requirements, and security settings. Example: A deviceJS script requires a standard way of starting, so deviceJS jobs use a particular template.  Capabilities such as `chroot()`ing a process, limiting memory and other resources, and running a Job under a particular user ID are available through templates.<br>See [jobsAndImages.go](https://github.com/armPelionEdge/maestroSpecs/blob/master/jobsAndImages.go#L256)<br><br>
+* **Templates & containers**: Many jobs use similar forms and require similar resources. Templates allow defining of common procedures such as start commands, resource requirements, and security settings. Example: A deviceJS script requires a standard way of starting, so deviceJS jobs use a particular template.  Capabilities such as `chroot()`ing a process, limiting memory and other resources, and running a Job under a particular user ID are available through templates.<br>See [jobsAndImages.go](https://github.com/PelionIoT/maestroSpecs/blob/master/jobsAndImages.go#L256)<br><br>
 Some Container Templates are predefined, such as `devicejs`. These templates are defined in the maestro config file.
 
 

@@ -1,11 +1,11 @@
 package sync
 
 import (
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/error"
-    . "github.com/armPelionEdge/devicedb/logging"
-    . "github.com/armPelionEdge/devicedb/rest"
-    . "github.com/armPelionEdge/devicedb/partition"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/error"
+    . "github.com/PelionIoT/devicedb/logging"
+    . "github.com/PelionIoT/devicedb/rest"
+    . "github.com/PelionIoT/devicedb/partition"
 
     "io"
     "net/http"

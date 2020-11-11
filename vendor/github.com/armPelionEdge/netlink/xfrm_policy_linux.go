@@ -1,7 +1,7 @@
 package netlink
 
 import (
-	"github.com/armPelionEdge/netlink/nl"
+	"github.com/PelionIoT/netlink/nl"
 	"golang.org/x/sys/unix"
 )
 

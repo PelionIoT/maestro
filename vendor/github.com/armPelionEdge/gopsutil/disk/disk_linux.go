@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/armPelionEdge/gopsutil/internal/common"
+	"github.com/PelionIoT/gopsutil/internal/common"
 )
 
 const (

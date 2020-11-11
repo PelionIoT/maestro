@@ -22,8 +22,8 @@ package wpaconnect
 
 import (
 	"github.com/godbus/dbus"
-	"github.com/armPelionEdge/wpa-connect/internal/log"
-	"github.com/armPelionEdge/wpa-connect/internal/wpa_dbus"
+	"github.com/PelionIoT/wpa-connect/internal/log"
+	"github.com/PelionIoT/wpa-connect/internal/wpa_dbus"
 )
 
 func (self *scanManager) Scan() (bssList []BSS, e error) {

@@ -8,9 +8,9 @@ import (
     "net/http/httptest"
     "strings"
 
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/error"
-    . "github.com/armPelionEdge/devicedb/routes"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/error"
+    . "github.com/PelionIoT/devicedb/routes"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 	"encoding/binary"
-	"github.com/armPelionEdge/dhcp4"
+	"github.com/PelionIoT/dhcp4"
 )
 
 const (

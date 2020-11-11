@@ -5,9 +5,9 @@ import (
     "errors"
     "time"
 
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/raft"
-    . "github.com/armPelionEdge/devicedb/transfer"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/raft"
+    . "github.com/PelionIoT/devicedb/transfer"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

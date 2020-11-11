@@ -1,8 +1,8 @@
 package node_test
 
 import (
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/node"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/node"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

@@ -5,7 +5,7 @@ package mem
 import (
 	"context"
 
-	"github.com/armPelionEdge/gopsutil/internal/common"
+	"github.com/PelionIoT/gopsutil/internal/common"
 )
 
 func VirtualMemory() (*VirtualMemoryStat, error) {

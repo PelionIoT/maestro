@@ -16,11 +16,11 @@ import (
     "io/ioutil"
     "bytes"
 
-    . "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/historian"
-    . "github.com/armPelionEdge/devicedb/alerts"
-    . "github.com/armPelionEdge/devicedb/logging"
-    ddbSync "github.com/armPelionEdge/devicedb/sync"
+    . "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/historian"
+    . "github.com/PelionIoT/devicedb/alerts"
+    . "github.com/PelionIoT/devicedb/logging"
+    ddbSync "github.com/PelionIoT/devicedb/sync"
 )
 
 const (

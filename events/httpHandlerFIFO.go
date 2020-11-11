@@ -16,7 +16,7 @@ package events
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/PelionIoT/maestro/debugging"
 	"sync"
 )
 

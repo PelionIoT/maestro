@@ -3,7 +3,7 @@ package transfer_test
 import (
     "time"
 
-    . "github.com/armPelionEdge/devicedb/transfer"
+    . "github.com/PelionIoT/devicedb/transfer"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

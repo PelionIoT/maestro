@@ -7,12 +7,12 @@ import (
     "io/ioutil"
     "time"
 
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/node"
-    . "github.com/armPelionEdge/devicedb/raft"
-    . "github.com/armPelionEdge/devicedb/server"
-    . "github.com/armPelionEdge/devicedb/storage"
-    . "github.com/armPelionEdge/devicedb/util"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/node"
+    . "github.com/PelionIoT/devicedb/raft"
+    . "github.com/PelionIoT/devicedb/server"
+    . "github.com/PelionIoT/devicedb/storage"
+    . "github.com/PelionIoT/devicedb/util"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

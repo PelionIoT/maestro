@@ -6,7 +6,7 @@ import (
     "net/url"
     "time"
 
-    . "github.com/armPelionEdge/devicedb/routes"
+    . "github.com/PelionIoT/devicedb/routes"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

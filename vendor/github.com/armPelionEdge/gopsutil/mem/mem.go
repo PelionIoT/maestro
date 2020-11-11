@@ -3,7 +3,7 @@ package mem
 import (
 	"encoding/json"
 
-	"github.com/armPelionEdge/gopsutil/internal/common"
+	"github.com/PelionIoT/gopsutil/internal/common"
 )
 
 var invoke common.Invoker = common.Invoke{}

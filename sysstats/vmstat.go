@@ -18,7 +18,7 @@ package sysstats
 import (
 	"context"
 
-	"github.com/armPelionEdge/gopsutil/mem"
+	"github.com/PelionIoT/gopsutil/mem"
 )
 
 type VMConfig struct {

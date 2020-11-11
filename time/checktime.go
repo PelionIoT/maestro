@@ -26,8 +26,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
 )
 
 // Simple sub package to handle getting the time from a server, using a

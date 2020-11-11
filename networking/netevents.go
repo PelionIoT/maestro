@@ -18,9 +18,9 @@ package networking
 import (
 	"errors"
 
-	"github.com/armPelionEdge/maestro/events"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs/netevents"
+	"github.com/PelionIoT/maestro/events"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestroSpecs/netevents"
 )
 
 const (

@@ -20,9 +20,9 @@ import (
 	"log"
 	"testing"
 
-	maestroLog "github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/testtools"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	maestroLog "github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/testtools"
+	"github.com/PelionIoT/maestroSpecs/templates"
 )
 
 var logger *testtools.NonProductionPrefixedLogger

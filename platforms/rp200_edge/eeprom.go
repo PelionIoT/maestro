@@ -34,8 +34,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/templates"
 	"github.com/mholt/archiver"
 )
 

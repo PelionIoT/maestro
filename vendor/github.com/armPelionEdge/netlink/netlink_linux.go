@@ -1,6 +1,6 @@
 package netlink
 
-import "github.com/armPelionEdge/netlink/nl"
+import "github.com/PelionIoT/netlink/nl"
 
 // Family type definitions
 const (

@@ -20,7 +20,7 @@
 */
 package wpaconnect
 
-import "github.com/armPelionEdge/wpa-connect/internal/log"
+import "github.com/PelionIoT/wpa-connect/internal/log"
 
 func SetSilentMode() {
 	log.SetSilentMode()

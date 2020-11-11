@@ -35,10 +35,10 @@ export GOPATH=/home/vagrant/work/gostuff
 export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOROOT/bin:$GOBIN
 
-export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
+export MAESTRO_SRC=$GOPATH/src/github.com/PelionIoT/maestro
 
-export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
-export DEVICEDB_SRC=$GOPATH/src/github.com/armPelionEdge/devicedb
+export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/PelionIoT/greasego/deps/lib
+export DEVICEDB_SRC=$GOPATH/src/github.com/PelionIoT/devicedb
 export EDGE_CLIENT_RESOURCES=/etc/devicedb/shared
 export CLOUD_HOST=localhost
 export CLOUD_URI=ws://$CLOUD_HOST:8080/sync
@@ -144,7 +144,7 @@ chmod +x /usr/sbin/maestro
 cat <<'EOF' > /usr/sbin/maestro-shell
 #!/bin/bash -ue
 . /etc/profile.d/envvars.sh
-cd $GOPATH/src/github.com/armPelionEdge/maestro-shell
+cd $GOPATH/src/github.com/PelionIoT/maestro-shell
 exec $GOBIN/maestro-shell
 EOF
 chmod +x /usr/sbin/maestro-shell

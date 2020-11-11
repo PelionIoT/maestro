@@ -20,11 +20,11 @@ import (
 	"plugin"
 	"strings"
 
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestroSpecs/templates"
 
-	"github.com/armPelionEdge/maestro/log"
-	maestroPlugins "github.com/armPelionEdge/maestro/plugins"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/log"
+	maestroPlugins "github.com/PelionIoT/maestro/plugins"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 // ReadWithPlatformReader calls the plugin's GetPlatformVars() function

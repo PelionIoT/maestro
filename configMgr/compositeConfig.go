@@ -16,8 +16,8 @@ package configMgr
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 type CompositeProcessConfigPayload struct {

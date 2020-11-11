@@ -25,9 +25,9 @@ import (
 
 	"fmt"
 	"github.com/godbus/dbus"
-	"github.com/armPelionEdge/wpa-connect/internal/log"
-	"github.com/armPelionEdge/wpa-connect/internal/wpa_cli"
-	"github.com/armPelionEdge/wpa-connect/internal/wpa_dbus"
+	"github.com/PelionIoT/wpa-connect/internal/log"
+	"github.com/PelionIoT/wpa-connect/internal/wpa_cli"
+	"github.com/PelionIoT/wpa-connect/internal/wpa_dbus"
 	"net"
 	"time"
 )

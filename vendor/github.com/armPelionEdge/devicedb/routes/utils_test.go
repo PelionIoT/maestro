@@ -6,11 +6,11 @@ import (
     "io"
     "net/http"
 
-    . "github.com/armPelionEdge/devicedb/bucket"
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/raft"
-    . "github.com/armPelionEdge/devicedb/routes"
+    . "github.com/PelionIoT/devicedb/bucket"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/raft"
+    . "github.com/PelionIoT/devicedb/routes"
 )
 
 type MockClusterFacade struct {

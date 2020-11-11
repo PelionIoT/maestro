@@ -23,10 +23,10 @@ In this configuration devicedb will be listening on port 9090.<br>
 1. Execute the script as follows   
    1. ```source ./my_setup_script.sh```<br> **where my_setup_script.sh will have the contents mentioned above.**
 1. Create and build the devicedb repo using ```go get``` command as follow:
-   1. go get github.com:armPelionEdge/devicedb
+   1. go get github.com:PelionIoT/devicedb
 1. Executing devicedb
    1. cd $GOBIN
-   1. ./devicedb start -conf=src/github.com/armPelionEdge/devicedb/test_configs/test_config_nocluster.yaml<br> **This should start running devicedb, you should be able to connect to it using URI = 127.0.0.1:9090**
+   1. ./devicedb start -conf=src/github.com/PelionIoT/devicedb/test_configs/test_config_nocluster.yaml<br> **This should start running devicedb, you should be able to connect to it using URI = 127.0.0.1:9090**
 
 ### Using Docker
 If you have Docker installed you can build and run devicedb as follows:

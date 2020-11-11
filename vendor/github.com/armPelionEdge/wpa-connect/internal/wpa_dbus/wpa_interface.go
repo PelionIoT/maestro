@@ -23,7 +23,7 @@ package wpa_dbus
 import (
 	"fmt"
 
-	"github.com/armPelionEdge/wpa-connect/internal/log"
+	"github.com/PelionIoT/wpa-connect/internal/log"
 	"github.com/godbus/dbus"
 )
 

@@ -4,7 +4,7 @@ import (
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
 
-    . "github.com/armPelionEdge/devicedb/data"
+    . "github.com/PelionIoT/devicedb/data"
 )
 
 var _ = Describe("Row", func() {

@@ -2,7 +2,7 @@ package alerts
 
 import (
 	"encoding/json"
-	"github.com/armPelionEdge/devicedb/storage"
+	"github.com/PelionIoT/devicedb/storage"
 )
 
 type AlertStoreImpl struct {

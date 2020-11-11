@@ -29,8 +29,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/PelionIoT/greasego"
+	"github.com/PelionIoT/maestro/debugging"
 	//	DEBUG("runtime")
 )
 

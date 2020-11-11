@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/events"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/events"
 	"sync"
 )
 

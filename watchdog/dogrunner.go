@@ -21,10 +21,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	maestroPlugins "github.com/armPelionEdge/maestro/plugins"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
+	maestroPlugins "github.com/PelionIoT/maestro/plugins"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 const (

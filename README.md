@@ -7,7 +7,7 @@ Maestro is a replacement for a number of typical Linux OS system utilities and m
 
 Major tasks maestro provides:
 - syslog daemon (replaces syslog-ng, syslogd, and others)
-- more advanced logging via the [grease-log-client](https://github.com/armPelionEdge/grease-log-client) library
+- more advanced logging via the [grease-log-client](https://github.com/PelionIoT/grease-log-client) library
 - to-the-cloud logging
 - periodic system stats to cloud
 - config management for apps / container (config file templating, config API)
@@ -31,7 +31,7 @@ Advantages:
 
 Maestro communicates to Pelion Cloud over https outbouund. It stores its config locally in a private database, but can also use DeviceDB for storage of applications, network settings, configs and other data when used in conjuction with standard Pelion Cloud services.
 
-If you are locally on a gateway / edge system using maestro, you should explore [maestro-shell](https://github.com/armPelionEdge/maestro-shell) which will let you interact with maestro directly using the local API.
+If you are locally on a gateway / edge system using maestro, you should explore [maestro-shell](https://github.com/PelionIoT/maestro-shell) which will let you interact with maestro directly using the local API.
 
 ## Developing Maestro
 
@@ -73,7 +73,7 @@ For more information as to how vagrant sets up the maestro environment, please r
 Start up the virtual machine. The very first time `vagrant up` is run, the VM will go through a provisioning phase.
 
 ```bash
-git clone git@github.com:armPelionEdge/maestro.git
+git clone git@github.com:PelionIoT/maestro.git
 cd maestro
 vagrant up
 ```
@@ -123,7 +123,7 @@ go test -v -run DhcpRequest # Run DhcpRequest test
 #### Feature Tests
 
 To run tests that test maestro's interactions with other Pelion Edge products, see:
-https://github.com/armPelionEdge/dev-pelion-edge
+https://github.com/PelionIoT/dev-pelion-edge
 
 ## Additional Features/Information
 
@@ -133,7 +133,7 @@ To view details on how to configure Maestro, see [Maestro Config](docs/maestro_c
 
 ### DeviceDB
 
-In order to test additional maestro functionality, the vagrant VM automatically installs and runs DeviceDB Edge and DeviceDB Cloud in the background. See [DeviceDB](https://github.com/armPelionEdge/devicedb) for more information.
+In order to test additional maestro functionality, the vagrant VM automatically installs and runs DeviceDB Edge and DeviceDB Cloud in the background. See [DeviceDB](https://github.com/PelionIoT/devicedb) for more information.
 
 To view logs from DeviceDB Edge, run:
 ```bash

@@ -27,8 +27,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armPelionEdge/httprouter"
-	"github.com/armPelionEdge/maestro/storage"
+	"github.com/PelionIoT/httprouter"
+	"github.com/PelionIoT/maestro/storage"
 	"github.com/boltdb/bolt"
 )
 

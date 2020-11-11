@@ -16,12 +16,12 @@ package platforms
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/platforms/fsonly"
-	"github.com/armPelionEdge/maestro/platforms/rp200"
-	"github.com/armPelionEdge/maestro/platforms/rp200_edge"
-	"github.com/armPelionEdge/maestro/platforms/softRelay"
-	"github.com/armPelionEdge/maestro/platforms/testplatform"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/platforms/fsonly"
+	"github.com/PelionIoT/maestro/platforms/rp200"
+	"github.com/PelionIoT/maestro/platforms/rp200_edge"
+	"github.com/PelionIoT/maestro/platforms/softRelay"
+	"github.com/PelionIoT/maestro/platforms/testplatform"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 type builtin struct {

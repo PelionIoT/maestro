@@ -1,7 +1,7 @@
 package transfer
 
 import (
-    . "github.com/armPelionEdge/devicedb/data"
+    . "github.com/PelionIoT/devicedb/data"
 )
 
 const DefaultChunkSize = 100

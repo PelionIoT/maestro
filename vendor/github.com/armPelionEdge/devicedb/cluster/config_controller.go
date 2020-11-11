@@ -3,9 +3,9 @@
 package cluster
 
 import (
-    "github.com/armPelionEdge/devicedb/raft"
-    . "github.com/armPelionEdge/devicedb/logging"
-    . "github.com/armPelionEdge/devicedb/util"
+    "github.com/PelionIoT/devicedb/raft"
+    . "github.com/PelionIoT/devicedb/logging"
+    . "github.com/PelionIoT/devicedb/util"
 
     raftEtc "github.com/coreos/etcd/raft"
     "github.com/coreos/etcd/raft/raftpb"

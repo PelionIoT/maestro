@@ -8,11 +8,11 @@ import (
     "github.com/coreos/etcd/raft"
     "github.com/coreos/etcd/raft/raftpb"
 
-    . "github.com/armPelionEdge/devicedb/raft"
+    . "github.com/PelionIoT/devicedb/raft"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
-    . "github.com/armPelionEdge/devicedb/storage"
+    . "github.com/PelionIoT/devicedb/storage"
     "math"
 )
 

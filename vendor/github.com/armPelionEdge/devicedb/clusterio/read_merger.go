@@ -3,9 +3,9 @@ package clusterio
 import (
     "sync"
 
-    . "github.com/armPelionEdge/devicedb/data"
-    "github.com/armPelionEdge/devicedb/resolver"
-    "github.com/armPelionEdge/devicedb/resolver/strategies"
+    . "github.com/PelionIoT/devicedb/data"
+    "github.com/PelionIoT/devicedb/resolver"
+    "github.com/PelionIoT/devicedb/resolver/strategies"
 )
 
 type ReadMerger struct {

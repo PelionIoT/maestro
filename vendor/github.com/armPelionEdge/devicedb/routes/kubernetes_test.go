@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/armPelionEdge/devicedb/routes"
+	. "github.com/PelionIoT/devicedb/routes"
 
 	"net/http"
     "net/http/httptest"

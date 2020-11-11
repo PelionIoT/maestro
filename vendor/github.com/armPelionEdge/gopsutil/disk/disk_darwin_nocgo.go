@@ -6,7 +6,7 @@ package disk
 import (
 	"context"
 
-	"github.com/armPelionEdge/gopsutil/internal/common"
+	"github.com/PelionIoT/gopsutil/internal/common"
 )
 
 func IOCounters(names ...string) (map[string]IOCountersStat, error) {

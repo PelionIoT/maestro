@@ -7,9 +7,9 @@ import (
     "io/ioutil"
     "net/http"
 
-    . "github.com/armPelionEdge/devicedb/cluster"
-    . "github.com/armPelionEdge/devicedb/error"
-    . "github.com/armPelionEdge/devicedb/logging"
+    . "github.com/PelionIoT/devicedb/cluster"
+    . "github.com/PelionIoT/devicedb/error"
+    . "github.com/PelionIoT/devicedb/logging"
 )
 
 type RelaysEndpoint struct {

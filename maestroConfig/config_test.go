@@ -26,7 +26,7 @@ import (
 	"reflect"
 	"sync"
 	"time"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 func TestMain(m *testing.M) {

@@ -3,9 +3,9 @@ package historian_test
 import (
     "fmt"
     
-    . "github.com/armPelionEdge/devicedb/historian"
-    . "github.com/armPelionEdge/devicedb/storage"
-    . "github.com/armPelionEdge/devicedb/util"
+    . "github.com/PelionIoT/devicedb/historian"
+    . "github.com/PelionIoT/devicedb/storage"
+    . "github.com/PelionIoT/devicedb/util"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

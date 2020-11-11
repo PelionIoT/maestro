@@ -31,19 +31,19 @@ THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 pushd "${THIS_DIR}"
 
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps/libuv-v1.10.1"
+cd "${THIS_DIR}/vendor/github.com/PelionIoT/greasego/deps/src/greaseLib/deps/libuv-v1.10.1"
 
 if [ ! -d build ]; then
     git clone https://chromium.googlesource.com/external/gyp.git build/gyp
 fi
 
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps"
+cd "${THIS_DIR}/vendor/github.com/PelionIoT/greasego/deps/src/greaseLib/deps"
 ./install-deps.sh
 
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego"
+cd "${THIS_DIR}/vendor/github.com/PelionIoT/greasego"
 ./build-deps.sh
 
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego"
+cd "${THIS_DIR}/vendor/github.com/PelionIoT/greasego"
 
 # build greasego
 ./build.sh

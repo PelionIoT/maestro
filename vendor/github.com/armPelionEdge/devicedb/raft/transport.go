@@ -6,7 +6,7 @@ import (
     "github.com/gorilla/mux"
     "github.com/coreos/etcd/raft/raftpb"
 
-    . "github.com/armPelionEdge/devicedb/logging"
+    . "github.com/PelionIoT/devicedb/logging"
 
     "fmt"
     "errors"

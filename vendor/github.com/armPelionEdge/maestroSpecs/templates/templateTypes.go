@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/armPelionEdge/mustache"
+	"github.com/PelionIoT/mustache"
 )
 
 const ARCH_PREFIX = "ARCH_"

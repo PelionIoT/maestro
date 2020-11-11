@@ -24,6 +24,6 @@ done
 
 THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-sudo LD_LIBRARY_PATH=${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/lib $GOPATH/bin/maestro "$@" &
+sudo LD_LIBRARY_PATH=${THIS_DIR}/vendor/github.com/PelionIoT/greasego/deps/lib $GOPATH/bin/maestro "$@" &
 pid=$(pidof maestro)
 sudo operf --pid=$pid -t 

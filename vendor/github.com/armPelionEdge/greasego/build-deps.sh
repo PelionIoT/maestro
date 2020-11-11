@@ -41,7 +41,7 @@ cd $SELF/deps/src
 
 
 GREASE_LIB="greaseLib"
-GREASE_LIB_REPO="https://github.com/armPelionEdge/greaseLib.git"
+GREASE_LIB_REPO="https://github.com/PelionIoT/greaseLib.git"
 GREASE_LIB_BRANCH="master"
 
 if [ ! -d $GREASE_LIB ]; then

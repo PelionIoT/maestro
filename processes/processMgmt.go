@@ -17,9 +17,9 @@ package processes
 
 /*
 #cgo amd64 LDFLAGS: -L/usr/lib/x86_64-linux-gnu
-#cgo LDFLAGS: -L${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/lib
+#cgo LDFLAGS: -L${SRCDIR}/../vendor/github.com/PelionIoT/greasego/deps/lib
 #cgo LDFLAGS: -lgrease -luv -lTW  -lstdc++ -lm -ltcmalloc_minimal -lm
-#cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/include -DDEBUG_BINDINGS -I${SRCDIR}/processes
+#cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/PelionIoT/greasego/deps/include -DDEBUG_BINDINGS -I${SRCDIR}/processes
 #define GREASE_IS_LOCAL 1
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,12 +42,12 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/maestro/configMgr"
-	"github.com/armPelionEdge/maestro/configs"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/greasego"
+	"github.com/PelionIoT/maestro/configMgr"
+	"github.com/PelionIoT/maestro/configs"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestroSpecs"
 	"github.com/kardianos/osext" // not needed in go1.8 - see their README
 	"golang.org/x/sys/unix"
 )

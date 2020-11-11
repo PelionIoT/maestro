@@ -3,7 +3,7 @@ package site
 import (
     "errors"
 
-    . "github.com/armPelionEdge/devicedb/data"
+    . "github.com/PelionIoT/devicedb/data"
 )
 
 var EDecodeKey = errors.New("Unable to decode key in store")

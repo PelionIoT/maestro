@@ -20,7 +20,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/armPelionEdge/greasego"
+	"github.com/PelionIoT/greasego"
 	"github.com/op/go-logging"
 )
 

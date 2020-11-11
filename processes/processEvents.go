@@ -19,8 +19,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/armPelionEdge/gopsutil/mem"
-	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/PelionIoT/gopsutil/mem"
+	"github.com/PelionIoT/maestro/debugging"
 	"sync"
 	"time"
 )
@@ -66,7 +66,7 @@ func (this ProcessEvent) UnmarshalJSON(b []byte) error {
 
 type MemStatEvent struct {
 	event                        // base class
-	stat  *mem.VirtualMemoryStat // straigh outta here: https://github.com/armPelionEdge/gopsutil/blob/master/mem/mem.go
+	stat  *mem.VirtualMemoryStat // straigh outta here: https://github.com/PelionIoT/gopsutil/blob/master/mem/mem.go
 }
 
 func NewVirtualMemEvent(stats *mem.VirtualMemoryStat) (ret *MemStatEvent) {

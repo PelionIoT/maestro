@@ -1,7 +1,7 @@
 package maestroSpecs
 
 import (
-	"github.com/armPelionEdge/greasego"
+	"github.com/PelionIoT/greasego"
 )
 
 // Copyright (c) 2018, Arm Limited and affiliates.

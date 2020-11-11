@@ -12,8 +12,8 @@ import (
     "net/http"
     "net/url"
     "time"
-    "github.com/armPelionEdge/devicedb/client"
-    "github.com/armPelionEdge/devicedb/transport"
+    "github.com/PelionIoT/devicedb/client"
+    "github.com/PelionIoT/devicedb/transport"
 )
 
 type Client interface {

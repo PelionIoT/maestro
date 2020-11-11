@@ -7,8 +7,8 @@ import (
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
 
-    "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/bucket"
+    "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/bucket"
 )
 
 var _ = Describe("Monitor", func() {

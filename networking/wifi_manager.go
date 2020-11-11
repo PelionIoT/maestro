@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
              
-	"github.com/armPelionEdge/maestro/log"
-	wifi "github.com/armPelionEdge/wpa-connect"
+	"github.com/PelionIoT/maestro/log"
+	wifi "github.com/PelionIoT/wpa-connect"
 )
 
 func ConnectToWifi(ifname string, wifissid string, wifipassword string) (status string, ip string, errout error) {

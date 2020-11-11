@@ -6,7 +6,7 @@ import (
 	"context"
 	"unsafe"
 
-	"github.com/armPelionEdge/gopsutil/internal/common"
+	"github.com/PelionIoT/gopsutil/internal/common"
 	"golang.org/x/sys/windows"
 )
 

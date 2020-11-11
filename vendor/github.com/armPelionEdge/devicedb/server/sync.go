@@ -3,9 +3,9 @@ package server
 import (
     "encoding/json"
 
-    . "github.com/armPelionEdge/devicedb/data"
-    . "github.com/armPelionEdge/devicedb/logging"
-    ddbSync "github.com/armPelionEdge/devicedb/sync"
+    . "github.com/PelionIoT/devicedb/data"
+    . "github.com/PelionIoT/devicedb/logging"
+    ddbSync "github.com/PelionIoT/devicedb/sync"
 )
 
 const (

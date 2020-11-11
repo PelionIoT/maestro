@@ -9,7 +9,7 @@ import (
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
 
-    . "github.com/armPelionEdge/devicedb/routes"
+    . "github.com/PelionIoT/devicedb/routes"
 
     "github.com/gorilla/mux"
 )

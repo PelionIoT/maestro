@@ -21,8 +21,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/armPelionEdge/httprouter"
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/httprouter"
+	"github.com/PelionIoT/maestro/log"
 )
 
 type UnixHttpEndpoint struct {

@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/armPelionEdge/maestro",
+	"ImportPath": "github.com/PelionIoT/maestro",
 	"GoVersion": "go1.11",
 	"GodepVersion": "v80",
 	"Packages": [
@@ -12,85 +12,85 @@
 			"Rev": "e0a55b97c70558c92ce14085e41b35a894e93d3d"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/dhcp4",
+			"ImportPath": "github.com/PelionIoT/dhcp4",
 			"Rev": "7f54fcf15bd77137053279a9bdd7d49f99ac6bbd"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/dhcp4client",
+			"ImportPath": "github.com/PelionIoT/dhcp4client",
 			"Rev": "be924652a34a8f5d0bacf189ec1d395ef7f985ee"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/gopsutil/disk",
+			"ImportPath": "github.com/PelionIoT/gopsutil/disk",
 			"Comment": "v2.17.02-266-gf82339e",
 			"Rev": "f82339e508174d94537cf178144d810d19a6ed41"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/gopsutil/internal/common",
+			"ImportPath": "github.com/PelionIoT/gopsutil/internal/common",
 			"Comment": "v2.17.02-266-gf82339e",
 			"Rev": "f82339e508174d94537cf178144d810d19a6ed41"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/gopsutil/mem",
+			"ImportPath": "github.com/PelionIoT/gopsutil/mem",
 			"Comment": "v2.17.02-266-gf82339e",
 			"Rev": "f82339e508174d94537cf178144d810d19a6ed41"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/greasego",
+			"ImportPath": "github.com/PelionIoT/greasego",
 			"Rev": "5b578dd9578b693c0938392a8cb4efbe76ec3918"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/hashmap",
+			"ImportPath": "github.com/PelionIoT/hashmap",
 			"Rev": "f8b224fcaf91ddc6dc3d4ddff4cb69d0e56afc10"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/httprouter",
+			"ImportPath": "github.com/PelionIoT/httprouter",
 			"Comment": "v1.1-41-g8a45e95",
 			"Rev": "8a45e95fc75cb77048068a62daed98cc22fdac7c"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/maestro-plugins-template/teststructs",
+			"ImportPath": "github.com/PelionIoT/maestro-plugins-template/teststructs",
 			"Rev": "5b22b1f86b05117b61b433d07373cfae44b7ed63"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/maestroSpecs",
+			"ImportPath": "github.com/PelionIoT/maestroSpecs",
 			"Rev": "2a0bc933d45d730061597271092cff0b2d866069"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/maestroSpecs/netevents",
+			"ImportPath": "github.com/PelionIoT/maestroSpecs/netevents",
 			"Rev": "2a0bc933d45d730061597271092cff0b2d866069"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/maestroSpecs/templates",
+			"ImportPath": "github.com/PelionIoT/maestroSpecs/templates",
 			"Rev": "2a0bc933d45d730061597271092cff0b2d866069"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/mustache",
+			"ImportPath": "github.com/PelionIoT/mustache",
 			"Comment": "0.0.1-17-g6375acf",
 			"Rev": "6375acf62c69d9d3ad20fd0599d82ca94ea12284"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/netlink",
+			"ImportPath": "github.com/PelionIoT/netlink",
 			"Rev": "1cddec0bf36869d0be680a3c8c5354c9b4e73e45"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/netlink/nl",
+			"ImportPath": "github.com/PelionIoT/netlink/nl",
 			"Rev": "1cddec0bf36869d0be680a3c8c5354c9b4e73e45"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/stow",
+			"ImportPath": "github.com/PelionIoT/stow",
 			"Comment": "v2.2.0-8-gb0e83fd",
 			"Rev": "b0e83fd073d440ba7544de56fdabca41764b6a2a"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/structmutate",
+			"ImportPath": "github.com/PelionIoT/structmutate",
 			"Rev": "57b37c3ac1d9d70ca7daa169423f62f63eb0b1b8"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/zeroconf",
+			"ImportPath": "github.com/PelionIoT/zeroconf",
 			"Rev": "78d055b6305c685b497944a859f0a7d14483269f"
 		},
 		{
-			"ImportPath": "github.com/armPelionEdge/devicedb",
+			"ImportPath": "github.com/PelionIoT/devicedb",
 			"Rev": "bb5337257135b552f01f87ac998d7b277f18daf4"
 		},
 		{

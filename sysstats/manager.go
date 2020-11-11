@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/events"
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/events"
+	"github.com/PelionIoT/maestro/log"
 )
 
 const (
@@ -140,7 +140,7 @@ type SysStats struct {
 
 // type MemStatEvent struct {
 // 	event                        // base class
-// 	stat  *mem.VirtualMemoryStat // straigh outta here: https://github.com/armPelionEdge/gopsutil/blob/master/mem/mem.go
+// 	stat  *mem.VirtualMemoryStat // straigh outta here: https://github.com/PelionIoT/gopsutil/blob/master/mem/mem.go
 // }
 
 // func NewVirtualMemEvent(stats *mem.VirtualMemoryStat) (ret *MemStatEvent) {

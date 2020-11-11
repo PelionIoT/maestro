@@ -4,7 +4,7 @@ import (
     "errors"
     "encoding/json"
 
-    ddbRaft "github.com/armPelionEdge/devicedb/raft"
+    ddbRaft "github.com/PelionIoT/devicedb/raft"
 )
 
 var ENoSuchPartition = errors.New("The specified partition does not exist")

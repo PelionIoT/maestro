@@ -14,7 +14,7 @@ import (
     "strconv"
     "sync"
 
-    . "github.com/armPelionEdge/devicedb/data"
+    . "github.com/PelionIoT/devicedb/data"
 )
 
 // MerkleMaxDepth should never exceed 32

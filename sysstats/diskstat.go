@@ -19,8 +19,8 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/armPelionEdge/gopsutil/disk"
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/gopsutil/disk"
+	"github.com/PelionIoT/maestro/log"
 )
 
 type DiskConfig struct {

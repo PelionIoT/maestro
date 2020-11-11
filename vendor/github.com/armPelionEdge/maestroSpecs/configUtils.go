@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/log"
 )
 
 // Copyright (c) 2018, Arm Limited and affiliates.
