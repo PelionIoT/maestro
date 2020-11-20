@@ -51,15 +51,32 @@ type resource struct {
 
 var grm_client *Client = nil
 var fluentbitconfigfilepath string
+var fluentbitconfigobjectid int
+
 
 func Grm_init(config *maestroConfig.GrmConfig) {
 
 	if(config == nil) {
 		return
 	}
+	if (config.EdgeCoreSocketPath == "") {
+		log.MaestroWarnf("maestroGRM: edge_core_socketpath not provided in config file. Using default socketpath '/tmp/edge.sock'")
+		config.EdgeCoreSocketPath = "/tmp/edge.sock"
+	}
+
+	if(config.FluentbitConfigFilePath == "") {
+		log.MaestroErrorf("maestroGRM: fluentbit_config_filepath not provided in config file")
+		return
+	}
+
+	if(config.FluentbitConfigObjectId == 0) {
+		log.MaestroErrorf("maestroGRM: fluentbit_config_lwm2mobjectid not provided in config file")
+		return
+	}
 
 	var err error
 	fluentbitconfigfilepath = config.FluentbitConfigFilePath
+	fluentbitconfigobjectid = config.FluentbitConfigObjectId
 	log.MaestroInfof("maestroGRM: connecting to edge-core")
 
 	grm_client, err = grm_connect(config.EdgeCoreSocketPath)   //connect to edge-core
@@ -71,10 +88,10 @@ func Grm_init(config *maestroConfig.GrmConfig) {
 	}
 	log.MaestroInfof("maestroGRM: successfully connected to edge-core\n")
 
-	err = grm_add_resource(33001, 0, 1, 3, "string", "#Fluentbit Config file")
+	err = grm_add_resource(fluentbitconfigobjectid, 0, 1, 3, "string", "#Fluentbit Config file")
 	
 	if(err!=nil) {
-		log.MaestroErrorf("maestroGRM: could not add resource")
+		log.MaestroErrorf("maestroGRM: could not add resource with ")
 		return
 	} else {
 		grm_update_resource_loop()
@@ -94,7 +111,7 @@ func grm_update_resource_loop() {
 					if (c.Method == "write") {
 						params := c.Params.(map[string]interface{})
 						uri := params["uri"].(map[string]interface{})
-						if (uri != nil && uri["objectId"].(float64) == 33001 && uri["objectInstanceId"].(float64) == 0 && uri["resourceId"].(float64) == 1) {
+						if (uri != nil && uri["objectId"].(float64) == float64(fluentbitconfigobjectid) && uri["objectInstanceId"].(float64) == 0 && uri["resourceId"].(float64) == 1) {
 							log.MaestroDebugf("maestroGRM: Writing fluentbit config file")
 							if(write_config_file(fluentbitconfigfilepath, params["value"].(string))  == nil) {
 								okresult := json.RawMessage(`"ok"`)

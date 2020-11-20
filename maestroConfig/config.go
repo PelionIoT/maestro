@@ -100,6 +100,8 @@ type DebugOptions struct {
 type GrmConfig struct {
 	EdgeCoreSocketPath string `yaml:"edge_core_socketpath"`
 	FluentbitConfigFilePath string `yaml:"fluentbit_config_filepath"`
+	FluentbitConfigObjectId int `yaml:"fluentbit_config_lwm2mobjectid"`
+	
 }
 type DeviceDBConnConfig struct {
 	// The URI of the relay's local DeviceDB instance
