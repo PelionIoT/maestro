@@ -37,6 +37,7 @@ import (
 	"github.com/armPelionEdge/maestro/maestroutils"
 	"github.com/armPelionEdge/maestro/mdns"
 	"github.com/armPelionEdge/maestro/networking"
+	"github.com/armPelionEdge/maestro/grm"
 	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/sysstats"
@@ -449,6 +450,8 @@ func main() {
 	} else {
 		go bringUpIfs()
 	}
+    // Gateway Resource Manager
+	go grm.Grm_init(config.Grm)
 
 	/*********************************************/
 	/*               Jobs startup                */

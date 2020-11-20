@@ -76,6 +76,7 @@ type YAMLMaestroConfig struct {
 	PlatformReaders      []PlatformReader                        `yaml:"platform_readers"`
 	Plugins              []Plugin                                `yaml:"plugins"`
 	Network              *maestroSpecs.NetworkConfigPayload      `yaml:"network"`
+	Grm                  *GrmConfig                              `yaml:"grm`
 	Processes            *configs.ProcessesConfig                `yaml:"processes"`
 	DebugOpts            *DebugOptions                           `yaml:"debug_opts"`
 	DDBConnConfig        *DeviceDBConnConfig                     `yaml:"devicedb_conn_config"`
@@ -96,6 +97,10 @@ type DebugOptions struct {
 	PidFileDates bool `yaml:"pid_file_dates"`
 }
 
+type GrmConfig struct {
+	EdgeCoreSocketPath string `yaml:"edge_core_socketpath"`
+	FluentbitConfigFilePath string `yaml:"fluentbit_config_filepath"`
+}
 type DeviceDBConnConfig struct {
 	// The URI of the relay's local DeviceDB instance
 	DeviceDBUri string `yaml:"devicedb_uri"`
