@@ -450,7 +450,7 @@ func main() {
 	} else {
 		go bringUpIfs()
 	}
-    // Gateway Resource Manager
+    // Gateway Capability Discovery
 	go gcd.Gcd_init(config.GatewayCapabilities)
 
 	/*********************************************/

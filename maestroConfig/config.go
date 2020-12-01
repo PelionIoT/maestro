@@ -76,7 +76,7 @@ type YAMLMaestroConfig struct {
 	PlatformReaders      []PlatformReader                        `yaml:"platform_readers"`
 	Plugins              []Plugin                                `yaml:"plugins"`
 	Network              *maestroSpecs.NetworkConfigPayload      `yaml:"network"`
-	GatewayCapabilities  *GcdConfig                              `yaml:"gateway_capabilities`
+	GatewayCapabilities  *GcdConfig                              `yaml:"gateway_capabilities"`
 	Processes            *configs.ProcessesConfig                `yaml:"processes"`
 	DebugOpts            *DebugOptions                           `yaml:"debug_opts"`
 	DDBConnConfig        *DeviceDBConnConfig                     `yaml:"devicedb_conn_config"`

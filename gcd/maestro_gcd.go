@@ -57,6 +57,7 @@ var gcd_config *maestroConfig.GcdConfig // Gateway Capability Discovery config
 func Gcd_init(config *maestroConfig.GcdConfig) {
 
 	if(config == nil) {
+		log.MaestroErrorf("maestroGCD: No config Provided")
 		return
 	}
 	if (config.EdgeCoreSocketPath == "") {
@@ -68,7 +69,7 @@ func Gcd_init(config *maestroConfig.GcdConfig) {
 		return
 	}
 	if(config.ConfigObjectId <= 0) { 
-		log.MaestroErrorf("maestroGCD: lwm2m objectid not provided for gateway resource %s", gatewayResource.Name)
+		log.MaestroErrorf("maestroGCD: lwm2m objectid not provided")
 		return
 	}
 	var err error
@@ -85,17 +86,22 @@ func Gcd_init(config *maestroConfig.GcdConfig) {
 	log.MaestroInfof("maestroGCD: successfully connected to edge-core\n")
 	objectinstanceid := 0
 	for _, gatewayResource := range config.GatewayResources {
-		err = grm_add_resource(gatewayResource.ConfigObjectId, objectinstanceid, 1, 3, "string", gatewayResource.Name)
+		err = grm_add_resource(config.ConfigObjectId, objectinstanceid, 1, 3, "string", gatewayResource.Name)
+		if (err == nil) {
+			grm_write_resource(config.ConfigObjectId, objectinstanceid, 1, 3, "string", b64.StdEncoding.EncodeToString([]byte(gatewayResource.Name)))
+		}
 		enable := "0"
 		if (gatewayResource.Enable == true) {
 			enable = "1"
 		}
-		err = grm_add_resource(config.ConfigObjectId, objectinstanceid, 2, 3, "boolean", string(enable))
-		err = grm_add_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", "Fluentbit Config")
-
-		err = grm_write_resource(config.ConfigObjectId, objectinstanceid, 1, 3, "string", gatewayResource.Name)
-		err = grm_write_resource(config.ConfigObjectId, objectinstanceid, 2, 3, "string", enable)
-		err = grm_write_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", "Fluentbit Config")
+		err = grm_add_resource(config.ConfigObjectId, objectinstanceid, 2, 3, "string", string(enable))
+		if (err == nil) {
+			grm_write_resource(config.ConfigObjectId, objectinstanceid, 2, 3, "string", b64.StdEncoding.EncodeToString([]byte(enable)))
+		}
+		err = grm_add_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", "Config")
+		if(err == nil) {
+			grm_write_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", b64.StdEncoding.EncodeToString([]byte("Config")))
+		}
 		objectinstanceid = objectinstanceid + 1
 	}
 	grm_update_resource_loop()
@@ -113,21 +119,23 @@ func grm_update_resource_loop() {
 					if (c.Method == "write") {
 						params := c.Params.(map[string]interface{})
 						uri := params["uri"].(map[string]interface{})
+						objectinstanceid := 0
 						for _, gatewayResource := range gcd_config.GatewayResources {
-							if (uri != nil && uri["objectId"].(float64) == float64(gatewayResource.ConfigObjectId) && uri["objectInstanceId"].(float64) == 0 && uri["resourceId"].(float64) == 3) {
+							if (uri != nil && uri["objectId"].(float64) == float64(gcd_config.ConfigObjectId) && uri["objectInstanceId"].(float64) == float64(objectinstanceid) && uri["resourceId"].(float64) == 3) {
 								log.MaestroDebugf("maestroGCD: Writing %s config file", gatewayResource.Name)
 								if(gatewayResource.ConfigFilePath != "" && write_config_file(gatewayResource.ConfigFilePath, params["value"].(string))  == nil) {
 									okresult := json.RawMessage(`"ok"`)
 									grm_client.Respond(c.ID, &okresult, nil)
 								}
 							}
-							if (uri != nil && uri["objectId"].(float64) == float64(gatewayResource.ConfigObjectId) && uri["objectInstanceId"].(float64) == 0 && uri["resourceId"].(float64) == 2) {
+							if (uri != nil && uri["objectId"].(float64) == float64(gcd_config.ConfigObjectId) && uri["objectInstanceId"].(float64) == float64(objectinstanceid) && uri["resourceId"].(float64) == 2) {
 								if(params["value"].(string) == "1") {
 									//enable the service
 								} else {
 									//disable the service
 								}
 							}
+							objectinstanceid = objectinstanceid + 1
 						}
 					}	
 			}
