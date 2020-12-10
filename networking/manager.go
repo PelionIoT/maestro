@@ -374,7 +374,7 @@ func (inst *networkManagerInstance) finalizeDns() (err error) {
 			return err2
 		}
 
-		cmd := exec.Command("resolvconf", "-a", "maestro.net")
+		cmd := exec.Command("resolvconf", "-a", "Maestro")
 
 		stdin, errp := cmd.StdinPipe()
 		if errp != nil {
