@@ -123,7 +123,7 @@ struct GetStackImplementation {
 #define HAVE_GST_ppc
 #endif
 
-#if defined(__arm__)
+#if defined(__arm__) || defined(__aarch64__)
 #define STACKTRACE_INL_HEADER "stacktrace_arm-inl.h"
 #define GST_SUFFIX arm
 #include "stacktrace_impl_setup-inl.h"
