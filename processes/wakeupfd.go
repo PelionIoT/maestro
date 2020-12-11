@@ -77,7 +77,7 @@ func (this *WakeupFd) ReadWakeup() (ret uint64, errno error) {
 // eventfd() is Linux specific
 // C def: int eventfd(unsigned int initval, int flags);
 func eventfd(initval uint, flags int) (fd int, errno error) {
-	val, _, err := syscall.RawSyscall(syscall.SYS_EVENTFD,
+	val, _, err := syscall.RawSyscall(syscall.SYS_EVENTFD2,
 		uintptr(initval),
 		uintptr(flags),
 		0)
