@@ -893,7 +893,7 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 					log.MaestroInfof("NetworkManager: interface [%s] - setting \"replace\"\n", ifconf.IfName)
 				}
 
-			} else if ifconf.Existing == "override" {
+			} else if ifconf.Existing == "override" || ifconf.Existing == "" {
 				debugging.DEBUG_OUT("ifconfig: %+v\n", ifconf)
 				// override fields where the incoming config has data
 				if storedifconfig.StoredIfconfig != nil {
@@ -921,7 +921,8 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 					log.MaestroInfof("NetworkManager: interface [%s] - setting \"override\"\n", ifconf.IfName)
 				}
 
-			} else { // else do nothingm db has priority
+			} else { // else do nothing db has priority
+				log.MaestroInfof("NetworkManager: unknown existing flag %s\n", ifconf.Existing)
 				this.byInterfaceName.Store(ifname, &storedifconfig)
 			}
 		}
