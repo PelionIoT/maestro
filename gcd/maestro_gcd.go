@@ -15,10 +15,10 @@ package gcd
 
 
 import (
-	
 	"encoding/json"
 	"os"
 	"errors"
+	"io/ioutil"
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	b64 "encoding/base64"
@@ -100,7 +100,12 @@ func Gcd_init(config *maestroConfig.GcdConfig) {
 		}
 		err = grm_add_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", "Config")
 		if(err == nil) {
-			grm_write_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", b64.StdEncoding.EncodeToString([]byte("Config")))
+			b64_config, err := read_config_file(gatewayResource.ConfigFilePath)
+			if  err == nil {
+				grm_write_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", *b64_config)
+			} else {
+				log.MaestroErrorf("maestroGCD: could not read %s config file %s, err: %v", gatewayResource.Name, gatewayResource.ConfigFilePath, err.Error())
+			}
 		}
 		objectinstanceid = objectinstanceid + 1
 	}
@@ -143,6 +148,16 @@ func grm_update_resource_loop() {
 	} else {
 		log.MaestroErrorf("maestroGCD: Could not register request receiver: %s", err.Error())
 	}
+}
+
+func read_config_file(filepath string) (*string, error) {
+    config, err := ioutil.ReadFile(filepath)
+    if err != nil {
+        return nil, err
+    }
+
+    b64_config := b64.StdEncoding.EncodeToString(config)
+    return &b64_config, nil
 }
 
 func write_config_file(filepath string, config string) error{
