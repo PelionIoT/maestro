@@ -1574,11 +1574,11 @@ DhcpLoop:
 					if dnsset {
 						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 						ifdata.hadDNS = true
-						err = this.finalizeDns()
 					}
 					if err != nil {
 						log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s\n", err.Error())
 					}
+					this.finalizeDns()
 
 				} else {
 					log.MaestroWarnf("NetworkManager: Stopping DHCP lease renewal, as interface '%s' is no longer managed!\n", ifname)
@@ -1727,11 +1727,11 @@ DhcpLoop:
 						if dnsset {
 							log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 							ifdata.hadDNS = true
-							err = this.finalizeDns()
 						}
 						if err != nil {
 							log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s\n", err.Error())
 						}
+						this.finalizeDns()
 					}
 
 				} else {
@@ -1842,11 +1842,11 @@ DhcpLoop:
 					if dnsset {
 						log.MaestroInfof("NetworkManager: adding DNS nameserver %s as primary\n", primarydns)
 						ifdata.hadDNS = true
-						err = this.finalizeDns()
 					}
 					if err != nil {
 						log.MaestroErrorf("NetworkManager: error getting / setting DNS from lease / ifconfig: %s\n", err.Error())
 					}
+					this.finalizeDns()
 
 				} else {
 					log.MaestroWarnf("NetworkManager: Stopping DHCP lease renewal, as interface '%s' is no longer managed!\n", ifname)
@@ -2025,8 +2025,8 @@ Outer:
 						dnsbuf := mgr.getDnsBufferForInterface(ifname)
 						if dnsbuf != nil {
 							dnsbuf.enable()
-							mgr.finalizeDns()
 						}
+						mgr.finalizeDns()
 						// send out events
 						if ifdata.interfaceChange != nil {
 							select {
@@ -2081,8 +2081,8 @@ Outer:
 							dnsbuf := mgr.getDnsBufferForInterface(ifname)
 							if dnsbuf != nil {
 								dnsbuf.disable()
-								mgr.finalizeDns()
 							}
+							mgr.finalizeDns()
 							// send events
 							// apparently we don't get updates without this?
 							err = netlink.LinkSetUp(update.Link)
