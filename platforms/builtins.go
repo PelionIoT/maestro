@@ -17,9 +17,6 @@ package platforms
 
 import (
 	"github.com/armPelionEdge/maestro/platforms/fsonly"
-	"github.com/armPelionEdge/maestro/platforms/rp200"
-	"github.com/armPelionEdge/maestro/platforms/rp200_edge"
-	"github.com/armPelionEdge/maestro/platforms/softRelay"
 	"github.com/armPelionEdge/maestro/platforms/testplatform"
 	"github.com/armPelionEdge/maestroSpecs"
 )
