@@ -102,6 +102,10 @@ func Gcd_init(config *maestroConfig.GcdConfig) {
 		if(err == nil) {
 			b64_config, err := read_config_file(gatewayResource.ConfigFilePath)
 			if  err == nil {
+				// To avoid protocol error, shrink the config resource value to a smaller size
+				if len(*b64_config) > 3800 {
+					*b64_config = (*b64_config)[:3800]
+				}
 				grm_write_resource(config.ConfigObjectId, objectinstanceid, 3, 3, "string", *b64_config)
 			} else {
 				log.MaestroErrorf("maestroGCD: could not read %s config file %s, err: %v", gatewayResource.Name, gatewayResource.ConfigFilePath, err.Error())
