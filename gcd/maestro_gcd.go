@@ -102,7 +102,10 @@ func Gcd_init(config *maestroConfig.GcdConfig) {
 		if(err == nil) {
 			b64_config, err := read_config_file(gatewayResource.ConfigFilePath)
 			if  err == nil {
-				// To avoid protocol error, shrink the config resource value to a smaller size
+				// Known issue - to be fixed in next release. An object of size more than 4096 is being
+				// truncated by the gorilla/websocket library and thus edge-core closes the connection on
+				// receiving the invalid data
+				// Hack: To avoid protocol error, shrink the config resource value to a smaller size
 				if len(*b64_config) > 3800 {
 					*b64_config = (*b64_config)[:3800]
 				}
