@@ -58,9 +58,11 @@ func SetOptsPlatform(opts map[string]interface{}) (err error) {
 var PlatformReader maestroSpecs.PlatformReader
 
 func GetPlatformVars(dict *templates.TemplateVarDictionary, log maestroSpecs.Logger) (err error) {
-	var data *common.IdentityJSONFile
 	if len(identityJSONPath) > 0 {
-		data, err = common.ReadIdentityFile(identityJSONPath, dict, log)
+		_, err = common.ReadIdentityFile(identityJSONPath, dict, log)
+		if err != nil {
+			err = errors.New("Failed to read identity file")
+		}
 	} else {
 		err = errors.New("No path for identity file")
 	}
