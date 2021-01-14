@@ -18,7 +18,6 @@ package common
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -60,21 +59,7 @@ import (
     "hash": [],
     "gatewayServicesAddress": "https://gw.stuff.com",
     "apiServerAddress": "https://api.stuff.com",
-    "cloudAddress": "https://gw.stuff.com",
-    "ssl": {
-        "client": {
-            "key": "-----BEGIN EC PARAMETERS-----\nBggqhkjOPQMBBw==\n-----END EC PARAMETERS-----\n-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIOX0N9QQ38cIIbwOtI+NhMxfIo+M8u0b/N3IiV8cBa0ToAoGCCqGSM49\nAwEHoUQDQgAEIS8z+tTTuI0FCaOXigC5ER7iQUknFI2GB5Sv0zG+82KID1VaIKYF\nAVQzMN38O0Ix9xpAS38Y8oyrsDAn8nUKgA==\n-----END EC PRIVATE KEY-----\n",
-            "certificate": "-----BEGIN CERTIFICATE-----\nMIIB8DCCAZUCCQCHsqepYIG2jzAKBggqhkjOPQQDAjBsMQswCQYDVQQGEwJVUzEO\nMAwGA1UECAwFVGV4YXMxDzANBgNVBAcMBkF1c3RpbjEMMAoGA1UECgwDQVJNMS4w\nLAYDVQQDDCVyZWxheXNfYXJtLmlvX2dhdGV3YXlfY2FfaW50ZXJtZWRpYXRlMB4X\nDTE5MDMwMTE5MDgxNloXDTM5MDIyNDE5MDgxNlowgZIxCzAJBgNVBAYTAlVTMQ4w\nDAYDVQQIDAVUZXhhczEPMA0GA1UEBwwGQXVzdGluMQwwCgYDVQQKDANBUk0xKTAn\nBgNVBAsMIDAwY2VkNTZmYWY0MzRmM2FiN2NmNDk0NzA5NzdlODAxMSkwJwYDVQQD\nDCAyZjlhYWQxODRlNDA0ZDhiYmFmZDVhZDk0OTU1MmNmMDBZMBMGByqGSM49AgEG\nCCqGSM49AwEHA0IABCEvM/rU07iNBQmjl4oAuREe4kFJJxSNhgeUr9MxvvNiiA9V\nWiCmBQFUMzDd/DtCMfcaQEt/GPKMq7AwJ/J1CoAwCgYIKoZIzj0EAwIDSQAwRgIh\nANT+XJC5CxOIHlZQAToRFB+dNbrtMrS5+XxZihdxVxUBAiEApW1OlJu8gMKD/zIG\nhBxTbp3kfPglfQExahzNWzCCvnw=\n-----END CERTIFICATE-----\n"
-        },
-        "server": {
-            "key": "-----BEGIN EC PARAMETERS-----\nBggqhkjOPQMBBw==\n-----END EC PARAMETERS-----\n-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIOX0N9QQ38cIIbwOtI+NhMxfIo+M8u0b/N3IiV8cBa0ToAoGCCqGSM49\nAwEHoUQDQgAEIS8z+tTTuI0FCaOXigC5ER7iQUknFI2GB5Sv0zG+82KID1VaIKYF\nAVQzMN38O0Ix9xpAS38Y8oyrsDAn8nUKgA==\n-----END EC PRIVATE KEY-----\n",
-            "certificate": "-----BEGIN CERTIFICATE-----\nMIIB8DCCAZUCCQCHsqepYIG2jzAKBggqhkjOPQQDAjBsMQswCQYDVQQGEwJVUzEO\nMAwGA1UECAwFVGV4YXMxDzANBgNVBAcMBkF1c3RpbjEMMAoGA1UECgwDQVJNMS4w\nLAYDVQQDDCVyZWxheXNfYXJtLmlvX2dhdGV3YXlfY2FfaW50ZXJtZWRpYXRlMB4X\nDTE5MDMwMTE5MDgxNloXDTM5MDIyNDE5MDgxNlowgZIxCzAJBgNVBAYTAlVTMQ4w\nDAYDVQQIDAVUZXhhczEPMA0GA1UEBwwGQXVzdGluMQwwCgYDVQQKDANBUk0xKTAn\nBgNVBAsMIDAwY2VkNTZmYWY0MzRmM2FiN2NmNDk0NzA5NzdlODAxMSkwJwYDVQQD\nDCAyZjlhYWQxODRlNDA0ZDhiYmFmZDVhZDk0OTU1MmNmMDBZMBMGByqGSM49AgEG\nCCqGSM49AwEHA0IABCEvM/rU07iNBQmjl4oAuREe4kFJJxSNhgeUr9MxvvNiiA9V\nWiCmBQFUMzDd/DtCMfcaQEt/GPKMq7AwJ/J1CoAwCgYIKoZIzj0EAwIDSQAwRgIh\nANT+XJC5CxOIHlZQAToRFB+dNbrtMrS5+XxZihdxVxUBAiEApW1OlJu8gMKD/zIG\nhBxTbp3kfPglfQExahzNWzCCvnw=\n-----END CERTIFICATE-----\n"
-        },
-        "ca": {
-            "ca": "-----BEGIN CERTIFICATE-----\nMIIB1DCCAXqgAwIBAgIJAKPyrSjzqa81MAoGCCqGSM49BAMCMF8xCzAJBgNVBAYT\nAlVTMQ4wDAYDVQQIDAVUZXhhczEPMA0GA1UEBwwGQXVzdGluMQwwCgYDVQQKDANB\nUk0xITAfBgNVBAMMGHJlbGF5c19hcm0uaW9fZ2F0ZXdheV9jYTAgFw0xOTAzMDEx\nOTA4MTZaGA8yMDU0MDIyMDE5MDgxNlowXzELMAkGA1UEBhMCVVMxDjAMBgNVBAgM\nBVRleGFzMQ8wDQYDVQQHDAZBdXN0aW4xDDAKBgNVBAoMA0FSTTEhMB8GA1UEAwwY\ncmVsYXlzX2FybS5pb19nYXRld2F5X2NhMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD\nQgAEdIxJ3NVkgk4uzaheIpEQ1JN8TllkmICsxREOD34Qb7TaLxanW0XxZ3o+Y8Q0\nIiM178Sm1G7LwadRXveiPSe52KMdMBswDAYDVR0TBAUwAwEB/zALBgNVHQ8EBAMC\nAYYwCgYIKoZIzj0EAwIDSAAwRQIhAOkKElimdoxNEOjXLOoIZzcK5TrWDq/KuB3m\nzbL9psYLAiByhUd/B9AxiuUWX8OP6Z8zTBsz7NBiIhYAdov33+753w==\n-----END CERTIFICATE-----\n",
-            "intermediate": "-----BEGIN CERTIFICATE-----\nMIIB3zCCAYWgAwIBAgIJAK6X1ZPEgdN4MAoGCCqGSM49BAMCMF8xCzAJBgNVBAYT\nAlVTMQ4wDAYDVQQIDAVUZXhhczEPMA0GA1UEBwwGQXVzdGluMQwwCgYDVQQKDANB\nUk0xITAfBgNVBAMMGHJlbGF5c19hcm0uaW9fZ2F0ZXdheV9jYTAeFw0xOTAzMDEx\nOTA4MTZaFw0zOTAyMjQxOTA4MTZaMGwxCzAJBgNVBAYTAlVTMQ4wDAYDVQQIDAVU\nZXhhczEPMA0GA1UEBwwGQXVzdGluMQwwCgYDVQQKDANBUk0xLjAsBgNVBAMMJXJl\nbGF5c19hcm0uaW9fZ2F0ZXdheV9jYV9pbnRlcm1lZGlhdGUwWTATBgcqhkjOPQIB\nBggqhkjOPQMBBwNCAATOK0BXQmhntge2QSbu8yqev4LBtNmlgsO/CnXKdCVEI2ST\nqY+wvO9YwccFyuxCU/+nnOq8kzPaSXx5hkzSNYRjox0wGzAMBgNVHRMEBTADAQH/\nMAsGA1UdDwQEAwIBhjAKBggqhkjOPQQDAgNIADBFAiEAjX78Ilpcc35y4KWohP53\nOMy19wx/4hKwqLfyKbPiXOcCIB+eTYT/H4YIslzPUtsnPhLyaHN/2QG+mzSzfvcc\nv2Rc\n-----END CERTIFICATE-----\n"
-        }
-    }
+    "cloudAddress": "https://gw.stuff.com"
 }
 
 */
@@ -83,22 +68,6 @@ var mcc_config_file string = "/userdata/mcc_config.tar.gz"
 var mcc_untar_dir string = "/userdata/mbed/"
 var mcc_config_dir string = "/userdata/mbed/mcc_config"
 var mcc_config_working_dir string = "/userdata/mbed/mcc_config/WORKING"
-
-// IdentitySSLKeySet is used to hold a set of SSL key pair/ca/intermediate data
-type IdentitySSLKeySet struct {
-	// not all fields always used
-	Key          string `json:"key"`
-	Cert         string `json:"certificate"`
-	CA           string `json:"ca"`
-	Intermediate string `json:"intermediate"`
-}
-
-// IdentitySSLData is a structure to hold SSL information for this gateway node
-type IdentitySSLData struct {
-	Client *IdentitySSLKeySet `json:"client"`
-	Server *IdentitySSLKeySet `json:"server"`
-	CA     *IdentitySSLKeySet `json:"ca"`
-}
 
 // IdentityJSONFile is a structure which holds data which is read from identity.json - a file generated by the Pelion
 // Edge Gateway provisioning tools.
@@ -120,7 +89,6 @@ type IdentityJSONFile struct {
 	GatewayServicesResource string           `dict:"GW_SERVICES_RESRC"`
 	APIServerAddress        string           `json:"apiServerAddress" dict:"API_SERVICES_URL"`
 	MccConfig               string           `json:"mcc_config" dict:"MCC_CONFIG"`
-	SSL                     *IdentitySSLData `json:"ssl"`
 }
 
 func convertByteSliceToHexString(bytes []byte) (ret string) {
@@ -222,34 +190,6 @@ func ReadIdentityFile(path string, dict *templates.TemplateVarDictionary, log ma
 				}
 			}
 
-			if identityData.SSL != nil {
-				if identityData.SSL.Client != nil {
-					s := fmt.Sprintf("%s", identityData.SSL.Client.Key)
-					dict.AddArch("CLIENT_KEY_PEM", s)
-					s = fmt.Sprintf("%s", identityData.SSL.Client.Cert)
-					dict.AddArch("CLIENT_CERT_PEM", s)
-				} else {
-					log.Warnf("Identity file %s has no ssl.client info\n", path)
-				}
-				if identityData.SSL.Server != nil {
-					s := fmt.Sprintf("%s", identityData.SSL.Server.Key)
-					dict.AddArch("SERVER_KEY_PEM", s)
-					s = fmt.Sprintf("%s", identityData.SSL.Server.Cert)
-					dict.AddArch("SERVER_CERT_PEM", s)
-				} else {
-					log.Warnf("Identity file %s has no ssl.server info\n", path)
-				}
-				if identityData.SSL.CA != nil {
-					s := fmt.Sprintf("%s", identityData.SSL.CA.Intermediate)
-					dict.AddArch("INTERMEDIATE_CERT_PEM", s)
-					s2 := fmt.Sprintf("%s", identityData.SSL.CA.CA)
-					dict.AddArch("CA_CERT_PEM", s2)
-					dict.AddArch("CA_CHAIN_CERT_PEM", s2+s)
-				} else {
-					log.Warnf("Identity file %s has no ssl.ca info\n", path)
-				}
-
-			}
 		}
 	}
 

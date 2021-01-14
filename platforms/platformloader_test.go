@@ -45,19 +45,6 @@ func TestPlatformPlugin(t *testing.T) {
 		log.Fatalf("Error on ReadWithPlatformReader: %s\n", err.Error())
 	}
 	fmt.Printf("dict:\n%s", dict.DumpAsString())
-	// again - should used cached load of plugin...
-	var key string
-	var cert string
-	key, cert, err = GeneratePlatformKeys(dict, "some_deviceid", "someaccount_id", "plugin:../../maestro-plugins-template/testplatformplugin/testplatformplugin.so", nil, logger)
-	if err != nil {
-		log.Fatalf("Error on GeneratePlatformKeys: %s\n", err.Error())
-	}
-	fmt.Printf("key:%s\n", key)
-	fmt.Printf("cert:%s\n", cert)
-	err = WritePlatformKeys(dict, key, cert, "plugin:../../maestro-plugins-template/testplatformplugin/testplatformplugin.so", nil, logger)
-	if err != nil {
-		log.Fatalf("Error on WritePlatformReader: %s\n", err.Error())
-	}
 
 	// plugin, err := GetOrLoadMaestroPlugin(logger, "../../maestro-plugins-template/testplatformplugin/testplatformplugin.so")
 	// if err != nil {
@@ -97,19 +84,6 @@ func TestPlatformFSOnly(t *testing.T) {
 		log.Fatalf("Error on ReadWithPlatformReader: %s\n", err.Error())
 	}
 	fmt.Printf("dict:\n%s", dict.DumpAsString())
-	// again - should used cached load of plugin...
-	var key string
-	var cert string
-	key, cert, err = GeneratePlatformKeys(dict, "some_deviceid", "someaccount_id", "fsonly", nil, logger)
-	if err != nil {
-		log.Fatalf("Error on GeneratePlatformKeys: %s\n", err.Error())
-	}
-	fmt.Printf("key:%s\n", key)
-	fmt.Printf("cert:%s\n", cert)
-	err = WritePlatformKeys(dict, key, cert, "fsonly", nil, logger)
-	if err != nil {
-		log.Fatalf("Error on WritePlatformReader: %s\n", err.Error())
-	}
 
 	// plugin, err := GetOrLoadMaestroPlugin(logger, "../../maestro-plugins-template/testplatformplugin/testplatformplugin.so")
 	// if err != nil {

@@ -57,19 +57,11 @@ func SetOptsPlatform(opts map[string]interface{}) (err error) {
 // PlatformReader is a required export for a platform module
 var PlatformReader maestroSpecs.PlatformReader
 
-// PlatformKeyWriter is a required export for a platform key writing
-var PlatformKeyWriter maestroSpecs.PlatformKeyWriter
-
-var platformKey string
-var platformCert string
-
 func GetPlatformVars(dict *templates.TemplateVarDictionary, log maestroSpecs.Logger) (err error) {
-	var data *common.IdentityJSONFile
 	if len(identityJSONPath) > 0 {
-		data, err = common.ReadIdentityFile(identityJSONPath, dict, log)
-		if err == nil {
-			platformKey = data.SSL.Client.Key
-			platformCert = data.SSL.Client.Cert
+		_, err = common.ReadIdentityFile(identityJSONPath, dict, log)
+		if err != nil {
+			err = errors.New("Failed to read identity file")
 		}
 	} else {
 		err = errors.New("No path for identity file")
@@ -82,27 +74,6 @@ func (reader *platformInstance) GetPlatformVars(dict *templates.TemplateVarDicti
 	return
 }
 
-func WritePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, key string, cert string, log maestroSpecs.Logger) (err error) {
-	// NOP
-	return
-}
-
-func (reader *platformInstance) WritePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, key string, cert string, log maestroSpecs.Logger) (err error) {
-	err = WritePlatformDeviceKeyNCert(dict, key, cert, log)
-	return
-}
-
-func GeneratePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, deviceid string, accountid string, log maestroSpecs.Logger) (key string, cert string, err error) {
-	key = platformKey
-	cert = platformCert
-	return
-}
-
-func (reader *platformInstance) GeneratePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, deviceid string, accountid string, log maestroSpecs.Logger) (key string, cert string, err error) {
-	key, cert, err = GeneratePlatformDeviceKeyNCert(dict, deviceid, accountid, log)
-	return
-}
-
 func (reader *platformInstance) SetOptsPlatform(opts map[string]interface{}) (err error) {
 	err = SetOptsPlatform(opts)
 	return
@@ -112,5 +83,4 @@ func (reader *platformInstance) SetOptsPlatform(opts map[string]interface{}) (er
 func init() {
 	inst := new(platformInstance)
 	PlatformReader = inst
-	PlatformKeyWriter = inst
 }

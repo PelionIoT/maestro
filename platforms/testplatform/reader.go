@@ -135,9 +135,6 @@ func GetPlatformVars(dict *templates.TemplateVarDictionary, log maestroSpecs.Log
 // PlatformReader is a required export for a platform module
 var PlatformReader maestroSpecs.PlatformReader
 
-// PlatformKeyWriter is a required export for a platform key writing
-//var PlatformKeyWriter maestroSpecs.PlatformKeyWriter
-
 type platformInstance struct {
 }
 
@@ -153,5 +150,4 @@ func (reader *platformInstance) SetOptsPlatform(map[string]interface{}) (err err
 func init() {
 	inst := new(platformInstance)
 	PlatformReader = inst
-	//	PlatformKeyWriter = inst
 }
