@@ -57,7 +57,7 @@ var gcd_config *maestroConfig.GcdConfig // Gateway Capability Discovery config
 func Gcd_init(config *maestroConfig.GcdConfig) {
 
 	if(config == nil) {
-		log.MaestroErrorf("maestroGCD: No config Provided")
+		log.MaestroWarnf("maestroGCD: No config Provided")
 		return
 	}
 	if (config.EdgeCoreSocketPath == "") {
