@@ -25,7 +25,6 @@ import (
 )
 
 type builtin struct {
-	keyWriter maestroSpecs.PlatformKeyWriter
 	reader    maestroSpecs.PlatformReader
 }
 
@@ -34,22 +33,12 @@ var builtinsByPlatformName map[string]builtin
 func init() {
 	// load up all the builtin platforms so we can access them by string
 	builtinsByPlatformName = make(map[string]builtin)
-	builtinsByPlatformName["rp200"] = builtin{
-		reader: rp200.PlatformReader,
-	}
-	builtinsByPlatformName["rp200_edge"] = builtin{
-		reader:    rp200_edge.PlatformReader,
-		keyWriter: rp200_edge.PlatformKeyWriter,
-	}
-	builtinsByPlatformName["softRelay"] = builtin{
-		reader: softRelay.PlatformReader,
-	}
+
 	builtinsByPlatformName["testplatform"] = builtin{
 		reader: testplatform.PlatformReader,
 	}
 	builtinsByPlatformName["fsonly"] = builtin{
 		reader:    fsonly.PlatformReader,
-		keyWriter: fsonly.PlatformKeyWriter,
 	}
 
 }
