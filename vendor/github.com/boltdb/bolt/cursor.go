@@ -268,7 +268,11 @@ func (c *Cursor) search(key []byte, pgid pgid) {
 		c.searchNode(key, n)
 		return
 	}
-	c.searchPage(key, p)
+
+	if p != nil {
+		c.searchPage(key, p)
+		return
+	}
 }
 
 func (c *Cursor) searchNode(key []byte, n *node) {
