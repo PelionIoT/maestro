@@ -1073,8 +1073,7 @@ func setupDefaultRouteInPrimaryTable(inst *networkManagerInstance, ifconfig *mae
 
 			// get the link index for this interface
 			ifname, ifindex, err2 := GetInterfaceIndexAndName(ifconfig.IfName, ifconfig.IfIndex)
-
-			if err != nil {
+			if err2 != nil {
 				err = err2
 				return
 			}
