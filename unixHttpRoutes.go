@@ -929,10 +929,6 @@ func handlePostJobConfig(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	}
 
 	if err != nil {
-		if !sentHeader {
-			w.WriteHeader(http.StatusInternalServerError)
-			sentHeader = true
-		}
 		errorS, _ := json.Marshal(err.Error())
 		buffer.WriteString("{\"error\":\"Can't encode response\":\",\"details\":\"")
 		buffer.Write(errorS)
