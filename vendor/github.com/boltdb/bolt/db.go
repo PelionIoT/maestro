@@ -213,6 +213,9 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 				// page size than what the database was created with then we
 				// are out of luck and cannot access the database.
 				db.pageSize = os.Getpagesize()
+				if db.pageSize <= 0 {
+					db.pageSize = 4096;
+				}
 			} else {
 				db.pageSize = int(m.pageSize)
 			}
@@ -343,6 +346,9 @@ func (db *DB) mmapSize(size int) (int, error) {
 func (db *DB) init() error {
 	// Set the page size to the OS page size.
 	db.pageSize = os.Getpagesize()
+	if db.pageSize <= 0 {
+		db.pageSize = 4096;
+	}
 
 	// Create two meta pages on a buffer.
 	buf := make([]byte, db.pageSize*4)
