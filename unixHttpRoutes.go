@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -582,7 +583,8 @@ func handleImageOp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("{\"error\":\"Failed to enqueue:" + err.Error() + "\"}"))
 			} else {
-				w.Write([]byte("{\"task_id\":\"" + task.Id + "\"}"))
+				// the task.Id is escaped because a code coverage tool reported an XSS vulerability
+				w.Write([]byte("{\"task_id\":\"" + html.EscapeString(task.Id) + "\"}"))
 			}
 		} else {
 			w.WriteHeader(http.StatusNotAcceptable)
