@@ -2153,7 +2153,9 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 					// come up then we will set it up.
 					ifdata = mgr.getOrNewInterfaceData(ifconfig.IfName)
 					debugging.DEBUG_OUT("past getOrNewInterfaceData(%s) - %+v\n", ifconfig.IfName, ifdata)
-					ifdata.StoredIfconfig = ifconfig
+					if ifdata != nil {
+						ifdata.StoredIfconfig = ifconfig
+					}
 					err = mgr.commitInterfaceData(ifconfig.IfName)
 					if err != nil {
 						log.MaestroErrorf("NetworkManager: Problem storing interface [%s] data in DB: %s. Skipping config.\n", ifconfig.IfName, err.Error())
