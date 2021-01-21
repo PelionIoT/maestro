@@ -1340,12 +1340,19 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 	pid = int(err.pid)
 	errno = int(err._errno)
 
+	jobName := "unspecified-job-name"
+	compId := "unspecified-comp-id"
+	if opts != nil {
+		jobName = opts.jobName
+		compId = opts.compId
+	}
+
 	// TODO if errno is 0, add to tracking table
 	if errno != 0 {
 		// See: https://golang.org/src/syscall/syscall_unix.go?s=2532:2550#L91
 		_errno := syscall.Errno(errno) // which is a uintptr
-		procLogErrorf("Process failed to start: %d %s - Job: %s\n", errno, _errno.Error(), opts.jobName)
-		debugging.DEBUG_OUT("ERROR ExecFile: %d %s - Job: %s\n", errno, _errno.Error(), opts.jobName)
+		procLogErrorf("Process failed to start: %d %s - Job: %s\n", errno, _errno.Error(), jobName)
+		debugging.DEBUG_OUT("ERROR ExecFile: %d %s - Job: %s\n", errno, _errno.Error(), jobName)
 		// ok - if the error is something which will continue to happen, then we should
 		// not attempt to restart the process, even if the restart param is true
 
@@ -1354,8 +1361,8 @@ func ExecFile(path string, args []string, env []string, opts *ExecFileOpts) (pid
 
 	} else {
 		record, _ := TrackNewProcessByPid(pid)
-		record.Job = opts.jobName
-		record.CompId = opts.compId
+		record.Job = jobName
+		record.CompId = compId
 		record.Path = path
 		record.Started = time.Now()
 		procLogSuccessf("Process started. PID:%d Job:%s CompId:%s\n", pid, record.Job, record.CompId)
