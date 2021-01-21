@@ -705,12 +705,6 @@ func newIfData(ifname string, ifconf *maestroSpecs.NetIfConfigPayload) (ret *Net
 	return
 }
 
-func (this *NetworkInterfaceData) setRunningConfig(ifconfig *maestroSpecs.NetIfConfigPayload) (ret *NetworkInterfaceData) {
-	ret.RunningIfconfig = new(maestroSpecs.NetIfConfigPayload)
-	*ret.RunningIfconfig = *ifconfig // copy that entire struct
-	return
-}
-
 func validateIfConfig(ifconf *maestroSpecs.NetIfConfigPayload) (ok bool, problem string) {
 	ok = true
 	if len(ifconf.IfName) < 1 {
