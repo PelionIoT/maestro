@@ -1650,11 +1650,7 @@ DhcpLoop:
 					// ok, setup the interface.
 					debugging.DEBUG_OUT("@DhcpLoop - setup interface\n")
 					if ifdata.RunningIfconfig == nil {
-						if ifconfig != nil {
-							ifdata.RunningIfconfig = ifconfig
-						} else {
-							ifdata.RunningIfconfig = new(maestroSpecs.NetIfConfigPayload)
-						}
+						ifdata.RunningIfconfig = ifconfig
 						ifdata.RunningIfconfig.DhcpV4Enabled = true
 					}
 
