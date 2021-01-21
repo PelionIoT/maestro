@@ -453,7 +453,9 @@ func newProcessEvent(jobname string, code int) (ret *processEvent) {
 
 func newProcessEventFromExisting(ev *processEvent, code int) (ret *processEvent) {
 	//ret := new(processEvent)
-	ret = &processEvent{code, 0, ev.jobname, ev.request}
+	if ev != nil {
+		ret = &processEvent{code, 0, ev.jobname, ev.request}
+	}
 	return
 }
 
@@ -833,8 +835,10 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 	if errno != 0 {
 		proc_status.lockingSetStatus(FAILED)
 		proc_status.setAllChildJobStatus(FAILED)
-		next_ev := newProcessEventFromExisting(orig_event, internalEvent_job_failed)
-		controlChan <- next_ev
+		if orig_event != nil {
+			next_ev := newProcessEventFromExisting(orig_event, internalEvent_job_failed)
+			controlChan <- next_ev
+		}
 	} else {
 		// status RUNNING or
 		proc_status.pid = pid
