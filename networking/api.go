@@ -1092,7 +1092,7 @@ func setupDefaultRouteInPrimaryTable(inst *networkManagerInstance, ifconfig *mae
 		}
 		// parse IP
 		// set route
-	} else {
+	} else if ifconfig != nil {
 		prio := ifconfig.RoutePriority
 		if leaseinfo != nil {
 			ok, ip := leaseinfo.GetRouter()
