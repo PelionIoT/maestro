@@ -572,7 +572,7 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 
 		}
 		// should not start workers until after greasego is setup
-		if config.Symphony != nil {
+		if config.Symphony != nil && symphonyClient != nil {
 			if symphonyErr != nil {
 				log.MaestroDebugf("Symphony / RMI client is not configured correctly or has failed: %s\n", symphonyErr.Error())
 			} else {
