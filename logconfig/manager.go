@@ -195,13 +195,6 @@ func GetInstance() *logManagerInstance {
 	return instance
 }
 
-func (logdata *LogData) setRunningConfig(logconfig []maestroSpecs.LogTarget) (ret *LogData) {
-	log.MaestroInfof("in setRunningConfig\n")
-
-	ret.RunningLogconfig = logconfig // copy that entire struct
-	return
-}
-
 func validateLogConfig(logconf maestroSpecs.LogTarget) (ok bool, problem string) {
 	log.MaestroInfof("in validateLogConfig\n")
 	ok = true
