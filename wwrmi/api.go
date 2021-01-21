@@ -556,13 +556,15 @@ func (client *Client) Read(p []byte) (copied int, err error) {
 			return
 		}
 		buf = client.willSendFifo.Pop()
-		// write data to p
-		copy(p[copied:], buf.godata)
-		copied += buflen
-		remain -= buflen
-		// release the memory it referenced back to the greaseLib
-		buf.tries++
-		client.sendingFifo.Push(buf)
+		if buf != nil {
+			// write data to p
+			copy(p[copied:], buf.godata)
+			copied += buflen
+			remain -= buflen
+			// release the memory it referenced back to the greaseLib
+			buf.tries++
+			client.sendingFifo.Push(buf)
+		}
 		buf = client.willSendFifo.Peek()
 	}
 	debugging.DEBUG_OUT("RMI Read() (logs) EOF\n")
