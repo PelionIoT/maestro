@@ -323,8 +323,11 @@ func (sndr *statSender) postStats() (err error) {
 		err = newClientError(resp)
 		return
 	}
-	// Read and discard response body
-	_, err = io.Copy(ioutil.Discard, resp.Body)
+
+	if resp != nil {
+		// Read and discard response body
+		_, err = io.Copy(ioutil.Discard, resp.Body)
+	}
 
 	return
 }
