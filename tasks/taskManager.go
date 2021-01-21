@@ -948,8 +948,6 @@ func taskRunner() {
 
 taskLooper:
 	for true {
-		anyran = false
-
 		debugging.DEBUG_OUT("********************* top of taskRunner %d ***********************\n", n)
 		n++
 		select {
@@ -1027,10 +1025,6 @@ taskLooper:
 
 				// opportunistically look for new tasks
 				// look at all tasks, and check for one at stage 0
-
-				if anyran {
-					controlChan <- newControlTokenNewTask(nil) // ask for another run
-				}
 			}
 
 		}
