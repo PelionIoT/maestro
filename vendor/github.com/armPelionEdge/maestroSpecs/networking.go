@@ -70,7 +70,7 @@ type NetIfConfigPayload struct {
 	WifiSsid string `yaml:"wifi_ssid" json:"wifi_ssid" netgroup:"wifi"`
 	//Wifi password
 	WifiPassword string `yaml:"wifi_password" json:"wifi_password" netgroup:"wifi"`
-	
+
 	// Modem serial device.  It is possible to use "*" to refer to any available modem.
 	SerialDevice string `yaml:"serial" json:"serial"`
 	// APN

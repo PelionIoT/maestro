@@ -92,7 +92,7 @@ func (this *FileTemplateTicket) ProcessTemplateFile() (err error) {
 		// read the file in
 
 		b, err2 := ioutil.ReadFile(this.sourcepath) // just pass the file name
-		if err != nil {
+		if err2 != nil {
 			return
 		}
 		// fmt.Println(b) // print the content as 'bytes'

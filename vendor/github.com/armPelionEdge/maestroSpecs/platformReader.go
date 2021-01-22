@@ -28,6 +28,12 @@ type PlatformReader interface {
 	GetPlatformVars(dict *templates.TemplateVarDictionary, log Logger) (err error)
 }
 
+// PlatformKeyWriter interface spec. Exported platforms should expose an instance of this interface named 'PlatformKeyWriter'
+type PlatformKeyWriter interface {
+	WritePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, key string, cert string, log Logger) (err error)
+	GeneratePlatformDeviceKeyNCert(dict *templates.TemplateVarDictionary, deviceid string, accountid string, log Logger) (key string, cert string, err error)
+}
+
 // implemented by a library which provides a way to pull off needed
 // platform specific variables, typically out of NVRAM, secure flash or EEPROM
 // use the Logger to log any errors or information
