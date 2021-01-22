@@ -170,6 +170,9 @@ func (a *ConfigAnalyzer) DiffChanges(current interface{}, future interface{}) (i
 			//			currValue = reflect.NewAt(currType, unsafe.Pointer(reflect.ValueOf(cur).UnsafeAddr())).Elem()
 			//			currValue = reflect.NewAt(currType, unsafe.Pointer(&cur)).Elem()
 			currValue = reflect.ValueOf(cur)
+		} else {
+			errinner = fmt.Errorf("invalid kind: expected Struct or Ptr")
+			return
 		}
 
 		kind = currValue.Kind()
