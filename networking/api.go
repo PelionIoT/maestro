@@ -83,13 +83,6 @@ func nmLogDebugf(format string, a ...interface{}) {
 	log.MaestroDebugf("NetworkManager: "+format, a...)
 }
 
-// should be called when a lease is restored from the
-// database
-func (this *DhcpLeaseInfo) deserialize() {
-	this.parsedOptions = this.LastAckPacket.ParseOptions()
-	this.parseRenewalTimes()
-}
-
 // Assumes options are parsed and LeaseAcquired is valid time in the past. We can call this on DB load, or right after getting a lease.
 // Basically we use what we can work with. If a server does not send us all expected
 // lease time information, we try to make use of what we have.
