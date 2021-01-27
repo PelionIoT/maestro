@@ -394,7 +394,6 @@ func (mgr *SysStats) ReadConfig(config *StatsConfig) (ok bool, err error) {
 		debugging.DEBUG_OUT("sysstats - VMStats out2: %+v\n", config.VMStats)
 		mgr.statCallers.Store(config.VMStats.statConfig.Name, RunnableStat(config.VMStats))
 	}
-	ok = statok
 	return
 }
 
