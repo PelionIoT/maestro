@@ -46,6 +46,9 @@ exec $GOBIN/maestro
 EOF
 chmod +x /usr/sbin/maestro
 
+ln -sf /vagrant/build.sh /usr/sbin/build_maestro
+chmod +x /usr/sbin/build_maestro
+
 # Set the network interface to eth0 instead of Ubuntu 16.04 default enp0s3
 rm /etc/udev/rules.d/70-persistent-net.rules
 sed -i -e 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"/g' /etc/default/grub
