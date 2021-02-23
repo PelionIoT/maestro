@@ -25,7 +25,6 @@ def shared_config(config)
   config.vm.provision :reload
   config.vm.provision "file", source: "vagrant/build.sh", destination: "/tmp/build_maestro"
   config.vm.provision "shell", inline: "mv /tmp/build_maestro /usr/sbin/build_maestro; chmod +x /usr/sbin/build_maestro"
-  config.vm.provision "file", source: "vagrant/docker-compose.yaml", destination: "/tmp/docker-compose.yaml"
   config.ssh.extra_args = "-t"
   config.vm.provider :virtualbox do |vb|
     vb.customize [ "modifyvm", :id, "--memory", 2048 ]
