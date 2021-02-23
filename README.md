@@ -1,6 +1,8 @@
 # maestro
 Pelion Edge systems management daemon for Pelion Edge OS. 
 
+CI TEST
+
 ## Overview
 
 Maestro is a replacement for a number of typical Linux OS system utilities and management programs, while providing cloud-connected systems management. Maestro is designed specifically for cloud-connected Linux OS embedded computers, with somewhat limited RAM and disk space, where file systems are often flash - and would prefer less writing to the FS over time.
