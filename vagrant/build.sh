@@ -7,7 +7,8 @@ set -e
 . /etc/profile.d/envvars.sh
 
 # Import GO project maestro
-go get github.com/armPelionEdge/maestro || true
+mkdir -p $MAESTRO_SRC
+git clone https://github.com/PelionIoT/maestro $MAESTRO_SRC
 
 # Go to newly created maestro directory to check out the
 # proper version
