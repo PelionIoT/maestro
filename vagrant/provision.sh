@@ -46,7 +46,7 @@ exec $GOBIN/maestro
 EOF
 chmod +x /usr/sbin/maestro
 
-ln -sf /vagrant/build.sh /usr/sbin/build_maestro
+ln -sf /vagrant/vagrant/build.sh /usr/sbin/build_maestro
 chmod +x /usr/sbin/build_maestro
 
 # Set the network interface to eth0 instead of Ubuntu 16.04 default enp0s3
