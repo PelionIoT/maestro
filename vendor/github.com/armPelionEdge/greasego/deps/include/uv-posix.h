@@ -19,15 +19,13 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef UV_MVS_H
-#define UV_MVS_H
-
-#define UV_PLATFORM_SEM_T long
+#ifndef UV_POSIX_H
+#define UV_POSIX_H
 
 #define UV_PLATFORM_LOOP_FIELDS                                               \
-  void* ep;                                                                   \
+  struct pollfd* poll_fds;                                                    \
+  size_t poll_fds_used;                                                       \
+  size_t poll_fds_size;                                                       \
+  unsigned char poll_fds_iterating;                                           \
 
-#define UV_PLATFORM_FS_EVENT_FIELDS                                           \
-  char rfis_rftok[8];                                                         \
-
-#endif /* UV_MVS_H */
+#endif /* UV_POSIX_H */
