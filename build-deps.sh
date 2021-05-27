@@ -31,7 +31,7 @@ THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 pushd "${THIS_DIR}"
 
-cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps/libuv-v1.10.1"
+cd "${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/src/greaseLib/deps/libuv-v1.41.0"
 
 if [ ! -d build ]; then
     git clone https://chromium.googlesource.com/external/gyp.git build/gyp

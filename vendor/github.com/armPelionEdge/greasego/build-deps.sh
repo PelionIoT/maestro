@@ -91,7 +91,7 @@ if [ -e libgrease.so.1 ]; then
     # migrate all of the greaselib dependencies up to the folder Go will use
     cp -r deps/build/lib/* $SELF/deps/lib
     cp -r deps/build/include/* $SELF/deps/include
-    cp $SELF/deps/src/greaseLib/deps/libuv-v1.10.1/include/uv* $SELF/deps/include
+    cp $SELF/deps/src/greaseLib/deps/libuv-v1.41.0/include/uv* $SELF/deps/include
     # move our binary into lib - static is all we use
     cp libgrease.so.1 $SELF/deps/lib
     cp *.h $SELF/deps/include

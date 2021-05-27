@@ -7,7 +7,7 @@ CXX ?= g++ -g -O0 -fPIC -std=c++11
 CC ?= gcc -g -O0 -fPIC
 AR ?= ar
 
-LIBUVDIR= libuv-v1.10.1
+LIBUVDIR= libuv-v1.41.0
 
 CXXFLAGS= -fPIC -std=c++11
 

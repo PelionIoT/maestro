@@ -11,7 +11,7 @@ done
 DEPS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 LOG=${DEPS_DIR}/../install_deps.log
 GPERF_DIR=${DEPS_DIR}/gperftools-2.4
-LIBUV_DIR=${DEPS_DIR}/libuv-v1.10.1
+LIBUV_DIR=${DEPS_DIR}/libuv-v1.41.0
 LIBTW_DIR=${DEPS_DIR}/twlib
 #PCRE_DIR=${DEPS_DIR}/pcre2-10.22  # not used
 #RE2_DIR=${DEPS_DIR}/re2-2017-01-01
