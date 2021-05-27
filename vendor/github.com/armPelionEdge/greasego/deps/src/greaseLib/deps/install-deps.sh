@@ -69,11 +69,11 @@ fi
 if [[ "$platform" == 'darwin' ]]; then
 	(cd build && cmake ..)
 	cmake --build build
-	cp ./build/Release/libuv.a $DEPS_DIR/build/lib
+	cp ./build/libuv_a.a $DEPS_DIR/build/lib/libuv.a
 else
 	(cd build && cmake ..)
 	cmake --build build
-	cp ./build/Release/libuv.a $DEPS_DIR/build/lib
+	cp ./build/libuv_a.a $DEPS_DIR/build/lib/libuv.a
 fi
 
 popd
