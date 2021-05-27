@@ -62,18 +62,18 @@ echo "build libuv...."
 
 pushd $LIBUV_DIR
 if [ ! -d "build" ]; then
-    echo "Need build/gyp folder. Will try to decompress..."
-    tar xvfz gyp.tar.gz
+    echo "Need build folder. Will try to create..."
+	mkdir -p build
 fi
 
 if [[ "$platform" == 'darwin' ]]; then
-	./gyp_uv.py -f xcode
-	xcodebuild -ARCHS="x86_64" -project uv.xcodeproj -configuration Release -target All
+	(cd build && cmake ..)
+	cmake --build build
 	cp ./build/Release/libuv.a $DEPS_DIR/build/lib
 else
-	./gyp_uv.py -f make
-	make -C out
-	cp ./out/Debug/libuv.a $DEPS_DIR/build/lib
+	(cd build && cmake ..)
+	cmake --build build
+	cp ./build/Release/libuv.a $DEPS_DIR/build/lib
 fi
 
 popd
