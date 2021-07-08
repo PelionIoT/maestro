@@ -22,9 +22,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/templates"
 	"github.com/mholt/archiver"
 )
 
@@ -85,10 +85,10 @@ type IdentityJSONFile struct {
 	EthernetMAC     []byte `json:"ethernetMAC"`
 	SixMAC          []byte `json:"sixBMAC"`
 	// hash []string  // ??
-	GatewayServicesAddress  string           `json:"gatewayServicesAddress" dict:"GW_SERVICES_URL"`
-	GatewayServicesResource string           `dict:"GW_SERVICES_RESRC"`
-	APIServerAddress        string           `json:"apiServerAddress" dict:"API_SERVICES_URL"`
-	MccConfig               string           `json:"mcc_config" dict:"MCC_CONFIG"`
+	GatewayServicesAddress  string `json:"gatewayServicesAddress" dict:"GW_SERVICES_URL"`
+	GatewayServicesResource string `dict:"GW_SERVICES_RESRC"`
+	APIServerAddress        string `json:"apiServerAddress" dict:"API_SERVICES_URL"`
+	MccConfig               string `json:"mcc_config" dict:"MCC_CONFIG"`
 }
 
 func convertByteSliceToHexString(bytes []byte) (ret string) {

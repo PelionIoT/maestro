@@ -19,12 +19,12 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/processes"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestro/tasks"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/processes"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestro/tasks"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 type jobManagerInstance struct {

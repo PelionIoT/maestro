@@ -26,4 +26,4 @@ THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 #ulimit -a
 #ulimit -n 50000
 sudo sysctl -w kernel.core_pattern=core
-sudo LD_LIBRARY_PATH=${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/lib $GOPATH/bin/maestro "$@"
+sudo LD_LIBRARY_PATH=${THIS_DIR}/vendor/github.com/PelionIoT/greasego/deps/lib $GOPATH/bin/maestro "$@"

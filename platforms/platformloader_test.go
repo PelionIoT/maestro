@@ -20,16 +20,14 @@ import (
 	"log"
 	"testing"
 
-	maestroLog "github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/testtools"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/maestro/testtools"
+	"github.com/PelionIoT/maestroSpecs/templates"
 )
 
 var logger *testtools.NonProductionPrefixedLogger
 
 func TestMain(m *testing.M) {
 	logger = testtools.NewNonProductionPrefixedLogger("pluginloader_test: ")
-	maestroLog.DisableGreaseLog()
 	m.Run()
 }
 func TestPlatformPlugin(t *testing.T) {

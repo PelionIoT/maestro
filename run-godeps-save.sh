@@ -33,10 +33,10 @@ if [ -d src ]; then
 fi
 
 # godeps is a questionably designed tool.
-# it - for instance - arbitrarily drops certain folder, for instance a 
+# it - for instance - arbitrarily drops certain folder, for instance a
 # folder with no Go code, but with C dependencies. Hmm.
 
-rm -rf vendor/github.com/armPelionEdge/greasego/deps
-cp -a ../greasego/deps vendor/github.com/armPelionEdge/greasego
-cp -a ../greasego/src vendor/github.com/armPelionEdge/greasego
+rm -rf vendor/github.com/PelionIoT/greasego/deps
+cp -a ../greasego/deps vendor/github.com/PelionIoT/greasego
+cp -a ../greasego/src vendor/github.com/PelionIoT/greasego
 cd -

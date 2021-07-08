@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/PelionIoT/maestro/debugging"
 	"github.com/deckarep/golang-set"
 )
 

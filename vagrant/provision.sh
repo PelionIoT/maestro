@@ -19,9 +19,8 @@ export GOPATH=/home/vagrant/work/gostuff
 export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOROOT/bin:$GOBIN
 
-export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
+export MAESTRO_SRC=$GOPATH/src/github.com/PelionIoT/maestro
 
-export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
 export MAESTRO_LOGS=/var/log/maestro
 export COVERITY_HOME=/home/vagrant/cov-analysis-linux64-2020.03
 export PATH=$PATH:$COVERITY_HOME/bin

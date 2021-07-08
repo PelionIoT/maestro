@@ -27,34 +27,32 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/armPelionEdge/httprouter"
-	. "github.com/armPelionEdge/maestro"
-	"github.com/armPelionEdge/maestro/configMgr"
-	"github.com/armPelionEdge/maestro/debugging"
-	Log "github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/logconfig"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestro/maestroutils"
-	"github.com/armPelionEdge/maestro/mdns"
-	"github.com/armPelionEdge/maestro/networking"
-	"github.com/armPelionEdge/maestro/gcd"
-	"github.com/armPelionEdge/maestro/processes"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestro/sysstats"
-	"github.com/armPelionEdge/maestro/tasks"
-	maestroTime "github.com/armPelionEdge/maestro/time"
-	"github.com/armPelionEdge/maestro/watchdog"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	"github.com/PelionIoT/httprouter"
+	. "github.com/PelionIoT/maestro"
+	"github.com/PelionIoT/maestro/configMgr"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/gcd"
+	Log "github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/maestroConfig"
+	"github.com/PelionIoT/maestro/maestroutils"
+	"github.com/PelionIoT/maestro/mdns"
+	"github.com/PelionIoT/maestro/networking"
+	"github.com/PelionIoT/maestro/processes"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestro/tasks"
+	maestroTime "github.com/PelionIoT/maestro/time"
+	"github.com/PelionIoT/maestro/watchdog"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/templates"
 	"github.com/op/go-logging"
 
 	// Platforms
-	"github.com/armPelionEdge/maestro/platforms"
-	// platform_rp200 "github.com/armPelionEdge/maestro/platforms/rp200"
-	// platform_rp200_edge "github.com/armPelionEdge/maestro/platforms/rp200_edge"
-	// platform_wwrelayA10 "github.com/armPelionEdge/maestro/platforms/wwrelayA10"
-	// platform_softRelay "github.com/armPelionEdge/maestro/platforms/softRelay"
-	// platform_testplatform "github.com/armPelionEdge/maestro/platforms/testplatform"
+	"github.com/PelionIoT/maestro/platforms"
+	// platform_rp200 "github.com/PelionIoT/maestro/platforms/rp200"
+	// platform_rp200_edge "github.com/PelionIoT/maestro/platforms/rp200_edge"
+	// platform_wwrelayA10 "github.com/PelionIoT/maestro/platforms/wwrelayA10"
+	// platform_softRelay "github.com/PelionIoT/maestro/platforms/softRelay"
+	// platform_testplatform "github.com/PelionIoT/maestro/platforms/testplatform"
 	_ "net/http/pprof"
 )
 
@@ -102,12 +100,7 @@ func main() {
 	versionFlag := flag.Bool("version", false, "Dump version information")
 	debugServerFlag := flag.Bool("debug_loopback", true, "Start a debug loopback on http://127.0.0.1:6060")
 	debugMemory := flag.Bool("debug_mem", true, "Debugging memory stats")
-	logToStdout := flag.Bool("log_to_stdout", false, "Send maestro's log messages to stdout instead of directly to GreaseLog")
 	flag.Parse()
-
-	if *logToStdout {
-		Log.DisableGreaseLog()
-	}
 
 	debugging.DebugPprof(*debugServerFlag)
 	if *debugMemory {
@@ -118,7 +111,6 @@ func main() {
 	if *versionFlag {
 		s := maestroutils.Version()
 		fmt.Printf("%s\n", s)
-		fmt.Printf("%s\n", logconfig.GetLogLibVersion())
 		os.Exit(0)
 	}
 
@@ -243,19 +235,6 @@ func main() {
 		log.Errorf("!!! ERROR - storage driver failed! %s\n", err.Error())
 	}
 
-	/*********************************************/
-	/*             Logger setup                  */
-	/*********************************************/
-	// We've completed the minimal setup required to bring up logging.
-	// The logger deals with all syslog() calls, all kernel logs,
-	// and all stdout / stderr from processes Maestro starts
-	// This processes the logger config, and sets up where logs should go
-	logerr := logconfig.InitLogManager(config)
-	if logerr != nil {
-		Log.MaestroErrorf("Error starting log subsystem! %s\n", logerr.Error())
-		log.Errorf("Error starting log subsystem! %s\n", logerr.Error())
-	}
-
 	tasks.InitTaskManager()
 	processes.InitProcessMgmt(config.Processes)
 
@@ -279,21 +258,6 @@ func main() {
 				debugging.DEBUG_OUT("Job found in DB: %+v\n", job)
 			}
 		})
-	}
-
-	/*********************************************/
-	/*             System stats                  */
-	/*********************************************/
-	if config.SysStats != nil {
-		sysStatMgr := sysstats.GetManager()
-		ok, err := sysStatMgr.ReadConfig(config.SysStats)
-		if ok {
-			Log.MaestroDebug("sysstats read config ok. Starting...")
-			sysStatMgr.Start()
-		} else {
-			Log.MaestroErrorf("sysstats - error reading config: %s\n", err.Error())
-			log.Errorf("sysstats - error reading config: %s\n", err.Error())
-		}
 	}
 
 	/*********************************************/
@@ -450,7 +414,7 @@ func main() {
 	} else {
 		go bringUpIfs()
 	}
-    // Gateway Capability Discovery
+	// Gateway Capability Discovery
 	go gcd.Gcd_init(config.GatewayCapabilities)
 
 	/*********************************************/

@@ -24,4 +24,4 @@ done
 
 THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-sudo LD_LIBRARY_PATH=${THIS_DIR}/vendor/github.com/armPelionEdge/greasego/deps/lib gdb --args $GOPATH/bin/maestro "$@"
+sudo LD_LIBRARY_PATH=${THIS_DIR}/vendor/github.com/PelionIoT/greasego/deps/lib gdb --args $GOPATH/bin/maestro "$@"

@@ -1,5 +1,5 @@
 
-LDFLAGS ?= -lpthread -pthread 
+LDFLAGS ?= -lpthread -pthread
 # TWSOVERSION is the compiler version...
 # see http://rute.2038bug.com/node26.html.gz
 
@@ -11,7 +11,7 @@ LIBUVDIR= libuv-v1.10.1
 
 CXXFLAGS= -fPIC -std=c++11
 
-ARCH ?=x86 
+ARCH ?=x86
 #ARCH=armel
 SYSCALLS= syscalls-$(ARCH).c
 
@@ -19,7 +19,7 @@ ALLOBJS= $($<:%.cpp=%.o)
 
 DEBUG_OPTIONS=-rdynamic -D_TW_TASK_DEBUG_THREADS_ -DLOGGER_HEAVY_DEBUG
 #-D_TW_BUFBLK_DEBUG_STACK_
-CFLAGS= $(DEBUG_OPTIONS) $(GLIBCFLAG) -D_TW_DEBUG -I./include  -D__DEBUG   -fPIC -Ivendor/github.com/armPelionEdge/greasego/deps/include
+CFLAGS= $(DEBUG_OPTIONS) $(GLIBCFLAG) -D_TW_DEBUG -I./include  -D__DEBUG   -fPIC -Ivendor/github.com/PelionIoT/greasego/deps/include
 
 DEBUG_CFLAGS= -g -DERRCMN_DEBUG_BUILD
 
@@ -37,7 +37,7 @@ LD_TEST_FLAGS= -lgtest
 
 ## concerning the -whole-archive flags: http://stackoverflow.com/questions/14889941/link-a-static-library-to-a-shared-one-during-build
 ## originally we used that when creating the node module version of greaseLogger - but apparently needed for tcmalloc here also
-LDFLAGS += -L$(GREASE_GO_SRC)/deps/build/lib $(GREASE_GO_SRC)/deps/build/lib/libuv.a $(GREASE_GO_SRC)/deps/build/lib/libre2.a -ldl -lTW -Wl,-whole-archive deps/build/lib/libtcmalloc.a -Wl,-no-whole-archive 
+LDFLAGS += -L$(GREASE_GO_SRC)/deps/build/lib $(GREASE_GO_SRC)/deps/build/lib/libuv.a $(GREASE_GO_SRC)/deps/build/lib/libre2.a -ldl -lTW -Wl,-whole-archive deps/build/lib/libtcmalloc.a -Wl,-no-whole-archive
 
 STATIC_LIB_FLAGS= deps/build/lib/libuv.a deps/build/lib/libre2.a -ldl -lTW -Wl,-whole-archive deps/build/lib/libtcmalloc.a -Wl,-no-whole-archive
 
@@ -55,10 +55,10 @@ OBJS_NAMES= $(SRCS_CPP:%.cc=$%.o) $(SRCS_C:%.c=%.o)
 
 ##tw_sparsehash.h
 
-## The -fPIC option tells gcc to create position 
-## independant code which is necessary for shared libraries. Note also, 
-## that the object file created for the static library will be 
-## overwritten. That's not bad, however, because we have a static 
+## The -fPIC option tells gcc to create position
+## independant code which is necessary for shared libraries. Note also,
+## that the object file created for the static library will be
+## overwritten. That's not bad, however, because we have a static
 ## library that already contains the needed object file.
 
 $(OUTPUT_DIR)/%.o: %.cc
@@ -74,10 +74,10 @@ native.a-debug: CFLAGS += -DDEBUG_BINDINGS
 native.a-debug: process_utils.o
 	$(AR) rcs bindings.a $^
 
-native.a: process_utils.o	
-	$(AR) rcs $@ $^ 
+native.a: process_utils.o
+	$(AR) rcs $@ $^
 
-clean: 
+clean:
 	-rm -rf $(OUTPUT_DIR)/*.o $(OUTPUT_DIR)/*.obj $(OUTPUT_DIR)/*.rpo $(OUTPUT_DIR)/*.idb $(OUTPUT_DIR)/*.lib $(OUTPUT_DIR)/*.exe $(OUTPUT_DIR)/*.a $(OUTPUT_DIR)/*~ $(OUTPUT_DIR)/core
 	-rm -rf Debug
 	-rm -f $(TWSOLIBNAME) $(TWSONAME) $(TWSOVERSION)

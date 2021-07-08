@@ -16,13 +16,13 @@ package platforms
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/platforms/fsonly"
-	"github.com/armPelionEdge/maestro/platforms/testplatform"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/platforms/fsonly"
+	"github.com/PelionIoT/maestro/platforms/testplatform"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 type builtin struct {
-	reader    maestroSpecs.PlatformReader
+	reader maestroSpecs.PlatformReader
 }
 
 var builtinsByPlatformName map[string]builtin
@@ -35,7 +35,7 @@ func init() {
 		reader: testplatform.PlatformReader,
 	}
 	builtinsByPlatformName["fsonly"] = builtin{
-		reader:    fsonly.PlatformReader,
+		reader: fsonly.PlatformReader,
 	}
 
 }

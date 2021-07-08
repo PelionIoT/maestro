@@ -17,14 +17,11 @@ package processes
 
 /*
 #cgo amd64 LDFLAGS: -L/usr/lib/x86_64-linux-gnu
-#cgo LDFLAGS: -L${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/lib
-#cgo LDFLAGS: -lgrease -luv -lTW  -lstdc++ -lm -ltcmalloc_minimal -lm
-#cgo CFLAGS: -I${SRCDIR}/../vendor/github.com/armPelionEdge/greasego/deps/include -DDEBUG_BINDINGS -I${SRCDIR}/processes
-#define GREASE_IS_LOCAL 1
+#cgo LDFLAGS: -luv -lTW  -lstdc++ -lm -ltcmalloc_minimal -lm
+#cgo CFLAGS: -DDEBUG_BINDINGS -I${SRCDIR}/processes
 #include <stdio.h>
 #include <stdlib.h>
 #include "process_utils.h"
-#include "grease_lib.h"
 
 */
 import "C"
@@ -42,12 +39,11 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/maestro/configMgr"
-	"github.com/armPelionEdge/maestro/configs"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/configMgr"
+	"github.com/PelionIoT/maestro/configs"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestroSpecs"
 	"github.com/kardianos/osext" // not needed in go1.8 - see their README
 	"golang.org/x/sys/unix"
 )
@@ -121,7 +117,6 @@ func NewExecFileOpts(jobname string, compid string) (opts *ExecFileOpts) {
 	opts.internal.stdout_fd = 0
 	opts.internal.stderr_fd = 0
 	opts.internal.die_on_parent_sig = 0
-	opts.internal.env_GREASE_ORIGIN_ID = 0
 	return
 }
 
@@ -275,7 +270,6 @@ type processStatus struct {
 	execEnv            []string
 	usesOKString       bool
 	deferRunningStatus uint32
-	originLabelId      uint32 // used by greasego to identify this process to the logger
 
 	// If this process is part of a composite process this is set
 	// See masterComposite for more.
@@ -299,9 +293,6 @@ type processStatus struct {
 	// if true, we bundle up all the job data as JSON and send to the process
 	// once started to it's standard input
 	send_composite_jobs_to_stdin bool
-	// make a GREASE_ORIGIN_ID env var, and then when execvpe the new process, attach this env var
-	// which will have the generated origin ID for the process. Useful for deviceJS
-	send_GREASE_ORIGIN_ID bool
 	// string of Job Names this composite process holds
 	childNames                 map[string]int // int is JOB_STATUS
 	mutex                      sync.Mutex
@@ -626,14 +617,6 @@ func (this *epollListener) listener() {
 							if process_ready {
 								this.removeProcessFDListen(int(this.events[ev].Fd))
 								// switch it over to stdout log capture and report ready:
-								var originid uint32
-								if job.originLabelId > 0 {
-									originid = job.originLabelId
-								} else {
-									originid = greasego.GetUnusedOriginId()
-								}
-								greasego.AddFDForStdout(int(this.events[ev].Fd), originid)
-								greasego.AddOriginLabel(job.originLabelId, job.job.GetJobName())
 								job.status = RUNNING
 								// submit an event that process is RUNNING
 								debugging.DEBUG_OUT("Got process_ready (OK string) for %s\n", job.job.GetJobName())
@@ -784,9 +767,6 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 	if (proc_status.job != nil && proc_status.job.IsDieOnParentDeath()) || proc_status.dieOnParentDeath {
 		proc_status.dieOnParentDeath = true
 		opts.internal.die_on_parent_sig = 1
-	}
-	if proc_status.send_GREASE_ORIGIN_ID {
-		opts.internal.env_GREASE_ORIGIN_ID = 1
 	}
 	env := proc_status.execEnv
 	if originatingJob != nil && originatingJob.IsInheritEnv() {
@@ -1626,7 +1606,6 @@ func _findMasterProcessAddChild(child maestroSpecs.JobDefinition) (masterP *proc
 				masterP.compositeId = compId
 				masterP.childNames = make(map[string]int)
 				masterP.send_composite_jobs_to_stdin = templ.container.IsSendCompositeJobsToStdin()
-				masterP.send_GREASE_ORIGIN_ID = templ.container.IsSendGreaseOriginIdEnv()
 
 				addDeps(child, templ.container, masterP)
 

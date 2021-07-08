@@ -16,7 +16,7 @@ package networking
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/log"
 	"fmt"
 	"strings"
 	"strconv"
@@ -52,7 +52,7 @@ func AvailableModems() ([]string, error) {
 			}
 			return lines[n+1:n+num_modems+1], nil
 		}
-	} 
+	}
 	return make([]string, 0), nil
 
 }

@@ -26,7 +26,7 @@ import (
 	"reflect"
 	"sync"
 	"time"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 func TestMain(m *testing.M) {
@@ -121,7 +121,7 @@ func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged strin
 	}
 	if(configgroup == "diffproperty") {
 		if(strings.HasPrefix(fieldchanged, "Nested")) {
-			reflect.ValueOf(&myDiffConfigUpdateFromHook.NestedStruct).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))	
+			reflect.ValueOf(&myDiffConfigUpdateFromHook.NestedStruct).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))
 		} else {
 			reflect.ValueOf(&myDiffConfigUpdateFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
 		}
@@ -134,9 +134,9 @@ func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged strin
 			myConfigSliceFromHook.PtrToNestedConfigSliceProperty = append(myConfigSliceFromHook.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{0, "ptrslice", false, [...]int{0,0,0,0,0}})
 		}
 		if(strings.HasPrefix(fieldchanged, "Ptr")) {
-			reflect.ValueOf(myConfigSliceFromHook.PtrToNestedConfigSliceProperty[index]).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))	
+			reflect.ValueOf(myConfigSliceFromHook.PtrToNestedConfigSliceProperty[index]).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))
 		} else {
-			reflect.ValueOf(&myConfigSliceFromHook.NestedConfigSliceProperty).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))	
+			reflect.ValueOf(&myConfigSliceFromHook.NestedConfigSliceProperty).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))
 		}
 	}
 	return false;
@@ -164,7 +164,7 @@ func TestConfigMonitorSimple(t *testing.T) {
 	var configName string = "myConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
-	
+
 	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
 	if err != nil {
 		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
@@ -183,7 +183,7 @@ func TestConfigMonitorSimple(t *testing.T) {
 	}
 
 	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
-	
+
 	var config, updatedConfig MyConfig
 	config.Property1 = 1
 	config.Property2 = "a"
@@ -231,11 +231,11 @@ func TestConfigMonitorSimple(t *testing.T) {
 	if err != nil {
 		fmt.Printf("\nUnable to put config: %v\n", err)
 		t.FailNow()
-	}	
+	}
 
 	//Wait for few seconds for the callbacks to complete
 	time.Sleep(time.Second * 3)
-	
+
 	//Now verify if the changes are updated
 	if ( myConfigUpdateFromHook.Property1 != updatedConfig.Property1) { t.FailNow() }
 	if ( myConfigUpdateFromHook.Property2 != updatedConfig.Property2) { t.FailNow() }
@@ -254,7 +254,7 @@ func TestConfigMonitorSlice(t *testing.T) {
 	var configName string = "mySliceConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
-	
+
 	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
 	if err != nil {
 		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
@@ -273,7 +273,7 @@ func TestConfigMonitorSlice(t *testing.T) {
 	}
 
 	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
-	
+
 	var config, updatedConfig MyConfigSlice
 	config.NestedConfigSliceProperty[0] = NestedConfigSliceType{1, "", false, [...]int{1,1,1,1,1}}
 	config.NestedConfigSliceProperty[1] = NestedConfigSliceType{2, "", false, [...]int{2,2,2,2,2}}
@@ -317,13 +317,13 @@ func TestConfigMonitorSlice(t *testing.T) {
 	updatedConfig.NestedConfigSliceProperty[1] = NestedConfigSliceType{200, "slice2", true, [...]int{11,22,33,44,55}}
 	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{22, "ptrslice1", true, [...]int{3,6,9,12,15}})
 	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{33, "ptrslice1", true, [...]int{33,66,99,120,150}})
-	
+
 	fmt.Printf("\nPutting updated config: %v\n", config)
 	err = configClient.Config(configName).Put(updatedConfig)
 	if err != nil {
 		fmt.Printf("\nUnable to put config: %v\n", err)
 		t.FailNow()
-	}	
+	}
 
 	//Wait for few seconds for the callbacks to complete
 	time.Sleep(time.Second * 2)
@@ -333,7 +333,7 @@ func TestConfigMonitorSlice(t *testing.T) {
 	if ( myConfigSliceFromHook.NestedConfigSliceProperty[1] != updatedConfig.NestedConfigSliceProperty[1]) { t.FailNow() }
 	if ( *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[0] != *updatedConfig.PtrToNestedConfigSliceProperty[0]) { t.FailNow() }
 	if ( *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[1] != *updatedConfig.PtrToNestedConfigSliceProperty[1]) { t.FailNow() }
-	
+
 	//Remove monitor for this config
 	ddbConfigMon.RemoveMonitorConfig(configName)
 }
@@ -347,7 +347,7 @@ func TestConfigMonitorMultipleGroup(t *testing.T) {
 	var configName string = "myConfigMultiGroup" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
-	
+
 	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
 	if err != nil {
 		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
@@ -366,7 +366,7 @@ func TestConfigMonitorMultipleGroup(t *testing.T) {
 	}
 
 	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
-	
+
 	var config, updatedConfig MyConfigMultipleGroup
 	config.Property1 = 1
 	config.Property2 = 2
@@ -417,11 +417,11 @@ func TestConfigMonitorMultipleGroup(t *testing.T) {
 	if err != nil {
 		fmt.Printf("\nUnable to put config: %v\n", err)
 		t.FailNow()
-	}	
+	}
 
 	//Wait for few seconds for the callbacks to complete
 	time.Sleep(time.Second * 3)
-	
+
 	//Now verify if the changes are updated
 	if ( myConfigMultipleGroup.Property1 != updatedConfig.Property1) { t.FailNow() }
 	if ( myConfigMultipleGroup.Property2 != updatedConfig.Property2) { t.FailNow() }
@@ -441,7 +441,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	var diffConfigName string = "myDiffConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
-	
+
 	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
 	if err != nil {
 		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
@@ -460,7 +460,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	}
 
 	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
-	
+
 	var config, updatedConfig MyConfig
 	var diffConfig, diffUpdatedConfig MyDiffConfig
 	config.Property1 = 1
@@ -549,7 +549,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 
 	//Wait for few seconds for the callbacks to complete
 	time.Sleep(time.Second * 3)
-	
+
 	//Now verify if the changes are updated
 	if ( myConfigUpdateFromHook.Property1 != updatedConfig.Property1) { t.FailNow() }
 	if ( myConfigUpdateFromHook.Property2 != updatedConfig.Property2) { t.FailNow() }
@@ -558,7 +558,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 
 	if ( myDiffConfigUpdateFromHook.Name != diffUpdatedConfig.Name) { t.FailNow() }
 	if ( myDiffConfigUpdateFromHook.NestedStruct != nestedStruct) { t.FailNow() }
-	
+
 	//Remove monitor for this config
 	ddbConfigMon.RemoveMonitorConfig(configName)
 }
@@ -574,7 +574,7 @@ func TestConfigMonitorMultipleUpdates(t *testing.T) {
 	var configName string = "myConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
-	
+
 	relayCaChain, err := ioutil.ReadFile(relayCaChainFile)
 	if err != nil {
 		fmt.Printf("Unable to load CA chain from %s: %v\n", relayCaChainFile, err)
@@ -593,7 +593,7 @@ func TestConfigMonitorMultipleUpdates(t *testing.T) {
 	}
 
 	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
-	
+
 	var config, updatedConfig MyConfig
 	updatedConfig.Property1 = 100
 	updatedConfig.Property2 = "asdf"
@@ -655,7 +655,7 @@ func TestConfigMonitorMultipleUpdates(t *testing.T) {
 func ConfigUpdater(ddbClient *DDBRelayConfigClient) {
 	var updateIntVal int = 0
 	var configName string = "myConfig"
-	
+
 	defer wg.Done()
 
 	for i := 0; i < 5; i++ {

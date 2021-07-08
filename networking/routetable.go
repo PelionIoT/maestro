@@ -21,9 +21,9 @@ import (
 	"net"
 	"sync"
 
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/netlink"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/netlink"
 )
 
 const (
@@ -178,7 +178,7 @@ func (table *routingTable) findPreferredRoute() (ok bool, ifname string, route *
 
 func (table *routingTable) setPreferredRoute(setDefaultRoute bool) (err error) {
 	table.lock.Lock()
-	if(setDefaultRoute) {
+	if setDefaultRoute {
 		// was there an old route, remove it.
 		if table.oldDefaultRoute != nil { //} && (table.oldDefaultRoute != table.defaultRoute) {
 			table.lock.Unlock()

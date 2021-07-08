@@ -42,22 +42,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestro/networking/arp"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestro/tasks"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/netevents"
-	"github.com/armPelionEdge/netlink"
-	"github.com/armPelionEdge/stow"
-	"github.com/armPelionEdge/structmutate"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/maestroConfig"
+	"github.com/PelionIoT/maestro/networking/arp"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestro/tasks"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/netevents"
+	"github.com/PelionIoT/netlink"
+	"github.com/PelionIoT/stow"
+	"github.com/PelionIoT/structmutate"
 	"github.com/boltdb/bolt"
 	"golang.org/x/sys/unix"
 
-	"github.com/armPelionEdge/dhcp4"
-	"github.com/armPelionEdge/dhcp4client"
+	"github.com/PelionIoT/dhcp4"
+	"github.com/PelionIoT/dhcp4client"
 )
 
 const (
@@ -798,49 +798,49 @@ func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkCon
 		if this.activeNetworkConfig.DontSetDefaultRoute != config.DontSetDefaultRoute {
 			this.activeNetworkConfig.DontSetDefaultRoute = config.DontSetDefaultRoute
 			log.MaestroInfof("NetworkManager: submitConfig: DontSetDefaultRoute changed to: %t\n",
-					 this.activeNetworkConfig.DontSetDefaultRoute)
+				this.activeNetworkConfig.DontSetDefaultRoute)
 		}
 
 		if this.activeNetworkConfig.DnsIgnoreDhcp != config.DnsIgnoreDhcp {
 			this.activeNetworkConfig.DnsIgnoreDhcp = config.DnsIgnoreDhcp
 			log.MaestroInfof("NetworkManager: submitConfig: DnsIgnoreDhcp changed to: %t\n",
-					 this.activeNetworkConfig.DnsIgnoreDhcp)
+				this.activeNetworkConfig.DnsIgnoreDhcp)
 		}
 
 		if this.activeNetworkConfig.AltResolvConf != config.AltResolvConf {
 			this.activeNetworkConfig.AltResolvConf = config.AltResolvConf
 			log.MaestroInfof("NetworkManager: submitConfig: AltResolvConf changed to: %s\n",
-					 this.activeNetworkConfig.AltResolvConf)
+				this.activeNetworkConfig.AltResolvConf)
 		}
 
 		if this.activeNetworkConfig.DnsRunLocalCaching != config.DnsRunLocalCaching {
 			this.activeNetworkConfig.DnsRunLocalCaching = config.DnsRunLocalCaching
 			log.MaestroInfof("NetworkManager: submitConfig: DnsRunLocalCaching changed to: %t\n",
-					 this.activeNetworkConfig.DnsRunLocalCaching)
+				this.activeNetworkConfig.DnsRunLocalCaching)
 		}
 
 		if this.activeNetworkConfig.DnsForwardTo != config.DnsForwardTo {
 			this.activeNetworkConfig.DnsForwardTo = config.DnsForwardTo
 			log.MaestroInfof("NetworkManager: submitConfig: DnsForwardTo changed to: %s\n",
-					 this.activeNetworkConfig.DnsForwardTo)
+				this.activeNetworkConfig.DnsForwardTo)
 		}
 
 		if this.activeNetworkConfig.DnsRunRootLookup != config.DnsRunRootLookup {
 			this.activeNetworkConfig.DnsRunRootLookup = config.DnsRunRootLookup
 			log.MaestroInfof("NetworkManager: submitConfig: DnsRunRootLookup changed to: %t\n",
-					 this.activeNetworkConfig.DnsRunRootLookup)
+				this.activeNetworkConfig.DnsRunRootLookup)
 		}
 
 		if this.activeNetworkConfig.DnsHostsData != config.DnsHostsData {
 			this.activeNetworkConfig.DnsHostsData = config.DnsHostsData
 			log.MaestroInfof("NetworkManager: submitConfig: DnsHostsData changed to: %s\n",
-					 this.activeNetworkConfig.DnsHostsData)
+				this.activeNetworkConfig.DnsHostsData)
 		}
 
 		if this.activeNetworkConfig.FallbackNameservers != config.FallbackNameservers {
 			this.activeNetworkConfig.FallbackNameservers = config.FallbackNameservers
 			log.MaestroInfof("NetworkManager: submitConfig: FallbackNameservers changed to: %s\n",
-					 this.activeNetworkConfig.FallbackNameservers)
+				this.activeNetworkConfig.FallbackNameservers)
 		}
 
 		// skip Existing
@@ -2218,7 +2218,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 							}
 						}
 
-						if(ifconfig.Type == "wifi") {
+						if ifconfig.Type == "wifi" {
 							//make sure interface is up before trying to disconnect wifi
 							err := netlink.LinkSetUp(link)
 							if err != nil {
@@ -2231,7 +2231,7 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 								} else {
 									log.MaestroInfof("NetworkManager:  Error while disconnecting wifi: %s %s\n", status, err2.Error())
 								}
-								
+
 							}
 							//make sure interface is up before trying to connect to wifi
 							err = netlink.LinkSetUp(link)
@@ -2240,9 +2240,9 @@ func (mgr *networkManagerInstance) SubmitTask(task *tasks.MaestroTask) (errout e
 							} else {
 								status, ip, err2 := ConnectToWifi(ifconfig.IfName, ifconfig.WifiSsid, ifconfig.WifiPassword)
 								if status == "address_not_allocated" {
-									log.MaestroInfof("NetworkManager: Wifi Connected to SSID: %s Waiting to get an IP",ifconfig.WifiSsid)
+									log.MaestroInfof("NetworkManager: Wifi Connected to SSID: %s Waiting to get an IP", ifconfig.WifiSsid)
 								} else if status == "connected" {
-									log.MaestroInfof("NetworkManager: Wifi Connected to SSID: %s Got IP %s",ifconfig.WifiSsid, ip)
+									log.MaestroInfof("NetworkManager: Wifi Connected to SSID: %s Got IP %s", ifconfig.WifiSsid, ip)
 								} else {
 									log.MaestroErrorf("NetworkManager: Wifi not connected Error: %s %s", status, err2.Error())
 									errout = err2

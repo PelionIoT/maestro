@@ -45,7 +45,7 @@ if [[ -n "${DEBUG:-}" ]]; then
 fi
 
 if [[ -n "${DEBUG:-}" ]] && [[ -n "${DEBUG2:-}" ]]; then
-  echo "DEBUG2 ON"	
+  echo "DEBUG2 ON"
   GOTAGS+=" -tags debug2"
 fi
 
@@ -55,8 +55,8 @@ popd
 # let's get the current commit, and make sure Version() has this.
 COMMIT=$(git rev-parse --short=7 HEAD)
 DATE=$(date)
-sed -i -e "s/COMMIT_NUMBER/${COMMIT}/g" maestroutils/status.go 
-sed -i -e "s/BUILD_DATE/${DATE}/g" maestroutils/status.go 
+sed -i -e "s/COMMIT_NUMBER/${COMMIT}/g" maestroutils/status.go
+sed -i -e "s/BUILD_DATE/${DATE}/g" maestroutils/status.go
 
 # highlight errors: https://serverfault.com/questions/59262/bash-print-stderr-in-red-color
 # color()(set -o pipefail;"$@" 2>&1>&3|sed $'s,.*,\e[31m&\e[m,'>&2)3>&1
@@ -70,9 +70,9 @@ if [[ "${1:-}" != "preprocess_only" ]]; then
   mkdir -p $GOBIN
   pushd $GOBIN
   if [[ -n "${TIGHT:-}" ]]; then
-    go build ${GOTAGS} -ldflags="-s -w" "$@" github.com/armPelionEdge/maestro/maestro 
+    go build ${GOTAGS} -ldflags="-s -w" "$@" github.com/PelionIoT/maestro/maestro
   else
-    go build ${GOTAGS} "$@" github.com/armPelionEdge/maestro/maestro 
+    go build ${GOTAGS} "$@" github.com/PelionIoT/maestro/maestro
   fi
   popd
 fi

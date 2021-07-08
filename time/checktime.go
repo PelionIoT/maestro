@@ -26,8 +26,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
 )
 
 // Simple sub package to handle getting the time from a server, using a
@@ -99,7 +99,7 @@ type ClientConfig struct {
 
 	// If this flag is set, client library logging will be printed
 	//EnableLogging bool
-	// number of buffers to hold. Remember, grease lib also holds its own buffers, so this sould be minimal
+	// number of buffers to hold.
 	// (optional)
 	//NumBuffers uint32 `yaml:"num_buffers"`
 	// MaxBuffers is the max number of the said buffers
