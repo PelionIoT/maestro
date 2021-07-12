@@ -23,13 +23,12 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <string.h>
 
 // Linux only:
 #include <sys/prctl.h>
 
 #include <uv.h>
-
-#include "grease_lib.h"
 
 #define DEBUG_MAESTRO_NATIVE 1
 #include "process_utils.h"
@@ -123,28 +122,6 @@ void setCStringInArray(char **a, char *s, int pos) {
 	a[pos] = s;
 }
 
-void childClosedFDCallback (GreaseLibError *err, int stream_type, int fd) {
-	if(err) {
-
-	} else {
-		printf("CHILD CLOSED FD: type %d, fd %d for pid %d\n", stream_type,fd,(int)getpid());
-		
-		if(stream_type == 1) {
-			GreaseLib_removeFDForStdout(fd);
-		} else if (stream_type==2) {
-			GreaseLib_removeFDForStderr(fd);	
-		}
-		
-		sawClosedRedirectedFD(); // call back into Go land
-
-		// pid_t lastpid;
-		// while((lastpid = reapChildren()) > 0) {
-		// 	printf("Reaped %d\n",lastpid);
-		// }
-	}
-}
-
-
 int createChild(char* szCommand,
 		char* aArguments[],
 		char* aEnvironment[],
@@ -196,19 +173,7 @@ int createChild(char* szCommand,
 
 	DBG_MAESTRO("createChild 1");
 
-	uint32_t childStartingOriginID = 1000;
-	GreaseLib_getUnusedOriginId(&childStartingOriginID);
-	if(opts) {
-		opts->originLabel = childStartingOriginID;
-	}
-	if(opts && opts->jobname) {
-		GreaseLib_addOriginLabel( childStartingOriginID, opts->jobname, strlen(opts->jobname) );
-		DBG_MAESTRO("Logging: set label to %s %d",opts->jobname,childStartingOriginID);
-	} else {
-		GreaseLib_addOriginLabel( childStartingOriginID, szCommand, strlen(szCommand) );
-	}
 	DBG_MAESTRO("createChild 1.1");
-	// GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
 	DBG_MAESTRO("createChild 1.2");
 	if(!opts->ok_string) {
 	} else {
@@ -371,9 +336,6 @@ int createChild(char* szCommand,
 		}
 
 		close(aStdinPipe[PIPE_WRITE]);
-
-		GreaseLib_addFDForStderr( aStderrPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
-		GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
 
 		// Just a char by char read here, you can change it accordingly
 		//    while (read(aStdoutPipe[PIPE_READ], &nChar, 1) == 1) {

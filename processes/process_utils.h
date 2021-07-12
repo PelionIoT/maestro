@@ -20,7 +20,6 @@
 #endif
 #include <unistd.h>
 #include <stdint.h>
-#include "grease_lib.h"
 
 #define PROCESS_USE_PGID 0x1
 #define PROCESS_NEW_SID 0x2  // overrides the above
@@ -36,7 +35,7 @@ typedef struct {
 	char *jobname; // if not NULL, then this will be the 'origin' label
 	int ok_string;
 	int stdout_fd; // sometimes set, if we need to watch the output
-	int stderr_fd; 
+	int stderr_fd;
 } childOpts;
 
 typedef struct {
@@ -52,8 +51,6 @@ void setCStringInArray(char **array, char *s, int pos);
 
 // defined in Go land:
 void sawClosedRedirectedFD(void);
-
-void childClosedFDCallback (GreaseLibError *err, int stream_type, int fd);
 
 char **makeCStringArray(int n);
 void freeCStringArray(char **a);

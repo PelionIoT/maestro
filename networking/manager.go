@@ -56,8 +56,8 @@ import (
 	"github.com/boltdb/bolt"
 	"golang.org/x/sys/unix"
 
-	"github.com/PelionIoT/dhcp4"
-	"github.com/PelionIoT/dhcp4client"
+	"github.com/armPelionEdge/dhcp4"
+	"github.com/armPelionEdge/dhcp4client"
 )
 
 const (

@@ -17,7 +17,7 @@ package processes
 
 /*
 #cgo amd64 LDFLAGS: -L/usr/lib/x86_64-linux-gnu
-#cgo LDFLAGS: -luv -lTW  -lstdc++ -lm -ltcmalloc_minimal -lm
+#cgo LDFLAGS: -luv -lstdc++ -lm
 #cgo CFLAGS: -DDEBUG_BINDINGS -I${SRCDIR}/processes
 #include <stdio.h>
 #include <stdlib.h>

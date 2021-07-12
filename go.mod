@@ -3,7 +3,6 @@ module github.com/PelionIoT/maestro
 go 1.13
 
 require (
-	github.com/PelionIoT/devicedb v0.0.0-20190709164432-bb5337257135
 	github.com/PelionIoT/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7
 	github.com/PelionIoT/dhcp4client v0.0.0-20190409055833-be924652a34a
 	github.com/PelionIoT/httprouter v0.0.0-20170104185816-8a45e95fc75c
@@ -17,12 +16,12 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 // indirect
 	github.com/ThomasRooney/gexpect v0.0.0-20161231170123-5482f0350944 // indirect
 	github.com/WigWagCo/wigwag-go-logger v0.0.0-20190410170809-484676711aee // indirect
-	github.com/armPelionEdge/devicedb v0.0.0-20200515102353-d24df289ab24 // indirect
-	github.com/armPelionEdge/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7 // indirect
-	github.com/armPelionEdge/dhcp4client v0.0.0-20190409055833-be924652a34a // indirect
+	github.com/armPelionEdge/devicedb v0.0.0-20200515102353-d24df289ab24
+	github.com/armPelionEdge/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7
+	github.com/armPelionEdge/dhcp4client v0.0.0-20190409055833-be924652a34a
 	github.com/armPelionEdge/netlink v0.0.0-20190409055558-1cddec0bf368 // indirect
 	github.com/armPelionEdge/wigwag-go-logger v0.0.0-20190410170809-484676711aee // indirect
-	github.com/armPelionEdge/wpa-connect v0.0.0-20200827001433-10297d26dfc8
+	github.com/armPelionEdge/wpa-connect v0.0.0-00010101000000-000000000000
 	github.com/boltdb/bolt v1.3.2-0.20180302180052-fd01fc79c553
 	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/cenkalti/backoff v2.1.0+incompatible // indirect
@@ -57,4 +56,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-replace github.com/shirou/gopsutil v2.16.12+incompatible => github.com/PelionIoT/gopsutil v2.16.12+incompatible
+replace (
+	github.com/armPelionEdge/wpa-connect => github.com/PelionIoT/wpa-connect v0.0.0-20200827001433-10297d26dfc8
+	github.com/shirou/gopsutil v2.16.12+incompatible => github.com/PelionIoT/gopsutil v2.16.12+incompatible
+)

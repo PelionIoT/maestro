@@ -1,6 +1,4 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-github.com/PelionIoT/devicedb v0.0.0-20190709164432-bb5337257135 h1:ilF0alvp36uR4GYHH3UuW66aI0HFDxVQyABh8RD8SrU=
-github.com/PelionIoT/devicedb v0.0.0-20190709164432-bb5337257135/go.mod h1:RDi85FndNHuzYUnqOiiMPl7VTUjW0/mBi9lCne04XDs=
 github.com/PelionIoT/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7 h1:kzmJ+ycnW8nkjmfoMWN526jk2o+sy3q761GJ0dsOVqU=
 github.com/PelionIoT/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7/go.mod h1:QK8i9fctsFlEzAXfRJ7omwz2EVBVtuKRl3TUBvd1VcM=
 github.com/PelionIoT/dhcp4client v0.0.0-20190409055833-be924652a34a h1:EHYFVk0+2NK/eb0yAkL0v52FO4VZChsX78aYp/5f/aw=
@@ -19,6 +17,8 @@ github.com/PelionIoT/stow v2.2.1-0.20170902223607-b0e83fd073d4+incompatible h1:x
 github.com/PelionIoT/stow v2.2.1-0.20170902223607-b0e83fd073d4+incompatible/go.mod h1:nhJnSbUD7CpZ6uejTuQWCnjeiCVVD6yJ0z1mOzv7qkw=
 github.com/PelionIoT/structmutate v0.0.0-20190409035007-57b37c3ac1d9 h1:P9lTNPCBto5FGmhAw+XIeicNEUI43eIjEK6irpt/b9o=
 github.com/PelionIoT/structmutate v0.0.0-20190409035007-57b37c3ac1d9/go.mod h1:1r6dseDTzlceKrzsDwkUoiiPZ2UhicxA9eJKtJBvEcE=
+github.com/PelionIoT/wpa-connect v0.0.0-20200827001433-10297d26dfc8 h1:FAV9RQ9TkbtmY2X/xwJggYnkI37QYfK/deCymwzZ0OM=
+github.com/PelionIoT/wpa-connect v0.0.0-20200827001433-10297d26dfc8/go.mod h1:Z4af9JUiO7Y/e4K9e6GPMf2JZz3YmUNziqyPanBqSvY=
 github.com/PelionIoT/zeroconf v0.0.0-20180517163623-78d055b6305c h1:kzgLuDuqnrsWuDQYM2b51KorZKuPLM0D9Hd4LZhDVNQ=
 github.com/PelionIoT/zeroconf v0.0.0-20180517163623-78d055b6305c/go.mod h1:SpoEzcoTN3OgIaQTAXEbdWVS8JUD3uPruCUmfsZ4l4k=
 github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 h1:5sXbqlSomvdjlRbWyNqkPsJ3Fg+tQZCbgeX1VGljbQY=
@@ -42,8 +42,6 @@ github.com/armPelionEdge/netlink v0.0.0-20190409055558-1cddec0bf368 h1:gvbq/PGSw
 github.com/armPelionEdge/netlink v0.0.0-20190409055558-1cddec0bf368/go.mod h1:bfVzSOo4BrQ6qVVkt5PBv/wpHMSMssobZmV2scBgnyg=
 github.com/armPelionEdge/wigwag-go-logger v0.0.0-20190410170809-484676711aee h1:04QMFGIjLv3IXXAlEtvTO1V3tJ9T5obMj9Lzehb2+Zs=
 github.com/armPelionEdge/wigwag-go-logger v0.0.0-20190410170809-484676711aee/go.mod h1:9sZEdJAnZqxcxmB/vpnI71RoC4xps9tveHhsPKj21k0=
-github.com/armPelionEdge/wpa-connect v0.0.0-20200827001433-10297d26dfc8 h1:1kNTAnCBBYSk6xkovXAJu+6EQgPF2FtFvswzvBPhs28=
-github.com/armPelionEdge/wpa-connect v0.0.0-20200827001433-10297d26dfc8/go.mod h1:GegPsQ8WG2R5PVC3YDsGGkZRA0zHiHW6EKEyWrDUq9c=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

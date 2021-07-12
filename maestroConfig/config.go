@@ -58,7 +58,6 @@ type YAMLMaestroConfig struct {
 	Mdns                 *MdnsSetup                              `yaml:"mdns"`
 	Watchdog             *maestroSpecs.WatchdogConfig            `yaml:"watchdog"`
 	Tags                 []string                                `yaml:"tags"`
-	Targets              []maestroSpecs.LogTarget                `yaml:"targets"`
 	ClientId             string                                  `yaml:"clientId"`
 	ConfigDBPath         string                                  `yaml:"configDBPath"` // where Maestro should look for it's database
 	Stats                maestroSpecs.StatsConfigPayload         `yaml:"stats"`
