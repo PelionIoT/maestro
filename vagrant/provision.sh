@@ -2,7 +2,7 @@
 
 # Install prerequisite packages
 apt-get update
-apt-get install -y build-essential wget git m4 python
+apt-get install -y build-essential wget git m4 python libuv1-dev
 
 # Download GO
 wget https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz

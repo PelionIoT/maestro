@@ -106,6 +106,13 @@ On Windows:
 VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "sudo maestro"
 ```
 
+### Local Build
+
+```
+mkdir -p bin
+go build -o bin/maestro maestro/main.go
+```
+
 ### Testing
 
 #### Unit tests
