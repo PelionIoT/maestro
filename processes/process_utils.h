@@ -29,7 +29,6 @@ typedef struct {
 	int die_on_parent_sig;
 	uint32_t flags;
 	uint32_t originLabel; // set by ExecFile - the ID used by the logger for this process
-	int env_GREASE_ORIGIN_ID; // if non-zero, then a GREASE_ORIGIN_ID env var will be created with the origin label ID
 	pid_t pgid;
 	char *message;
 	char *jobname; // if not NULL, then this will be the 'origin' label

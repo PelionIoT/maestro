@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <stdlib.h>
@@ -179,25 +179,6 @@ int createChild(char* szCommand,
 	} else {
 		DBG_MAESTRO("Not redirecting STDOUT - have ok_string opt");
 		opts->stdout_fd = aStdoutPipe[PIPE_READ];
-	}
-
-	char *tempEnv[1]; // used if a environmental array was not passed in
-	if (opts->env_GREASE_ORIGIN_ID) {
-		DBG_MAESTRO("createChild 1.2a");
-		char *out = (char *) malloc(30);
-		sprintf(out,"GREASE_ORIGIN_ID=%d",childStartingOriginID);
-		DBG_MAESTRO("Logging: %s",out);
-		int z = 0;
-		// See processMgmt.go: convertToCStrings() - we make some extra room there in case this is needed.
-		if(aEnvironment) {
-			while(aEnvironment[z] != NULL) {
-				z++;
-			}
-			aEnvironment[z] = out;
-		} else {
-			aEnvironment = tempEnv;
-			tempEnv[0] = out;
-		}
 	}
 
 	DBG_MAESTRO("createChild - about to fork()");

@@ -1,8 +1,4 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-github.com/PelionIoT/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7 h1:kzmJ+ycnW8nkjmfoMWN526jk2o+sy3q761GJ0dsOVqU=
-github.com/PelionIoT/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7/go.mod h1:QK8i9fctsFlEzAXfRJ7omwz2EVBVtuKRl3TUBvd1VcM=
-github.com/PelionIoT/dhcp4client v0.0.0-20190409055833-be924652a34a h1:EHYFVk0+2NK/eb0yAkL0v52FO4VZChsX78aYp/5f/aw=
-github.com/PelionIoT/dhcp4client v0.0.0-20190409055833-be924652a34a/go.mod h1:wTCvxfMT9nmRYbnTp2b7zDYOwo6txEhXMBVM5xAu08o=
 github.com/PelionIoT/httprouter v0.0.0-20170104185816-8a45e95fc75c h1:X0FRCIZh6v5y0peyUHJe6NladEWtyJ1OV4L5BjjfAP0=
 github.com/PelionIoT/httprouter v0.0.0-20170104185816-8a45e95fc75c/go.mod h1:Ndp0n7Ih7kiH5fCmU9kobtB+EznNZn7ce5K2Tq8ox6A=
 github.com/PelionIoT/maestro-plugins-template v0.0.0-20190409060302-5b22b1f86b05 h1:BN0T3iY905PA3vaPesXSd0u0Or/lt6AiUtTzPLg1WNA=

@@ -3,8 +3,6 @@ module github.com/PelionIoT/maestro
 go 1.13
 
 require (
-	github.com/PelionIoT/dhcp4 v0.0.0-20180917122751-7f54fcf15bd7
-	github.com/PelionIoT/dhcp4client v0.0.0-20190409055833-be924652a34a
 	github.com/PelionIoT/httprouter v0.0.0-20170104185816-8a45e95fc75c
 	github.com/PelionIoT/maestro-plugins-template v0.0.0-20190409060302-5b22b1f86b05
 	github.com/PelionIoT/maestroSpecs v2.4.0+incompatible

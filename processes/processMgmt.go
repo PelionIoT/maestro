@@ -810,7 +810,6 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 	} else {
 		pid, errno = ExecFile(path, nil, env, opts)
 	}
-	proc_status.originLabelId = opts.GetOriginLabelId()
 
 	if errno != 0 {
 		proc_status.lockingSetStatus(FAILED)
