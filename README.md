@@ -7,7 +7,6 @@ Maestro is a replacement for a number of typical Linux OS system utilities and m
 
 Major tasks maestro provides:
 - syslog daemon (replaces syslog-ng, syslogd, and others)
-- more advanced logging via the [grease-log-client](https://github.com/PelionIoT/grease-log-client) library
 - to-the-cloud logging
 - periodic system stats to cloud
 - config management for apps / container (config file templating, config API)
