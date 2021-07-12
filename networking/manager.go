@@ -556,7 +556,7 @@ func removeElement(array []string, value string) []string {
 	index of element or -1 if not found
 */
 func indexOf(array []string, value string) int {
-	for i, _ := range array {
+	for i := range array {
 		if array[i] == value {
 			return i
 		}

@@ -804,11 +804,11 @@ func TestNetworkConfigSimpleUpdateInDDB(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	fmt.Printf("Validate DnsIgnoreDhcp value in network manager\n")
-	if manager.networkConfig.DnsIgnoreDhcp != true {
-		log.Fatalf("Test failed, values are different for DnsIgnoreDhcp expected:true actual:%v\n", manager.networkConfig.DnsIgnoreDhcp)
+	if manager.activeNetworkConfig.DnsIgnoreDhcp != true {
+		log.Fatalf("Test failed, values are different for DnsIgnoreDhcp expected:true actual:%v\n", manager.activeNetworkConfig.DnsIgnoreDhcp)
 		t.FailNow()
 	} else {
-		fmt.Printf("DnsIgnoreDhcp value in network manager: %v\n", manager.networkConfig.DnsIgnoreDhcp)
+		fmt.Printf("DnsIgnoreDhcp value in network manager: %v\n", manager.activeNetworkConfig.DnsIgnoreDhcp)
 	}
 
 	storage.shutdown(manager)
@@ -915,11 +915,11 @@ func TestNetworkConfigNameserversUpdateInDDB(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	fmt.Printf("Validate Nameservers value in network manager\n")
-	if (manager.networkConfig.Nameservers[0] != "dns1.com") || (manager.networkConfig.Nameservers[1] != "dns2.com") || (manager.networkConfig.Nameservers[2] != "dns3.com") {
-		log.Fatalf("Test failed, values are different for Nameservers :%v\n", manager.networkConfig.Nameservers)
+	if (manager.activeNetworkConfig.Nameservers[0] != "dns1.com") || (manager.activeNetworkConfig.Nameservers[1] != "dns2.com") || (manager.activeNetworkConfig.Nameservers[2] != "dns3.com") {
+		log.Fatalf("Test failed, values are different for Nameservers :%v\n", manager.activeNetworkConfig.Nameservers)
 		t.FailNow()
 	} else {
-		fmt.Printf("Nameservers value in network manager: %v\n", manager.networkConfig.Nameservers)
+		fmt.Printf("Nameservers value in network manager: %v\n", manager.activeNetworkConfig.Nameservers)
 	}
 
 	storage.shutdown(manager)
@@ -1197,12 +1197,12 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 2)
 
-	if manager.networkConfig.Interfaces[0].IfName != "wifi1" {
-		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:wifi1 actual:%v\n", manager.networkConfig.Interfaces[0].IfName)
+	if manager.activeNetworkConfig.Interfaces[0].IfName != "wifi1" {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:wifi1 actual:%v\n", manager.activeNetworkConfig.Interfaces[0].IfName)
 		t.FailNow()
 	}
-	if manager.networkConfig.Interfaces[1].IfName != "wifi2" {
-		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:wifi2 actual:%v\n", manager.networkConfig.Interfaces[1].IfName)
+	if manager.activeNetworkConfig.Interfaces[1].IfName != "wifi2" {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:wifi2 actual:%v\n", manager.activeNetworkConfig.Interfaces[1].IfName)
 		t.FailNow()
 	}
 
@@ -1247,12 +1247,12 @@ func TestNetworkConfigUpdateInDDBMultipleInterfaces(t *testing.T) {
 	//Wait for sometime for everything to come up on Network manager
 	time.Sleep(time.Second * 2)
 
-	if manager.networkConfig.Interfaces[0].IfName != "eth5" {
-		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth5 actual:%v\n", manager.networkConfig.Interfaces[0].IfName)
+	if manager.activeNetworkConfig.Interfaces[0].IfName != "eth5" {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth5 actual:%v\n", manager.activeNetworkConfig.Interfaces[0].IfName)
 		t.FailNow()
 	}
-	if manager.networkConfig.Interfaces[1].IfName != "eth6" {
-		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth6 actual:%v\n", manager.networkConfig.Interfaces[1].IfName)
+	if manager.activeNetworkConfig.Interfaces[1].IfName != "eth6" {
+		log.Fatalf("Test failed, values are different for Interfaces[0].IfName expected:eth6 actual:%v\n", manager.activeNetworkConfig.Interfaces[1].IfName)
 		t.FailNow()
 	}
 
