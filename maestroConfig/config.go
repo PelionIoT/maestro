@@ -98,14 +98,14 @@ type DebugOptions struct {
 }
 
 type GcdConfig struct {
-	EdgeCoreSocketPath string `yaml:"edge_core_socketpath"`
-	ConfigObjectId int `yaml:"lwm2m_objectid"`
-	GatewayResources []GatewayResource `yaml:"gateway_resources"`
+	EdgeCoreSocketPath string            `yaml:"edge_core_socketpath"`
+	ConfigObjectId     int               `yaml:"lwm2m_objectid"`
+	GatewayResources   []GatewayResource `yaml:"gateway_resources"`
 }
 
 type GatewayResource struct {
-	Name string `yaml:"name"`
-	Enable bool `yaml:"enable"`
+	Name           string `yaml:"name"`
+	Enable         bool   `yaml:"enable"`
 	ConfigFilePath string `yaml:"config_filepath"`
 }
 
@@ -411,7 +411,7 @@ func (ysc *YAMLMaestroConfig) GetSyslogSocket() (ret string) {
 // FillInDefaults goes through specific parts of the config and puts in defaults if strings
 // were missing or empty.
 func (ysc *YAMLMaestroConfig) FillInDefaults() {
-	for n, _ := range ysc.JobStarts {
+	for n := range ysc.JobStarts {
 		_job := maestroSpecs.JobDefinition(&ysc.JobStarts[n])
 		if len(ysc.JobStarts[n].ConfigName) < 1 {
 			ysc.JobStarts[n].ConfigName = _job.GetConfigName()

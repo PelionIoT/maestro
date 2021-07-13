@@ -126,4 +126,3 @@ func ReadWithPlatformReader(dict *templates.TemplateVarDictionary, path string, 
 
 	return
 }
-

@@ -447,7 +447,7 @@ func InitLogManager(config *maestroConfig.YAMLMaestroConfig) (err error) {
 	if config.LinuxKernelLog && config.LinuxKernelLogLegacy {
 		return errors.New("Invalid Config: You can't have both linuxKernelLog: true AND linuxKernelLogLegacy: true. Choose one")
 	}
-	
+
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 	greasego.StartGreaseLib(func() {

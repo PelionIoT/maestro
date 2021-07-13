@@ -39,7 +39,7 @@ const MIN_PROCS_NEEDED int = 2
 func TestMain(m *testing.M) {
 	num_max_cores := runtime.GOMAXPROCS(0)
 	fmt.Printf("Events test: Max number of available cores %d\n", num_max_cores)
-	if(num_max_cores < MIN_PROCS_NEEDED) {
+	if num_max_cores < MIN_PROCS_NEEDED {
 		log.Fatalf("Unable to run tests, GOMAXPROCS less than (MIN_PROCS_NEEDED=%d)\n", MIN_PROCS_NEEDED)
 	}
 	m.Run()
@@ -997,7 +997,7 @@ func TestTimeoutDoesHappenGetSub(t *testing.T) {
 func TestFanout2Multi(t *testing.T) {
 
 	//In this test we post 3 events to a fanout enabled event channel
-	//And we then let 2 listeners to read from it and make sure they receive it	
+	//And we then let 2 listeners to read from it and make sure they receive it
 	_, id, err := MakeEventChannel("stuff2", true, false)
 	if err != nil {
 		log.Fatalf("Error making event channel: %+v\n", err)
@@ -1018,9 +1018,9 @@ func TestFanout2Multi(t *testing.T) {
 		t.FailNow()
 	}
 	sub2.ReleaseChannel()
-	
+
 	hook := newLatch(3)
-		
+
 	//Run emitter in main goroutine which post 3 events to channels
 	d := &dat{
 		x: 1,
@@ -1040,7 +1040,7 @@ func TestFanout2Multi(t *testing.T) {
 	d = &dat{
 		x: 2,
 	}
-	
+
 	fmt.Println("@SubmitEvent 2")
 	dropped, err2 = SubmitEvent(names, d)
 	if err2 != nil {
@@ -1055,7 +1055,7 @@ func TestFanout2Multi(t *testing.T) {
 	d = &dat{
 		x: stop_value,
 	}
-	
+
 	fmt.Println("@SubmitEvent end")
 	dropped, err2 = SubmitEvent(names, d)
 	if err2 != nil {
@@ -1072,17 +1072,17 @@ func TestFanout2Multi(t *testing.T) {
 	//Now start the listeners
 	t.Run("listener", func(t *testing.T) {
 		x := 0
-		
+
 	listenLoop:
 		for {
 			fmt.Println("listener() at top of loop.")
 			ok, subchan := sub.GetChannel()
 			fmt.Println("listener() got chan.")
 			if ok {
-				fmt.Println("listener() bf select.")	
+				fmt.Println("listener() bf select.")
 				select {
 				case ev := <-subchan:
-					fmt.Println("listener() bf ev.Data.")	
+					fmt.Println("listener() bf ev.Data.")
 					sdata, ok := ev.Data.(*dat)
 					latchon(hook)
 					if ok {
@@ -1098,7 +1098,7 @@ func TestFanout2Multi(t *testing.T) {
 					} else {
 						log.Fatalf("Failed type assertion\n")
 					}
-				case <- time.After(time.Second * 5):
+				case <-time.After(time.Second * 5):
 					fmt.Println("timeout 1")
 					time.Sleep(1000000)
 					// default:
@@ -1118,7 +1118,7 @@ func TestFanout2Multi(t *testing.T) {
 
 	t.Run("listener2", func(t *testing.T) {
 		x := 0
-		
+
 	listenLoop:
 		for {
 			fmt.Println("listener2() at top of loop.")
@@ -1141,7 +1141,7 @@ func TestFanout2Multi(t *testing.T) {
 					} else {
 						log.Fatalf("Failed type assertion\n")
 					}
-				case <- time.After(time.Second * 5):
+				case <-time.After(time.Second * 5):
 					fmt.Println("timeout")
 					time.Sleep(1000000)
 					// default:
@@ -1159,7 +1159,7 @@ func TestFanout2Multi(t *testing.T) {
 	needlatch(hook)
 	needlatch(hook)
 	close(hook)
-	
+
 }
 
 func TestNofanout1(t *testing.T) {
@@ -1299,7 +1299,7 @@ func TestNofanout2Multi(t *testing.T) {
 
 	//Use go routines instead of Parallel tests here, since parallel tests do not let you run
 	//more parallel tests than cores/procs available. So use, goroutines here.
-	//In this case, 2 listeners are started as goroutines on the channel and 
+	//In this case, 2 listeners are started as goroutines on the channel and
 	//we post events to that channel without fanout enabled.
 	go func(t *testing.T) {
 		x := 0

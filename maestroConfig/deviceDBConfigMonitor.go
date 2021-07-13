@@ -302,29 +302,29 @@ func (ddbConfig *DDBConfig) Get(t interface{}) (err error) {
 func (ddbConfig *DDBConfig) Put(t interface{}) (err error) {
 	//Ensure t is not nil
 	if t != nil {
-        var config ConfigWrapper
-        config.Body = t
-        config.Relay = ddbConfig.ConfigClient.Relay
-        config.Name = ddbConfig.Key
+		var config ConfigWrapper
+		config.Body = t
+		config.Relay = ddbConfig.ConfigClient.Relay
+		config.Name = ddbConfig.Key
 
-        //Marshal the storage object to put into deviceDB
-        payloadJSON, err := json.Marshal(&config)
+		//Marshal the storage object to put into deviceDB
+		payloadJSON, err := json.Marshal(&config)
 
-        //log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
-        if err == nil {
-            var devicedbClientBatch *client.Batch
-            ctx, _ := context.WithCancel(context.Background())
-            devicedbClientBatch = client.NewBatch()
+		//log.MaestroInfof("DDBConfig.Put(): bodyJSON: %s\n", bodyJSON)
+		if err == nil {
+			var devicedbClientBatch *client.Batch
+			ctx, _ := context.WithCancel(context.Background())
+			devicedbClientBatch = client.NewBatch()
 
-            //put the data into devicedb
-            devicedbClientBatch.Put(ddbConfig.DeviceDBKey(), string([]byte(payloadJSON)), "")
+			//put the data into devicedb
+			devicedbClientBatch.Put(ddbConfig.DeviceDBKey(), string([]byte(payloadJSON)), "")
 
-            err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
-            if err != nil {
-                log.MaestroErrorf("DDBConfig.Put(): %v\n", err)
-                return err
-            }
-        }
+			err = ddbConfig.ConfigClient.Client.Batch(ctx, ddbConfig.Bucket, *devicedbClientBatch)
+			if err != nil {
+				log.MaestroErrorf("DDBConfig.Put(): %v\n", err)
+				return err
+			}
+		}
 	} else {
 		err = errors.New("Put: Invalid argument")
 		log.MaestroErrorf("DDBConfig.Put() Invalid argument. Error %v\n", err)

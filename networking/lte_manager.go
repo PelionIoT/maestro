@@ -16,11 +16,11 @@ package networking
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/log"
 	"fmt"
-	"strings"
-	"strconv"
+	"github.com/armPelionEdge/maestro/log"
 	"os/exec"
+	"strconv"
+	"strings"
 )
 
 // Parses the index string from the modem path name returned by mmcli -L
@@ -30,10 +30,10 @@ import (
 // indexFromPath("/org/freedesktop/ModemManager1/Modem/0 [VENDOR] ACME [1234:5678]")
 // indexFromPath("/org/freedesktop/ModemManager1/Modem/0")
 // indexFromPath("0")
-func indexFromPath(path string) string{
+func indexFromPath(path string) string {
 	filepath := strings.Fields(path)[0]
 	nodes := strings.Split(filepath, "/")
-	return nodes[len(nodes) - 1]
+	return nodes[len(nodes)-1]
 }
 
 // AvailableModems returns array of string names for all available modems
@@ -50,9 +50,9 @@ func AvailableModems() ([]string, error) {
 				log.MaestroErrorf("Unexpected output format from mmcli:\n%s\n", mmcli_out)
 				return make([]string, 0), fmt.Errorf("Unable to parse mmcli output")
 			}
-			return lines[n+1:n+num_modems+1], nil
+			return lines[n+1 : n+num_modems+1], nil
 		}
-	} 
+	}
 	return make([]string, 0), nil
 
 }
@@ -78,14 +78,14 @@ func ConnectModem(index string, serial string, connectionName string, apn string
 
 	indexnum := indexFromPath(index)
 
-	avail_modems, err:= AvailableModems()
+	avail_modems, err := AvailableModems()
 	modemfound := false
 	if err == nil {
 		for _, idx := range avail_modems {
-		   if indexFromPath(idx) == indexnum {
-			  modemfound = true
-			  break
-		   }
+			if indexFromPath(idx) == indexnum {
+				modemfound = true
+				break
+			}
 		}
 	}
 	if !modemfound {

@@ -273,7 +273,7 @@ sndrLoop:
 				break sndrLoop
 			}
 		}
-        sndr.locker.Lock()
+		sndr.locker.Lock()
 		if timedout {
 			if sndr.backingOff {
 				timeout = sndr.backoff
