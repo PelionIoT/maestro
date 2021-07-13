@@ -22,7 +22,7 @@ import (
 )
 
 type builtin struct {
-	reader    maestroSpecs.PlatformReader
+	reader maestroSpecs.PlatformReader
 }
 
 var builtinsByPlatformName map[string]builtin
@@ -35,7 +35,7 @@ func init() {
 		reader: testplatform.PlatformReader,
 	}
 	builtinsByPlatformName["fsonly"] = builtin{
-		reader:    fsonly.PlatformReader,
+		reader: fsonly.PlatformReader,
 	}
 
 }

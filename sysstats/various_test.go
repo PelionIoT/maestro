@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 	"testing"
+	"time"
 
 	"github.com/armPelionEdge/gopsutil/disk"
 )
@@ -91,7 +91,7 @@ func TestProdStats(t *testing.T) {
 	}
 
 	// Terminate loop after timeout, in future use config parameter to stops stats
-	timeout := time.After(35*time.Second)
+	timeout := time.After(35 * time.Second)
 	for {
 		select {
 		// Got a timeout! fail with a timeout error

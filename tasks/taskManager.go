@@ -26,9 +26,9 @@ import (
 	"github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/satori/go.uuid"
 	"github.com/armPelionEdge/stow"
 	"github.com/boltdb/bolt"
+	"github.com/satori/go.uuid"
 )
 
 const TASK_COMPLETE_STEP = ^uint32(0)

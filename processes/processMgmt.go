@@ -334,7 +334,7 @@ func (this *processStatus) lockingSetStatus(v int) {
 // sets the status on jobs referenced in the childNames slice
 func (this *processStatus) setAllChildJobStatus(status int) {
 	this.mutex.Lock()
-	for child, _ := range this.childNames {
+	for child := range this.childNames {
 		this.childNames[child] = status
 		val, ok := jobsByName.Load(child)
 		if ok {
@@ -350,7 +350,7 @@ func (this *processStatus) setAllChildJobStatus(status int) {
 
 // sends an event for all child processes - NOTE: needs a lock on processStatus first
 func (status *processStatus) sendEventAndSetStatusForCompProcess(statuscode int, evcode int) {
-	for child, _ := range status.childNames {
+	for child := range status.childNames {
 		status.childNames[child] = statuscode
 		val, ok := jobsByName.Load(child)
 		if ok {
@@ -1533,7 +1533,7 @@ func getMasterProcessDepends(compositeid string) (ok2 bool, ret []string) {
 		existing, ok := compositeProcessById.Load(compositeid)
 		if ok {
 			masterP := existing.(*processStatus)
-			for dep, _ := range masterP.combinedDeps {
+			for dep := range masterP.combinedDeps {
 				ret = append(ret, dep)
 			}
 			ok2 = true
@@ -1700,7 +1700,7 @@ func _getJobDeps(job maestroSpecs.JobDefinition) (ret []string) {
 	for _, dep := range deps {
 		depmap[dep] = true
 	}
-	for dep, _ := range depmap {
+	for dep := range depmap {
 		ret = append(ret, dep)
 	}
 	return

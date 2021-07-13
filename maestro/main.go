@@ -31,13 +31,13 @@ import (
 	. "github.com/armPelionEdge/maestro"
 	"github.com/armPelionEdge/maestro/configMgr"
 	"github.com/armPelionEdge/maestro/debugging"
+	"github.com/armPelionEdge/maestro/gcd"
 	Log "github.com/armPelionEdge/maestro/log"
 	"github.com/armPelionEdge/maestro/logconfig"
 	"github.com/armPelionEdge/maestro/maestroConfig"
 	"github.com/armPelionEdge/maestro/maestroutils"
 	"github.com/armPelionEdge/maestro/mdns"
 	"github.com/armPelionEdge/maestro/networking"
-	"github.com/armPelionEdge/maestro/gcd"
 	"github.com/armPelionEdge/maestro/processes"
 	"github.com/armPelionEdge/maestro/storage"
 	"github.com/armPelionEdge/maestro/sysstats"
@@ -450,7 +450,7 @@ func main() {
 	} else {
 		go bringUpIfs()
 	}
-    // Gateway Capability Discovery
+	// Gateway Capability Discovery
 	go gcd.Gcd_init(config.GatewayCapabilities)
 
 	/*********************************************/
@@ -471,7 +471,7 @@ func main() {
 	// First load existing Jobs / Templates from database:
 
 	// config file Jobs / Templates take precedence
-	for i, _ := range config.ContainerTemplates {
+	for i := range config.ContainerTemplates {
 		var container maestroSpecs.ContainerTemplate
 		container = &config.ContainerTemplates[i]
 		if container.IsMutable() {
@@ -485,7 +485,7 @@ func main() {
 		processes.RegisterContainer(&config.ContainerTemplates[i])
 	}
 
-	for i, _ := range config.JobStarts {
+	for i := range config.JobStarts {
 		// _job := new(*JobStartRequestConfig)
 		// *_job = &job
 		var job maestroSpecs.JobDefinition

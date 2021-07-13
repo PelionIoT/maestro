@@ -409,7 +409,7 @@ func NewClient(config *ClientConfig) (ret *Client, err error) {
 }
 
 func (client *Client) SubmitLogs(data *greasego.TargetCallbackData, godata []byte) (err error) {
-	
+
 	// copy(client.activeBuffer.data[lenactive:],godata)
 	// return
 	buflen := len(godata)
