@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armPelionEdge/maestro/log"
+	"github.com/PelionIoT/maestro/log"
 	wifi "github.com/armPelionEdge/wpa-connect"
 )
 

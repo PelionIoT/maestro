@@ -21,14 +21,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/defaults"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/stow"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/defaults"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/stow"
 	"github.com/boltdb/bolt"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 const TASK_COMPLETE_STEP = ^uint32(0)
@@ -750,8 +750,6 @@ func runFailedAck(task *MaestroTask, handler AckHandler) {
 // task handle thread
 func taskRunner() {
 
-	anyran := false
-
 	getTask := func(id string) (ret *MaestroTask, ok bool) {
 		retp, ok := tasks.Load(id)
 		if ok {
@@ -789,7 +787,6 @@ func taskRunner() {
 									taskcopy := new(MaestroTask)
 									*taskcopy = *task
 									(*handler).SubmitTask(taskcopy)
-									anyran = true
 									return
 								} else {
 									debugging.DEBUG_OUT(" TASK>>>>>> (batch) No TaskHandler for task type %s\n", task.Op.GetType())
@@ -821,7 +818,6 @@ func taskRunner() {
 					taskitemcopy := new(MaestroTask)
 					*taskitemcopy = *taskitem
 					(*handler).SubmitTask(taskitemcopy)
-					anyran = true
 				} else {
 					debugging.DEBUG_OUT(" TASK>>>>>> No TaskHandler for task type %s\n", taskitem.Op.GetType())
 					log.MaestroErrorf(" TASK>>>>>> No TaskHandler for task type %s\n", taskitem.Op.GetType())

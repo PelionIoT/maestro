@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/storage"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/storage"
 	"github.com/boltdb/bolt"
 )
 

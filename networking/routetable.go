@@ -21,9 +21,9 @@ import (
 	"net"
 	"sync"
 
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/netlink"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/netlink"
 )
 
 const (

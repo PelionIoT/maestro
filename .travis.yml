@@ -19,16 +19,16 @@ services:
 # imports, or change their directory naming to match their parent.
 #
 # For reasons that I hope are obvious, we do the latter here.
-install: 
+install:
   - |
     if [[ "${TRAVIS_REPO_SLUG}" != "${upstream}" ]]; then
       mkdir -p "../../${upstream}"
       mv * ".git" "../../${upstream}/"
       cd "../../${upstream}"
     fi
-  
 
-script: 
+
+script:
   # Build dependencies
   - ./build-deps.sh
 
@@ -44,15 +44,15 @@ script:
 
   # Run unit tests
   - cd "../../${upstream}"
-  - DEBUG=1 DEBUG2=1 ./build.sh
-  - ( cd sysstats && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v )
-  - ( cd maestroConfig && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v )
-  - ( cd vendor/github.com/armPelionEdge/maestroSpecs && LD_LIBRARY_PATH=../greasego/deps/lib/ go test -v )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigSimpleUpdateInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run ConfigCommitUpdateInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigNameserversUpdateInDDB )
-  - ( cd networking && LD_LIBRARY_PATH=../../maestro/vendor/github.com/armPelionEdge/greasego/deps/lib/ go test -v -run NetworkConfigUpdateInDDBMultipleInterfaces )
+  - go build
+  - ( cd sysstats && go test -v )
+  - ( cd maestroConfig && go test -v )
+  - ( cd vendor/github.com/PelionIoT/maestroSpecs && go test -v )
+  - ( cd networking && go test -v -run NetworkConfigInDDB )
+  - ( cd networking && go test -v -run NetworkConfigSimpleUpdateInDDB )
+  - ( cd networking && go test -v -run ConfigCommitUpdateInDDB )
+  - ( cd networking && go test -v -run NetworkConfigNameserversUpdateInDDB )
+  - ( cd networking && go test -v -run NetworkConfigUpdateInDDBMultipleInterfaces )
 
 matrix:
   include:

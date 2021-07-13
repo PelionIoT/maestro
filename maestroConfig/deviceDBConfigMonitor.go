@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestroSpecs"
 	"github.com/armPelionEdge/devicedb/client"
 	"github.com/armPelionEdge/devicedb/client_relay"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
 )
 
 //Constants used in the logic for connecting to devicedb

@@ -16,17 +16,17 @@ package maestroConfig
 // limitations under the License.
 
 import (
+	"fmt"
+	"log"
+	"strings"
+	"testing"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
-	"github.com/armPelionEdge/maestroSpecs"
 	"io/ioutil"
-	"log"
 	"reflect"
-	"strings"
 	"sync"
-	"testing"
 	"time"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 func TestMain(m *testing.M) {
@@ -60,7 +60,7 @@ func TestConfigVarRead(t *testing.T) {
 	}
 }
 
-type ConfigChangeHook struct {
+type ConfigChangeHook struct{
 	//struct implementing ConfigChangeHook intf
 }
 
@@ -79,15 +79,15 @@ type NestedConfigType struct {
 }
 
 type MyDiffConfig struct {
-	Name         string           `json:"property1" configGroup:"diffproperty"`
+	Name string `json:"property1" configGroup:"diffproperty"`
 	NestedStruct NestedConfigType `json:"property2" configGroup:"diffproperty"`
 }
 
 type MyConfigMultipleGroup struct {
-	Property1 int `json:"property1" configGroup:"someproperty"`
-	Property2 int `json:"property2" configGroup:"someproperty"`
-	Property3 int `json:"property3" configGroup:"anotherproperty"`
-	Property4 int `json:"property4" configGroup:"anotherproperty"`
+	Property1 int   `json:"property1" configGroup:"someproperty"`
+	Property2 int 	`json:"property2" configGroup:"someproperty"`
+	Property3 int   `json:"property3" configGroup:"anotherproperty"`
+	Property4 int 	`json:"property4" configGroup:"anotherproperty"`
 }
 
 type NestedConfigSliceType struct {
@@ -98,8 +98,8 @@ type NestedConfigSliceType struct {
 }
 
 type MyConfigSlice struct {
-	NestedConfigSliceProperty      [5]NestedConfigSliceType `json:"property1" configGroup:"sliceproperty"`
-	PtrToNestedConfigSliceProperty []*NestedConfigSliceType `json:"property2" configGroup:"sliceproperty"`
+	NestedConfigSliceProperty [5]NestedConfigSliceType   `json:"property1" configGroup:"sliceproperty"`
+	PtrToNestedConfigSliceProperty []*NestedConfigSliceType   `json:"property2" configGroup:"sliceproperty"`
 }
 
 // ChangesStart is called before reporting any changes via multiple calls to SawChange. It will only be called
@@ -113,33 +113,33 @@ func (cfgHook ConfigChangeHook) ChangesStart(configgroup string) {
 // If SawChange return true, then the value of futvalue will replace the value of current value
 func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged string, futvalue interface{}, curvalue interface{}, index int) (acceptchange bool) {
 	fmt.Printf("\nConfigChangeHook:SawChange: %s:%s old:%v new:%v index: %d\n", configgroup, fieldchanged, curvalue, futvalue, index)
-	if configgroup == "property" {
+	if(configgroup == "property") {
 		reflect.ValueOf(&myConfigUpdateFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
 	}
-	if configgroup == "someproperty" || configgroup == "anotherproperty" {
+	if(configgroup == "someproperty" || configgroup == "anotherproperty") {
 		reflect.ValueOf(&myConfigMultipleGroup).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
 	}
-	if configgroup == "diffproperty" {
-		if strings.HasPrefix(fieldchanged, "Nested") {
-			reflect.ValueOf(&myDiffConfigUpdateFromHook.NestedStruct).Elem().FieldByName(strings.Split(fieldchanged, ".")[1]).Set(reflect.ValueOf(futvalue))
+	if(configgroup == "diffproperty") {
+		if(strings.HasPrefix(fieldchanged, "Nested")) {
+			reflect.ValueOf(&myDiffConfigUpdateFromHook.NestedStruct).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))
 		} else {
 			reflect.ValueOf(&myDiffConfigUpdateFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
 		}
 	}
-	if configgroup == "sliceproperty" {
+	if(configgroup == "sliceproperty") {
 		reflect.ValueOf(&myConfigSliceFromHook).Elem().FieldByName(fieldchanged).Set(reflect.ValueOf(futvalue))
 	}
-	if configgroup == "slicediffproperty" {
-		if len(myConfigSliceFromHook.PtrToNestedConfigSliceProperty) < (index + 1) {
-			myConfigSliceFromHook.PtrToNestedConfigSliceProperty = append(myConfigSliceFromHook.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{0, "ptrslice", false, [...]int{0, 0, 0, 0, 0}})
+	if(configgroup == "slicediffproperty") {
+		if(len(myConfigSliceFromHook.PtrToNestedConfigSliceProperty) < (index+1)) {
+			myConfigSliceFromHook.PtrToNestedConfigSliceProperty = append(myConfigSliceFromHook.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{0, "ptrslice", false, [...]int{0,0,0,0,0}})
 		}
-		if strings.HasPrefix(fieldchanged, "Ptr") {
-			reflect.ValueOf(myConfigSliceFromHook.PtrToNestedConfigSliceProperty[index]).Elem().FieldByName(strings.Split(fieldchanged, ".")[1]).Set(reflect.ValueOf(futvalue))
+		if(strings.HasPrefix(fieldchanged, "Ptr")) {
+			reflect.ValueOf(myConfigSliceFromHook.PtrToNestedConfigSliceProperty[index]).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))
 		} else {
-			reflect.ValueOf(&myConfigSliceFromHook.NestedConfigSliceProperty).Elem().FieldByName(strings.Split(fieldchanged, ".")[1]).Set(reflect.ValueOf(futvalue))
+			reflect.ValueOf(&myConfigSliceFromHook.NestedConfigSliceProperty).Elem().FieldByName(strings.Split(fieldchanged,".")[1]).Set(reflect.ValueOf(futvalue))
 		}
 	}
-	return false
+	return false;
 }
 
 // ChangesComplete is called when all changes for a specific configgroup tagname
@@ -147,22 +147,21 @@ func (cfgHook ConfigChangeHook) SawChange(configgroup string, fieldchanged strin
 func (cfgHook ConfigChangeHook) ChangesComplete(configgroup string) (acceptallchanges bool) {
 	sawChangeCount++
 	fmt.Printf("\nConfigChangeHook:ChangesComplete: %s Change count=%d\n", configgroup, sawChangeCount)
-	return false
+	return false;
 }
 
 //The following tests are for testing DeviceDB Client handling and calling the hooks for different type
 //of operations on different kind of objects.
-var myConfigUpdateFromHook MyConfig
-var myDiffConfigUpdateFromHook MyDiffConfig
+var myConfigUpdateFromHook MyConfig;
+var myDiffConfigUpdateFromHook MyDiffConfig;
 var myConfigMultipleGroup MyConfigMultipleGroup
 var myConfigSliceFromHook MyConfigSlice
-
 func TestConfigMonitorSimple(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090"               //The URI of the relay's local DeviceDB instance
-	var devicedbPrefix string = "wigwag.configs.relay"               //The prefix where keys related to configuration are stored
-	var devicedbBucket string = "local"                              //"The devicedb bucket where configurations are stored
-	var relay string = "WWRL000000"                                  //The ID of the relay whose configuration should be monitored
-	var configName string = "myConfig"                               //The name of the configuration object that should be monitored
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "myConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
 
@@ -189,7 +188,7 @@ func TestConfigMonitorSimple(t *testing.T) {
 	config.Property1 = 1
 	config.Property2 = "a"
 	config.Property3 = true
-	config.Property4 = [...]int{0, 0, 0, 0, 0}
+	config.Property4 = [...]int{0,0,0,0,0}
 	err = configClient.Config(configName).Put(config)
 	if err != nil {
 		fmt.Printf("\nUnable to put config: %v\n", err)
@@ -226,7 +225,7 @@ func TestConfigMonitorSimple(t *testing.T) {
 	updatedConfig.Property1 = 100
 	updatedConfig.Property2 = "asdf"
 	updatedConfig.Property3 = false
-	updatedConfig.Property4 = [...]int{1, 2, 3, 4, 5}
+	updatedConfig.Property4 = [...]int{1,2,3,4,5}
 	fmt.Printf("\nPutting updated config: %v\n", config)
 	err = configClient.Config(configName).Put(updatedConfig)
 	if err != nil {
@@ -238,29 +237,21 @@ func TestConfigMonitorSimple(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	//Now verify if the changes are updated
-	if myConfigUpdateFromHook.Property1 != updatedConfig.Property1 {
-		t.FailNow()
-	}
-	if myConfigUpdateFromHook.Property2 != updatedConfig.Property2 {
-		t.FailNow()
-	}
-	if myConfigUpdateFromHook.Property3 != updatedConfig.Property3 {
-		t.FailNow()
-	}
-	if myConfigUpdateFromHook.Property4 != updatedConfig.Property4 {
-		t.FailNow()
-	}
+	if ( myConfigUpdateFromHook.Property1 != updatedConfig.Property1) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property2 != updatedConfig.Property2) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property3 != updatedConfig.Property3) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property4 != updatedConfig.Property4) { t.FailNow() }
 
 	//Remove monitor for this config
 	ddbConfigMon.RemoveMonitorConfig(configName)
 }
 
 func TestConfigMonitorSlice(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090"               //The URI of the relay's local DeviceDB instance
-	var devicedbPrefix string = "wigwag.configs.relay"               //The prefix where keys related to configuration are stored
-	var devicedbBucket string = "local"                              //"The devicedb bucket where configurations are stored
-	var relay string = "WWRL000000"                                  //The ID of the relay whose configuration should be monitored
-	var configName string = "mySliceConfig"                          //The name of the configuration object that should be monitored
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "mySliceConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
 
@@ -284,10 +275,10 @@ func TestConfigMonitorSlice(t *testing.T) {
 	configClient := NewDDBRelayConfigClient(tlsConfig, devicedbUri, relay, devicedbPrefix, devicedbBucket)
 
 	var config, updatedConfig MyConfigSlice
-	config.NestedConfigSliceProperty[0] = NestedConfigSliceType{1, "", false, [...]int{1, 1, 1, 1, 1}}
-	config.NestedConfigSliceProperty[1] = NestedConfigSliceType{2, "", false, [...]int{2, 2, 2, 2, 2}}
-	config.PtrToNestedConfigSliceProperty = append(config.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{0, "ptrslice", false, [...]int{0, 0, 0, 0, 0}})
-	config.PtrToNestedConfigSliceProperty = append(config.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{1, "ptrslice", false, [...]int{0, 0, 0, 0, 0}})
+	config.NestedConfigSliceProperty[0] = NestedConfigSliceType{1, "", false, [...]int{1,1,1,1,1}}
+	config.NestedConfigSliceProperty[1] = NestedConfigSliceType{2, "", false, [...]int{2,2,2,2,2}}
+	config.PtrToNestedConfigSliceProperty = append(config.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{0, "ptrslice", false, [...]int{0,0,0,0,0}})
+	config.PtrToNestedConfigSliceProperty = append(config.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{1, "ptrslice", false, [...]int{0,0,0,0,0}})
 	err = configClient.Config(configName).Put(config)
 	if err != nil {
 		fmt.Printf("\nUnable to put config: %v\n", err)
@@ -322,10 +313,10 @@ func TestConfigMonitorSlice(t *testing.T) {
 	//Add monitor for this config
 	ddbConfigMon.AddMonitorConfig(&config, &updatedConfig, configName, configAna)
 
-	updatedConfig.NestedConfigSliceProperty[0] = NestedConfigSliceType{100, "slice1", true, [...]int{1, 2, 3, 4, 5}}
-	updatedConfig.NestedConfigSliceProperty[1] = NestedConfigSliceType{200, "slice2", true, [...]int{11, 22, 33, 44, 55}}
-	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{22, "ptrslice1", true, [...]int{3, 6, 9, 12, 15}})
-	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{33, "ptrslice1", true, [...]int{33, 66, 99, 120, 150}})
+	updatedConfig.NestedConfigSliceProperty[0] = NestedConfigSliceType{100, "slice1", true, [...]int{1,2,3,4,5}}
+	updatedConfig.NestedConfigSliceProperty[1] = NestedConfigSliceType{200, "slice2", true, [...]int{11,22,33,44,55}}
+	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{22, "ptrslice1", true, [...]int{3,6,9,12,15}})
+	updatedConfig.PtrToNestedConfigSliceProperty = append(updatedConfig.PtrToNestedConfigSliceProperty, &NestedConfigSliceType{33, "ptrslice1", true, [...]int{33,66,99,120,150}})
 
 	fmt.Printf("\nPutting updated config: %v\n", config)
 	err = configClient.Config(configName).Put(updatedConfig)
@@ -338,29 +329,22 @@ func TestConfigMonitorSlice(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	//Now verify if the changes are updated
-	if myConfigSliceFromHook.NestedConfigSliceProperty[0] != updatedConfig.NestedConfigSliceProperty[0] {
-		t.FailNow()
-	}
-	if myConfigSliceFromHook.NestedConfigSliceProperty[1] != updatedConfig.NestedConfigSliceProperty[1] {
-		t.FailNow()
-	}
-	if *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[0] != *updatedConfig.PtrToNestedConfigSliceProperty[0] {
-		t.FailNow()
-	}
-	if *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[1] != *updatedConfig.PtrToNestedConfigSliceProperty[1] {
-		t.FailNow()
-	}
+	if ( myConfigSliceFromHook.NestedConfigSliceProperty[0] != updatedConfig.NestedConfigSliceProperty[0]) { t.FailNow() }
+	if ( myConfigSliceFromHook.NestedConfigSliceProperty[1] != updatedConfig.NestedConfigSliceProperty[1]) { t.FailNow() }
+	if ( *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[0] != *updatedConfig.PtrToNestedConfigSliceProperty[0]) { t.FailNow() }
+	if ( *myConfigSliceFromHook.PtrToNestedConfigSliceProperty[1] != *updatedConfig.PtrToNestedConfigSliceProperty[1]) { t.FailNow() }
 
 	//Remove monitor for this config
 	ddbConfigMon.RemoveMonitorConfig(configName)
 }
 
+
 func TestConfigMonitorMultipleGroup(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090"               //The URI of the relay's local DeviceDB instance
-	var devicedbPrefix string = "wigwag.configs.relay"               //The prefix where keys related to configuration are stored
-	var devicedbBucket string = "local"                              //"The devicedb bucket where configurations are stored
-	var relay string = "WWRL000000"                                  //The ID of the relay whose configuration should be monitored
-	var configName string = "myConfigMultiGroup"                     //The name of the configuration object that should be monitored
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "myConfigMultiGroup" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
 
@@ -439,30 +423,22 @@ func TestConfigMonitorMultipleGroup(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	//Now verify if the changes are updated
-	if myConfigMultipleGroup.Property1 != updatedConfig.Property1 {
-		t.FailNow()
-	}
-	if myConfigMultipleGroup.Property2 != updatedConfig.Property2 {
-		t.FailNow()
-	}
-	if myConfigMultipleGroup.Property3 != updatedConfig.Property3 {
-		t.FailNow()
-	}
-	if myConfigMultipleGroup.Property4 != updatedConfig.Property4 {
-		t.FailNow()
-	}
+	if ( myConfigMultipleGroup.Property1 != updatedConfig.Property1) { t.FailNow() }
+	if ( myConfigMultipleGroup.Property2 != updatedConfig.Property2) { t.FailNow() }
+	if ( myConfigMultipleGroup.Property3 != updatedConfig.Property3) { t.FailNow() }
+	if ( myConfigMultipleGroup.Property4 != updatedConfig.Property4) { t.FailNow() }
 
 	//Remove monitor for this config
 	ddbConfigMon.RemoveMonitorConfig(configName)
 }
 
 func TestConfigMonitorMultipleStructs(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090"               //The URI of the relay's local DeviceDB instance
-	var devicedbPrefix string = "wigwag.configs.relay"               //The prefix where keys related to configuration are stored
-	var devicedbBucket string = "local"                              //"The devicedb bucket where configurations are stored
-	var relay string = "WWRL000000"                                  //The ID of the relay whose configuration should be monitored
-	var configName string = "myConfig"                               //The name of the configuration object that should be monitored
-	var diffConfigName string = "myDiffConfig"                       //The name of the configuration object that should be monitored
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "myConfig" //The name of the configuration object that should be monitored
+	var diffConfigName string = "myDiffConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
 
@@ -490,7 +466,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	config.Property1 = 1
 	config.Property2 = "a"
 	config.Property3 = true
-	config.Property4 = [...]int{0, 0, 0, 0, 0}
+	config.Property4 = [...]int{0,0,0,0,0}
 	err = configClient.Config(configName).Put(config)
 	if err != nil {
 		fmt.Printf("\nUnable to put config: %v\n", err)
@@ -498,7 +474,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	}
 	//Put diff config
 	diffConfig.Name = "unset"
-	diffConfig.NestedStruct = NestedConfigType{-1, "--", false, [...]int{5, 4, 3, 2, 1}}
+	diffConfig.NestedStruct = NestedConfigType{ -1, "--", false, [...]int{5,4,3,2,1} }
 	err = configClient.Config(diffConfigName).Put(diffConfig)
 	if err != nil {
 		fmt.Printf("\nUnable to put diffConfig: %v\n", err)
@@ -551,7 +527,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	updatedConfig.Property1 = 100
 	updatedConfig.Property2 = "asdf"
 	updatedConfig.Property3 = false
-	updatedConfig.Property4 = [...]int{1, 2, 3, 4, 5}
+	updatedConfig.Property4 = [...]int{1,2,3,4,5}
 	fmt.Printf("\nPutting updated config: %v\n", updatedConfig)
 	err = configClient.Config(configName).Put(updatedConfig)
 	if err != nil {
@@ -561,7 +537,7 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	////////////////////////////////////////////////////////////////////////////
 	//Update DiffConfig
 	diffUpdatedConfig.Name = "diffconfig"
-	nestedStruct := NestedConfigType{1000, "xyz", false, [...]int{11, 22, 33, 44, 55}}
+	nestedStruct := NestedConfigType{ 1000, "xyz", false, [...]int{11,22,33,44,55} }
 	diffUpdatedConfig.NestedStruct = nestedStruct
 	fmt.Printf("\nPutting updated diff config: %v\n", diffUpdatedConfig)
 	err = configClient.Config(diffConfigName).Put(diffUpdatedConfig)
@@ -575,25 +551,13 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	//Now verify if the changes are updated
-	if myConfigUpdateFromHook.Property1 != updatedConfig.Property1 {
-		t.FailNow()
-	}
-	if myConfigUpdateFromHook.Property2 != updatedConfig.Property2 {
-		t.FailNow()
-	}
-	if myConfigUpdateFromHook.Property3 != updatedConfig.Property3 {
-		t.FailNow()
-	}
-	if myConfigUpdateFromHook.Property4 != updatedConfig.Property4 {
-		t.FailNow()
-	}
+	if ( myConfigUpdateFromHook.Property1 != updatedConfig.Property1) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property2 != updatedConfig.Property2) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property3 != updatedConfig.Property3) { t.FailNow() }
+	if ( myConfigUpdateFromHook.Property4 != updatedConfig.Property4) { t.FailNow() }
 
-	if myDiffConfigUpdateFromHook.Name != diffUpdatedConfig.Name {
-		t.FailNow()
-	}
-	if myDiffConfigUpdateFromHook.NestedStruct != nestedStruct {
-		t.FailNow()
-	}
+	if ( myDiffConfigUpdateFromHook.Name != diffUpdatedConfig.Name) { t.FailNow() }
+	if ( myDiffConfigUpdateFromHook.NestedStruct != nestedStruct) { t.FailNow() }
 
 	//Remove monitor for this config
 	ddbConfigMon.RemoveMonitorConfig(configName)
@@ -602,13 +566,12 @@ func TestConfigMonitorMultipleStructs(t *testing.T) {
 //Global wait group
 var wg sync.WaitGroup
 var sawChangeCount int = 0
-
 func TestConfigMonitorMultipleUpdates(t *testing.T) {
-	var devicedbUri string = "https://WWRL000000:9090"               //The URI of the relay's local DeviceDB instance
-	var devicedbPrefix string = "wigwag.configs.relay"               //The prefix where keys related to configuration are stored
-	var devicedbBucket string = "local"                              //"The devicedb bucket where configurations are stored
-	var relay string = "WWRL000000"                                  //The ID of the relay whose configuration should be monitored
-	var configName string = "myConfig"                               //The name of the configuration object that should be monitored
+	var devicedbUri string = "https://WWRL000000:9090" //The URI of the relay's local DeviceDB instance
+	var devicedbPrefix string = "wigwag.configs.relay" //The prefix where keys related to configuration are stored
+	var devicedbBucket string = "local" //"The devicedb bucket where configurations are stored
+	var relay string = "WWRL000000" //The ID of the relay whose configuration should be monitored
+	var configName string = "myConfig" //The name of the configuration object that should be monitored
 	var relayCaChainFile string = "../test-assets/ca-chain.cert.pem" //The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
 	var tlsConfig *tls.Config
 
@@ -635,7 +598,7 @@ func TestConfigMonitorMultipleUpdates(t *testing.T) {
 	updatedConfig.Property1 = 100
 	updatedConfig.Property2 = "asdf"
 	updatedConfig.Property3 = false
-	updatedConfig.Property4 = [...]int{1, 2, 3, 4, 5}
+	updatedConfig.Property4 = [...]int{1,2,3,4,5}
 	fmt.Printf("\nPutting config: %v\n", updatedConfig)
 	err = configClient.Config(configName).Put(updatedConfig)
 	if err != nil {
@@ -676,12 +639,12 @@ func TestConfigMonitorMultipleUpdates(t *testing.T) {
 	time.Sleep(time.Second * 2)
 	wg.Add(1)
 	go ConfigUpdater(configClient)
-	if true == waitTimeout(&wg, time.Second*60) {
+	if( true == waitTimeout(&wg, time.Second * 60)) {
 		//Timeout waiting for loop to exit, so fail
 		t.FailNow()
 	}
 
-	if sawChangeCount < 5 {
+	if(sawChangeCount < 5) {
 		fmt.Printf("Didn't see all the changes, test failed")
 		t.FailNow()
 	}
@@ -704,7 +667,7 @@ func ConfigUpdater(ddbClient *DDBRelayConfigClient) {
 		newConfig.Property4[1] = updateIntVal * 2
 		newConfig.Property4[2] = updateIntVal * 3
 		err := ddbClient.Config(configName).Put(&newConfig)
-		if err != nil {
+		if(err != nil) {
 			fmt.Printf("\nUpdating(Put) config failed: %v %v", newConfig, err)
 		}
 		time.Sleep(time.Second * 3)
@@ -714,17 +677,17 @@ func ConfigUpdater(ddbClient *DDBRelayConfigClient) {
 // waitTimeout waits for the waitgroup for the specified max timeout.
 // Returns true if waiting timed out.
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return false // completed normally
-	case <-time.After(timeout):
-		return true // timed out
-	}
+    c := make(chan struct{})
+    go func() {
+        defer close(c)
+        wg.Wait()
+    }()
+    select {
+    case <-c:
+        return false // completed normally
+    case <-time.After(timeout):
+        return true // timed out
+    }
 }
 
 // package main

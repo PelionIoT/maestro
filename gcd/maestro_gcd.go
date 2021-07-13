@@ -17,8 +17,8 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/maestroConfig"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/maestroConfig"
 	"io/ioutil"
 	"os"
 )
@@ -200,13 +200,13 @@ func grm_add_resource(objectid int, objectinstanceid int, resourceid int, operat
 	var res string
 	add_resource := addResouceArgs{
 		Lwm2mObjects: []lwm2mObject{
-			{
+			lwm2mObject{
 				ObjectId: objectid,
 				ObjectInstances: []objectInstance{
-					{
+					objectInstance{
 						ObjectInstanceId: objectinstanceid,
 						Resources: []resource{
-							{
+							resource{
 								ResourceId: resourceid,
 								Operations: operations_allowed,
 								Type:       resource_type,
@@ -242,13 +242,13 @@ func grm_write_resource(objectid int, objectinstanceid int, resourceid int, oper
 	var res string
 	write_resource := addResouceArgs{
 		Lwm2mObjects: []lwm2mObject{
-			{
+			lwm2mObject{
 				ObjectId: objectid,
 				ObjectInstances: []objectInstance{
-					{
+					objectInstance{
 						ObjectInstanceId: objectinstanceid,
 						Resources: []resource{
-							{
+							resource{
 								ResourceId: resourceid,
 								Operations: operations_allowed,
 								Type:       resource_type,

@@ -20,7 +20,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/armPelionEdge/greasego"
 	"github.com/op/go-logging"
 )
 
@@ -47,106 +46,54 @@ func SetLoggingLevel(ll string) {
 	loggingBackend.SetLevel(logLevel, "")
 }
 
-var goReady = false
-var disabled = false
-
-func DisableGreaseLog() {
-	disabled = true
-}
-
-func SetGoLoggerReady() {
-	goReady = true
-	greasego.SetSelfOriginLabel("maestro")
-}
-
 func MaestroInfo(a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogInfo(a...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[INFO]  %s", s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[INFO]  %s", s)
 }
 
 func MaestroInfof(format string, a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogInfof(format, a...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[INFO]  %s", s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[INFO]  %s", s)
 }
 
 func MaestroSuccess(a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogSuccess(a...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[OK]    %s", s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[OK]    %s", s)
 }
 
 func MaestroSuccessf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogSuccessf(format, a...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[OK]    %s", s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[OK]    %s", s)
 }
 
 func MaestroWarn(a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogWarning(a...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[WARN]  %s", s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[WARN]  %s", s)
 }
 
 func MaestroWarnf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogWarningf(format, a...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[WARN]  %s", s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[WARN]  %s", s)
 }
 
 func MaestroError(a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogError(a...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[ERROR] %s", s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[ERROR] %s", s)
 }
 
 func MaestroErrorf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogErrorf(format, a...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[ERROR] %s", s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[ERROR] %s", s)
 }
 
 func MaestroDebug(a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogDebug(a...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[debug] %s", s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[debug] %s", s)
 }
 
 func MaestroDebugf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		greasego.LogDebugf(format, a...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[debug] %s", s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[debug] %s", s)
 }
 
 type PrefixedLogger struct {
@@ -155,103 +102,53 @@ type PrefixedLogger struct {
 }
 
 func (this *PrefixedLogger) Info(a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogInfo(a2...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[INFO] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[INFO] %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Infof(format string, a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogInfof("%s "+format, a2)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[INFO] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[INFO] %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Success(a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogSuccess(a2...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[OK]   %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[OK]   %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Successf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogSuccessf("%s "+format, a2...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[OK]   %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[OK]   %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Warn(a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogWarning(a2...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[WARN] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[WARN] %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Warnf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogWarningf("%s "+format, a2...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[WARN] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[WARN] %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Error(a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogError(a2...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[ERROR] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[ERROR] %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Errorf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogErrorf("%s "+format, a2...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[ERROR] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[ERROR] %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Debug(a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogDebug(a2...)
-	} else {
-		s := fmt.Sprintln(a...)
-		fmt.Printf("[debug] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintln(a...)
+	fmt.Printf("[debug] %s %s", this.prefix, s)
 }
 
 func (this *PrefixedLogger) Debugf(format string, a ...interface{}) {
-	if goReady && !disabled {
-		a2 := append([]interface{}{this.prefixinterface}, a...)
-		greasego.LogDebugf("%s "+format, a2...)
-	} else {
-		s := fmt.Sprintf(format, a...)
-		fmt.Printf("[debug] %s %s", this.prefix, s)
-	}
+	s := fmt.Sprintf(format, a...)
+	fmt.Printf("[debug] %s %s", this.prefix, s)
 }
 
 func NewPrefixedLogger(s string) (ret *PrefixedLogger) {

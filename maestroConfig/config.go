@@ -26,18 +26,15 @@ import (
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
-	//	"github.com/armPelionEdge/mustache"
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/maestro/configs"
-	"github.com/armPelionEdge/maestro/debugging"
-	. "github.com/armPelionEdge/maestro/defaults"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/mdns"
-	"github.com/armPelionEdge/maestro/sysstats"
-	"github.com/armPelionEdge/maestro/time"
-	"github.com/armPelionEdge/maestro/wwrmi"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/maestroSpecs/templates"
+	//	"github.com/PelionIoT/mustache"
+	"github.com/PelionIoT/maestro/configs"
+	"github.com/PelionIoT/maestro/debugging"
+	. "github.com/PelionIoT/maestro/defaults"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/mdns"
+	"github.com/PelionIoT/maestro/time"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/maestroSpecs/templates"
 	"github.com/kardianos/osext" // not needed in go1.8 - see their README
 	logging "github.com/op/go-logging"
 )
@@ -51,7 +48,6 @@ var golog = logging.MustGetLogger("maestro")
  */
 
 type YAMLMaestroConfig struct {
-	UnixLogSocket        string `yaml:"unixLogSocket"`
 	SyslogSocket         string `yaml:"sysLogSocket"`
 	LinuxKernelLog       bool   `yaml:"linuxKernelLog"`
 	LinuxKernelLogLegacy bool   `yaml:"linuxKernelLogLegacy"`
@@ -61,10 +57,7 @@ type YAMLMaestroConfig struct {
 	TimeServer           *time.ClientConfig                      `yaml:"time_server"`
 	Mdns                 *MdnsSetup                              `yaml:"mdns"`
 	Watchdog             *maestroSpecs.WatchdogConfig            `yaml:"watchdog"`
-	Symphony             *wwrmi.ClientConfig                     `yaml:"symphony"`
-	SysStats             *sysstats.StatsConfig                   `yaml:"sys_stats"`
 	Tags                 []string                                `yaml:"tags"`
-	Targets              []maestroSpecs.LogTarget                `yaml:"targets"`
 	ClientId             string                                  `yaml:"clientId"`
 	ConfigDBPath         string                                  `yaml:"configDBPath"` // where Maestro should look for it's database
 	Stats                maestroSpecs.StatsConfigPayload         `yaml:"stats"`
@@ -391,14 +384,6 @@ func (ysc *YAMLMaestroConfig) GetHttpUnixSocket() (ret string) {
 	return
 }
 
-func (ysc *YAMLMaestroConfig) GetUnixLogSocket() (ret string) {
-	if len(ysc.UnixLogSocket) < 1 {
-		ysc.UnixLogSocket = DefaultUnixLogSocketSink
-	}
-	ret = GetInterpolatedConfigString(ysc.UnixLogSocket)
-	return
-}
-
 func (ysc *YAMLMaestroConfig) GetSyslogSocket() (ret string) {
 	if len(ysc.SyslogSocket) < 1 {
 		return ""
@@ -411,7 +396,7 @@ func (ysc *YAMLMaestroConfig) GetSyslogSocket() (ret string) {
 // FillInDefaults goes through specific parts of the config and puts in defaults if strings
 // were missing or empty.
 func (ysc *YAMLMaestroConfig) FillInDefaults() {
-	for n := range ysc.JobStarts {
+	for n, _ := range ysc.JobStarts {
 		_job := maestroSpecs.JobDefinition(&ysc.JobStarts[n])
 		if len(ysc.JobStarts[n].ConfigName) < 1 {
 			ysc.JobStarts[n].ConfigName = _job.GetConfigName()
@@ -464,58 +449,6 @@ func (ysc *YAMLMaestroConfig) LoadFromFile(file string) error {
 	// }
 
 	return nil
-}
-
-// @param levels is a string of one or more comma separated value for levels,
-// like: "warn, error"
-func ConvertLevelStringToUint32Mask(levels string) uint32 {
-	ret := uint32(0)
-	parts := strings.Split(levels, ",")
-	for _, s := range parts {
-		s = strings.TrimSpace(s)
-		if strings.Compare(s, "all") == 0 {
-			return uint32(greasego.GREASE_ALL_LEVELS)
-		} else {
-			ret |= greasego.DefaultLevelMap[s]
-		}
-	}
-	return ret
-}
-
-func ConvertLevelUint32MaskToString(mask uint32) string {
-	if mask == uint32(greasego.GREASE_ALL_LEVELS) {
-		return "all"
-	}
-
-	var ret string
-	for k, v := range greasego.DefaultLevelMap {
-		if v&mask == v {
-			if len(ret) > 0 {
-				ret += ","
-			}
-			ret += k
-		}
-	}
-
-	return ret
-}
-
-func ConvertTagStringToUint32(tag string) uint32 {
-	return greasego.DefaultTagMap[strings.TrimSpace(tag)]
-}
-
-func ConvertTagUint32ToString(tag uint32) string {
-	var ret string
-	for k, v := range greasego.DefaultTagMap {
-		if v&tag == v {
-			if len(ret) > 0 {
-				ret += ","
-			}
-			ret += k
-		}
-	}
-
-	return ret
 }
 
 func ConfigGetMinDiskSpaceScratch() uint64 {

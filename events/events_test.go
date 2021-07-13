@@ -27,8 +27,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armPelionEdge/httprouter"
-	"github.com/armPelionEdge/maestro/storage"
+	"github.com/PelionIoT/httprouter"
+	"github.com/PelionIoT/maestro/storage"
 	"github.com/boltdb/bolt"
 )
 
@@ -2456,4 +2456,4 @@ func TestResponseManagerRouterTimeout1(t *testing.T) {
 
 // To run test:
 // sub out for your directories
-// sudo GOROOT=/opt/go PATH="$PATH:/opt/go/bin" GOPATH=/home/ed/work/gostuff LD_LIBRARY_PATH=../../greasego/deps/lib /opt/go/bin/go test
+// sudo GOROOT=/opt/go PATH="$PATH:/opt/go/bin" GOPATH=/home/ed/work/gostuff /opt/go/bin/go test

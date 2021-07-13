@@ -15,21 +15,20 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <string.h>
 
 // Linux only:
 #include <sys/prctl.h>
 
 #include <uv.h>
-
-#include "grease_lib.h"
 
 #define DEBUG_MAESTRO_NATIVE 1
 #include "process_utils.h"
@@ -123,28 +122,6 @@ void setCStringInArray(char **a, char *s, int pos) {
 	a[pos] = s;
 }
 
-void childClosedFDCallback (GreaseLibError *err, int stream_type, int fd) {
-	if(err) {
-
-	} else {
-		printf("CHILD CLOSED FD: type %d, fd %d for pid %d\n", stream_type,fd,(int)getpid());
-		
-		if(stream_type == 1) {
-			GreaseLib_removeFDForStdout(fd);
-		} else if (stream_type==2) {
-			GreaseLib_removeFDForStderr(fd);	
-		}
-		
-		sawClosedRedirectedFD(); // call back into Go land
-
-		// pid_t lastpid;
-		// while((lastpid = reapChildren()) > 0) {
-		// 	printf("Reaped %d\n",lastpid);
-		// }
-	}
-}
-
-
 int createChild(char* szCommand,
 		char* aArguments[],
 		char* aEnvironment[],
@@ -196,43 +173,12 @@ int createChild(char* szCommand,
 
 	DBG_MAESTRO("createChild 1");
 
-	uint32_t childStartingOriginID = 1000;
-	GreaseLib_getUnusedOriginId(&childStartingOriginID);
-	if(opts) {
-		opts->originLabel = childStartingOriginID;
-	}
-	if(opts && opts->jobname) {
-		GreaseLib_addOriginLabel( childStartingOriginID, opts->jobname, strlen(opts->jobname) );
-		DBG_MAESTRO("Logging: set label to %s %d",opts->jobname,childStartingOriginID);
-	} else {
-		GreaseLib_addOriginLabel( childStartingOriginID, szCommand, strlen(szCommand) );
-	}
 	DBG_MAESTRO("createChild 1.1");
-	// GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
 	DBG_MAESTRO("createChild 1.2");
 	if(!opts->ok_string) {
 	} else {
 		DBG_MAESTRO("Not redirecting STDOUT - have ok_string opt");
 		opts->stdout_fd = aStdoutPipe[PIPE_READ];
-	}
-
-	char *tempEnv[1]; // used if a environmental array was not passed in
-	if (opts->env_GREASE_ORIGIN_ID) {
-		DBG_MAESTRO("createChild 1.2a");
-		char *out = (char *) malloc(30);
-		sprintf(out,"GREASE_ORIGIN_ID=%d",childStartingOriginID);
-		DBG_MAESTRO("Logging: %s",out);
-		int z = 0;
-		// See processMgmt.go: convertToCStrings() - we make some extra room there in case this is needed.
-		if(aEnvironment) {
-			while(aEnvironment[z] != NULL) {
-				z++;
-			}
-			aEnvironment[z] = out;
-		} else {
-			aEnvironment = tempEnv;
-			tempEnv[0] = out;
-		}
 	}
 
 	DBG_MAESTRO("createChild - about to fork()");
@@ -371,9 +317,6 @@ int createChild(char* szCommand,
 		}
 
 		close(aStdinPipe[PIPE_WRITE]);
-
-		GreaseLib_addFDForStderr( aStderrPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
-		GreaseLib_addFDForStdout( aStdoutPipe[PIPE_READ], childStartingOriginID, childClosedFDCallback );
 
 		// Just a char by char read here, you can change it accordingly
 		//    while (read(aStdoutPipe[PIPE_READ], &nChar, 1) == 1) {

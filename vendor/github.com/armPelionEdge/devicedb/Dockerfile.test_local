@@ -1,5 +1,0 @@
-FROM golang
-ADD . /go/src/github.com/armPelionEdge/devicedb
-RUN cd src/github.com/armPelionEdge/devicedb && go install
-ENTRYPOINT [ "/bin/sh","/go/src/github.com/armPelionEdge/devicedb/start-devicedb-nocluster.sh"]
-EXPOSE 9090

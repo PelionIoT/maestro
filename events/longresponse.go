@@ -25,7 +25,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/armPelionEdge/httprouter"
+	"github.com/PelionIoT/httprouter"
 )
 
 //type wakeupType *MaestroEvent
