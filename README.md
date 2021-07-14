@@ -107,6 +107,16 @@ VAGRANT_PREFER_SYSTEM_BIN=1 vagrant ssh -c "sudo maestro"
 
 ### Local Build
 
+You can also build without using Vagrant.
+
+#### Prerequisites
+
+* Linux
+* go (tested on go 1.15.1)
+* libuv (on Debian distributions, run `sudo apt install libuv1-dev`)
+
+#### Build
+
 ```
 mkdir -p bin
 go build -o bin/maestro maestro/main.go
