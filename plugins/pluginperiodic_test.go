@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armPelionEdge/maestro-plugins-template/teststructs"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro-plugins-template/teststructs"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 //var logger *testtools.NonProductionPrefixedLogger

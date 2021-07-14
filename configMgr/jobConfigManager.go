@@ -18,10 +18,10 @@ package configMgr
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/stow"
+	"github.com/PelionIoT/maestro/maestroConfig"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/stow"
 	"github.com/boltdb/bolt"
 )
 

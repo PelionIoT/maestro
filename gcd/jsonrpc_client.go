@@ -14,13 +14,13 @@ limitations under the License.
 package gcd
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"bytes"
 	"net"
 	"net/url"
 	"sync"

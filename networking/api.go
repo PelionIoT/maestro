@@ -22,12 +22,12 @@ import (
 	"net"
 	"time"
 
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestroSpecs"
+	"github.com/PelionIoT/netlink"
 	"github.com/armPelionEdge/dhcp4"
 	"github.com/armPelionEdge/dhcp4client"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
-	"github.com/armPelionEdge/netlink"
 	"golang.org/x/sys/unix"
 )
 

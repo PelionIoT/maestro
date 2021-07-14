@@ -16,9 +16,9 @@ package platforms
 // limitations under the License.
 
 import (
-	"github.com/armPelionEdge/maestro/platforms/fsonly"
-	"github.com/armPelionEdge/maestro/platforms/testplatform"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/platforms/fsonly"
+	"github.com/PelionIoT/maestro/platforms/testplatform"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 type builtin struct {

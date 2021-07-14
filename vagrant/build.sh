@@ -26,11 +26,8 @@ if ! git -C ${MAESTRO_SYNC_SRC} diff --quiet; then
     git -C ${MAESTRO_SYNC_SRC} diff | git apply
 fi
 
-# Build maestro dependencies
-./build-deps.sh
-
-# Build maestro
-DEBUG=1 DEBUG2=1 ./build.sh
+mkdir -p bin
+go build -o bin/maestro maestro/main.go
 
 # Create maestro dummy config if config does not exist
 cd $MAESTRO_SRC

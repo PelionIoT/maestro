@@ -24,12 +24,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestro/maestroutils"
-	"github.com/armPelionEdge/maestro/tasks"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/maestroConfig"
+	"github.com/PelionIoT/maestro/maestroutils"
+	"github.com/PelionIoT/maestro/tasks"
+	"github.com/PelionIoT/maestroSpecs"
 	"github.com/cavaliercoder/grab"
 )
 

@@ -2,7 +2,7 @@
 
 # Install prerequisite packages
 apt-get update
-apt-get install -y build-essential wget git m4 python
+apt-get install -y build-essential wget git m4 python libuv1-dev
 
 # Download GO
 wget https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz
@@ -19,9 +19,8 @@ export GOPATH=/home/vagrant/work/gostuff
 export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOROOT/bin:$GOBIN
 
-export MAESTRO_SRC=$GOPATH/src/github.com/armPelionEdge/maestro
+export MAESTRO_SRC=$GOPATH/src/github.com/PelionIoT/maestro
 
-export LD_LIBRARY_PATH=$MAESTRO_SRC/vendor/github.com/armPelionEdge/greasego/deps/lib
 export MAESTRO_LOGS=/var/log/maestro
 export COVERITY_HOME=/home/vagrant/cov-analysis-linux64-2020.03
 export PATH=$PATH:$COVERITY_HOME/bin

@@ -15,10 +15,6 @@ package defaults
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// DefaultUnixLogSocketSink is the default socket used by 'greaselog'
-// and the grease-log-client node.js module. This is defined in
-// grease_client.h in these projects
-const DefaultUnixLogSocketSink = "/tmp/grease.socket"
 const DefaultHttpUnixSocket = "/tmp/maestroapi.sock"
 const DefaultSyslogSocket = "/dev/log" // standard Unix location
 

@@ -25,21 +25,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/armPelionEdge/greasego"
-	"github.com/armPelionEdge/httprouter"
-	"github.com/armPelionEdge/maestro/configMgr"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/defaults"
-	. "github.com/armPelionEdge/maestro/defaults"
-	"github.com/armPelionEdge/maestro/events"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/logconfig"
-	"github.com/armPelionEdge/maestro/maestroConfig"
-	"github.com/armPelionEdge/maestro/networking"
-	"github.com/armPelionEdge/maestro/processes"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/maestro/tasks"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/httprouter"
+	"github.com/PelionIoT/maestro/configMgr"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/defaults"
+	. "github.com/PelionIoT/maestro/defaults"
+	"github.com/PelionIoT/maestro/events"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/networking"
+	"github.com/PelionIoT/maestro/processes"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/maestro/tasks"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 func AddProcessRoutes(router *httprouter.Router) {
@@ -88,12 +85,6 @@ func AddProcessRoutes(router *httprouter.Router) {
 	router.POST("/net/dns", handlePostDNS)
 	router.DELETE("/net/dns", handleDeleteDNS)
 
-	router.POST("/log/filter", handlePostLogFilter)
-	router.DELETE("/log/filter", handleDeleteLogFilter)
-
-	router.POST("/log/target", handlePostLogTarget)
-	router.GET("/log/target", handleGetLogTarget)
-
 	router.GET("/alive", handleAlive)
 
 	router.POST("/reboot", handleReboot)
@@ -133,152 +124,6 @@ func handleAlive(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(buffer.Bytes())
 	defer r.Body.Close()
-}
-
-func handlePostLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	var filterConfig maestroSpecs.LogFilter
-	err = json.Unmarshal(body, &filterConfig)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	err = logconfig.AddLogFilter(filterConfig)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func handlePostLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	targetConfigs := make([]maestroSpecs.LogTarget, 0)
-	err = json.Unmarshal(body, &targetConfigs)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	for _, target := range targetConfigs {
-		if len(target.Name) == 0 {
-			if len(target.File) > 0 {
-				target.Name = target.File
-			} else if len(target.TTY) > 0 {
-				target.Name = target.TTY
-			} else {
-				target.Name = "default"
-			}
-		}
-		for _, filter := range target.Filters {
-			if len(filter.Target) == 0 {
-				filter.Target = target.Name
-			}
-			if filter.Target != target.Name {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(fmt.Sprintf("{\"error\":\"Target name (%s) and Filter target (%s) are mismatched\"}",
-					target.Name, filter.Target)))
-				return
-			}
-			err = logconfig.AddLogFilter(filter)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-				return
-			}
-		}
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func handleGetLogTarget(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
-	LogTargets := make([]maestroSpecs.LogTarget, 0)
-
-	targets, filters := greasego.GetAllTargetsAndFilters()
-
-	// add all existing targets
-	for _, target := range targets {
-		var t maestroSpecs.LogTarget
-		if target.Name != nil {
-			t.Name = *target.Name
-		}
-		if target.File != nil {
-			t.File = *target.File
-		}
-		if target.TTY != nil {
-			t.TTY = *target.TTY
-		}
-		LogTargets = append(LogTargets, t)
-	}
-
-	// backfill the filters
-	for _, filter := range filters {
-		targetname := greasego.GetTargetName(filter.Target)
-		for i, target := range LogTargets {
-			if target.Name == targetname {
-				var f maestroSpecs.LogFilter
-				f.Target = target.Name
-				f.Tag = maestroConfig.ConvertTagUint32ToString(filter.Tag)
-				f.Levels = maestroConfig.ConvertLevelUint32MaskToString(filter.Mask)
-				LogTargets[i].Filters = append(LogTargets[i].Filters, f)
-			}
-		}
-	}
-
-	body, err := json.Marshal(LogTargets)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(body)
-}
-
-func handleDeleteLogFilter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	var filterConfig maestroSpecs.LogFilter
-	err = json.Unmarshal(body, &filterConfig)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	err = logconfig.DeleteLogFilter(filterConfig)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("{\"error\":\"%s\"}", err.Error())))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func handleGetDNS(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

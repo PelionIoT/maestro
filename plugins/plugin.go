@@ -21,8 +21,8 @@ import (
 	"plugin"
 	"sync"
 
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestroSpecs"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestroSpecs"
 )
 
 type Plug struct {

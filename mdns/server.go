@@ -19,11 +19,11 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"github.com/armPelionEdge/maestro/debugging"
-	"github.com/armPelionEdge/maestro/log"
-	"github.com/armPelionEdge/maestro/storage"
-	"github.com/armPelionEdge/stow"
-	"github.com/armPelionEdge/zeroconf"
+	"github.com/PelionIoT/maestro/debugging"
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/storage"
+	"github.com/PelionIoT/stow"
+	"github.com/PelionIoT/zeroconf"
 	"github.com/boltdb/bolt"
 	"strings"
 	"sync"
@@ -286,12 +286,6 @@ func newManager() *Manager {
 func GetInstance() *Manager {
 	logger := log.NewPrefixedLogger("mdns-zeroconf")
 	zeroconf.OverrideLogging(logger.Error, logger.Info, logger.Debug)
-	// FIXME: this is a very odd situation:
-	// for some reasons, the prefix logger does not recognize that maestro's main.go called SetGoLoggerReady()
-	// which sets an internal var in the "log" package. My guess is there may be separate instance of the Go
-	// portion of the "log" package - some behavior of the Go run time (but "greasego" or libgrease.so). In
-	// any case, this hack up seems to work. And the grease logger should always be up and running at this point typically
-	log.SetGoLoggerReady()
 	if instance == nil {
 		instance = newManager()
 		storage.RegisterStorageUser(instance)
