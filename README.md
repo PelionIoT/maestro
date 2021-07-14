@@ -113,7 +113,7 @@ You can also build without using Vagrant.
 
 * Linux
 * go (tested on go 1.15.1)
-* libuv
+* libuv (on Debian distributions, run `sudo apt install libuv1-dev`)
 
 #### Build
 
