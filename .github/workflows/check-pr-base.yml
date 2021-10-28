@@ -7,14 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Reject PR due to incorrect base
-        if: github.base_ref != 'dev' && (github.event.action == 'opened' || (github.event.action == 'edited' && github.event.changes.base.ref))
+        if: ( !(github.base_ref == 'master' && github.head_ref == 'dev') && github.base_ref != 'dev') && (github.event.action == 'opened' || (github.event.action == 'edited' && github.event.changes.base.ref))
         uses: andrewmusgrave/automatic-pull-request-review@0.0.5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           event: REQUEST_CHANGES
           body: 'Please change your PR base to dev branch.'
       - name: Approve PR because it's based against dev branch
-        if: github.base_ref == 'dev' && github.event.changes.base && github.event.changes.base.ref.from != 'dev'
+        if: ((github.base_ref == 'master' && github.head_ref == 'dev') || github.base_ref == 'dev') && github.event.changes.base && github.event.changes.base.ref.from != 'dev'
         uses: andrewmusgrave/automatic-pull-request-review@0.0.5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
