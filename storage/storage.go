@@ -17,12 +17,8 @@ package storage
 
 import (
 	"errors"
-	//	"encoding/json"
 	"encoding/gob"
-
 	"github.com/PelionIoT/maestroSpecs"
-
-	//"github.com/syndtr/goleveldb/leveldb"
 	"github.com/PelionIoT/stow"
 	"github.com/boltdb/bolt"
 )

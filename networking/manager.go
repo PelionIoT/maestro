@@ -39,12 +39,10 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/PelionIoT/maestro/debugging"
 	"github.com/PelionIoT/maestro/log"
-	"github.com/PelionIoT/maestro/maestroConfig"
 	"github.com/PelionIoT/maestro/networking/arp"
 	"github.com/PelionIoT/maestro/storage"
 	"github.com/PelionIoT/maestro/tasks"
@@ -193,21 +191,6 @@ func init() {
 	arp.SetupLog(nmLogDebugf, nmLogErrorf, nmLogSuccessf)
 }
 
-type ConfigCommit struct {
-	// Set this flag to true for the changes to commit, if this flag is false
-	// the changes to configuration on these structs will not acted upon
-	// by network manager. For exmaple, this flag will be initially false
-	// so that user can change the config object in DeviceDB and verify that the
-	// intented changes are captured correctly. Once verified set this flag to true
-	// so that the changes will be applied by maestro. Once maestro complete the
-	// changes the flag will be set to false by maestro.
-	ConfigCommitFlag bool `yaml:"config_commit" json:"config_commit" netgroup:"config_commit"`
-	//Datetime of last update
-	LastUpdateTimestamp string `yaml:"config_commit" json:"last_commit_timestamp" netgroup:"config_commit"`
-	//Total number of updates from boot
-	TotalCommitCountFromBoot int `yaml:"config_commit" json:"total_commit_count_from_boot" netgroup:"config_commit"`
-}
-
 // initialized in init()
 type networkManagerInstance struct {
 	// for persistence
@@ -226,11 +209,6 @@ type networkManagerInstance struct {
 	threadCountChan           chan networkThreadMessage
 	activeNetworkConfig       *maestroSpecs.NetworkConfigPayload
 	futureNetworkConfig       *maestroSpecs.NetworkConfigPayload
-
-	//Configs to be used for connecting to devicedb
-	ddbConnConfig    *maestroConfig.DeviceDBConnConfig
-	ddbConfigClient  *maestroConfig.DDBRelayConfigClient
-	CurrConfigCommit ConfigCommit
 
 	// DNS related
 	writeDNS bool // if true, then DNS will be written out once interfaces are processed
@@ -786,7 +764,6 @@ func (this *networkManagerInstance) copyInterfacesStoredToActive() {
 //
 // this function stores the new config to maestroDB and updates the network instance's
 // runtime data structures, it does not activate any of the new config on the host system
-// nor does it update DeviceDB
 func (this *networkManagerInstance) submitConfig(config *maestroSpecs.NetworkConfigPayload) {
 
 	if config == nil {
@@ -1163,8 +1140,7 @@ func (this *networkManagerInstance) setupInterfaces() (err error) {
 	return
 }
 
-//This function calls the setupInterfaces with the current config and then start connection with devicedb by calling initDeviceDBConfig
-//Note that call to initDeviceDBConfig is done as a go routine.
+//This function calls the setupInterfaces with the current config
 func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 	log.MaestroInfof("NetworkManager: Setup the intfs using initial boot config first: %+v\n", this.activeNetworkConfig)
 
@@ -1180,31 +1156,7 @@ func (this *networkManagerInstance) SetupExistingInterfaces() (err error) {
 	//Setup the intfs using initial boot config first
 	this.setupInterfaces()
 
-	//Try setup the device using DeviceDB config now
-	go this.initDeviceDBConfig()
-
 	return
-}
-
-//This function is called during bootup. It waits for devicedb to be up and running to connect to it, once connected it calls
-//SetupDeviceDBConfig
-func (this *networkManagerInstance) initDeviceDBConfig() error {
-	var err error
-
-	this.ddbConfigClient, err = maestroConfig.GetDDBRelayConfigClient(this.ddbConnConfig)
-	if this.ddbConfigClient == nil {
-		return err
-	}
-	log.MaestroInfof("NetworkManager: successfully connected to devicedb\n")
-
-	err = this.SetupDeviceDBConfig()
-	if err != nil {
-		log.MaestroErrorf("NetworkManager: error setting up config using devicedb: %v\n", err)
-	} else {
-		log.MaestroInfof("NetworkManager: successfully read config from devicedb\n")
-	}
-
-	return err
 }
 
 // perform a deep copy of a network config
@@ -1229,100 +1181,6 @@ func copyNetworkConfig(lhs *maestroSpecs.NetworkConfigPayload, rhs *maestroSpecs
 // copy the active network config
 func (this *networkManagerInstance) GetNetworkConfig(config *maestroSpecs.NetworkConfigPayload) {
 	copyNetworkConfig(config, this.activeNetworkConfig)
-}
-
-//SetupDeviceDBConfig reads the config from devicedb and if its new it applies the new config.
-//It also sets up the config update handlers for all the tags/groups.
-func (this *networkManagerInstance) SetupDeviceDBConfig() error {
-
-	var err error
-	var ddbNetworkConfig maestroSpecs.NetworkConfigPayload
-
-	//Create a config analyzer object, required for registering the config change hook and diff the config objects.
-	configAna := maestroSpecs.NewConfigAnalyzer(DDB_NETWORK_CONFIG_CONFIG_GROUP_ID)
-	if configAna == nil {
-		log.MaestroErrorf("NetworkManager: Failed to create config analyzer object, unable to fetch config from devicedb\n")
-		return errors.New("Failed to create config analyzer object, unable to fetch config from devicedb")
-	}
-
-	err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Get(&ddbNetworkConfig)
-	if err != nil {
-		log.MaestroWarnf("NetworkManager: No network config found in devicedb or unable to connect to devicedb err: %v. Let's put the current running config: %v.\n", err, *this.activeNetworkConfig)
-		err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_NAME).Put(this.activeNetworkConfig)
-		if err != nil {
-			log.MaestroErrorf("NetworkManager: Unable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err)
-			return errors.New(fmt.Sprintf("\nUnable to put network config in devicedb err:%v, config will not be monitored from devicedb\n", err))
-		}
-	} else {
-		//We found a config in devicedb, lets try to use and reconfigure network if its an updated one
-		log.MaestroInfof("NetworkManager: Found a valid config in devicedb [%v], will try to use and reconfigure network if its an updated one\n", ddbNetworkConfig)
-		identical, _, _, err := configAna.DiffChanges(this.activeNetworkConfig, ddbNetworkConfig)
-		if !identical && (err == nil) {
-			//The configs are different, lets go ahead reconfigure the intfs
-			log.MaestroDebugf("NetworkManager: New network config found from devicedb, reconfigure nework using new config\n")
-			this.submitConfig(&ddbNetworkConfig)
-			//Setup the intfs using new config
-			this.setupInterfaces()
-			//Set the hostname again as we reconfigured the network
-			log.MaestroWarnf("NetworkManager: Again setting hostname: %s\n", this.ddbConnConfig.RelayId)
-			err = syscall.Sethostname([]byte(this.ddbConnConfig.RelayId))
-			if err != nil {
-				log.MaestroErrorf("NetworkManager: Failed to set hostname (ignoring...): %v\n", err)
-			}
-		} else {
-			log.MaestroInfof("NetworkManager: New network config found from devicedb, but its same as boot config, no need to re-configure\n")
-		}
-	}
-
-	//Since we are booting set the Network config commit flag to false
-	log.MaestroWarnf("NetworkManager: Setting Network config commit flag to false\n")
-	this.CurrConfigCommit.ConfigCommitFlag = false
-	this.CurrConfigCommit.LastUpdateTimestamp = ""
-	this.CurrConfigCommit.TotalCommitCountFromBoot = 0
-	err = this.ddbConfigClient.Config(DDB_NETWORK_CONFIG_COMMIT_FLAG).Put(&this.CurrConfigCommit)
-	if err != nil {
-		log.MaestroErrorf("NetworkManager: Unable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err)
-		return errors.New(fmt.Sprintf("\nUnable to put network commit flag in devicedb err:%v, config will not be monitored from devicedb\n", err))
-	}
-
-	//Now start a monitor for the network config in devicedb
-	//Add config change hook for all property groups, we can use the same interface
-	var networkConfigChangeHook NetworkConfigChangeHook
-
-	configAna.AddHook("dhcp", networkConfigChangeHook)
-	configAna.AddHook("if", networkConfigChangeHook)
-	configAna.AddHook("ipv4", networkConfigChangeHook)
-	configAna.AddHook("ipv6", networkConfigChangeHook)
-	configAna.AddHook("mac", networkConfigChangeHook)
-	configAna.AddHook("wifi", networkConfigChangeHook)
-	configAna.AddHook("IEEE8021x", networkConfigChangeHook)
-	configAna.AddHook("route", networkConfigChangeHook)
-	configAna.AddHook("http", networkConfigChangeHook)
-	configAna.AddHook("nameserver", networkConfigChangeHook)
-	configAna.AddHook("gateway", networkConfigChangeHook)
-	configAna.AddHook("dns", networkConfigChangeHook)
-	configAna.AddHook("config_netif", networkConfigChangeHook)
-	configAna.AddHook("config_network", networkConfigChangeHook)
-
-	//Add monitor for this config
-	var origNetworkConfig, updatedNetworkConfig maestroSpecs.NetworkConfigPayload
-	//Provide a copy of current network config monitor to Config monitor, not the actual config we use, this would prevent config monitor
-	//directly updating the running config(this.networkConfig).
-	this.GetNetworkConfig(&origNetworkConfig)
-
-	//Adding monitor config
-	this.ddbConfigClient.AddMonitorConfig(&origNetworkConfig, &updatedNetworkConfig, DDB_NETWORK_CONFIG_NAME, configAna)
-
-	//Add config change hook for all property groups, we can use the same interface
-	var commitConfigChangeHook CommitConfigChangeHook
-	configAna.AddHook("config_commit", commitConfigChangeHook)
-
-	//Add monitor for this object
-	var updatedConfigCommit ConfigCommit
-	log.MaestroInfof("NetworkManager: Adding monitor for config commit object\n")
-	this.ddbConfigClient.AddMonitorConfig(&this.CurrConfigCommit, &updatedConfigCommit, DDB_NETWORK_CONFIG_COMMIT_FLAG, configAna)
-
-	return nil
 }
 
 // ErrNoInterface is the error when no interface can be found by the reference data
@@ -2439,10 +2297,9 @@ func (mgr *networkManagerInstance) ValidateTask(task *tasks.MaestroTask) error {
 // InitNetworkManager be called on startup.
 // NetworkConfigPayload will come from config file
 // Storage should be started already.
-func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload, ddbconfig *maestroConfig.DeviceDBConnConfig) error {
-	log.MaestroInfof("NetworkManager: Initializing %v %v\n", networkconfig, ddbconfig)
+func InitNetworkManager(networkconfig *maestroSpecs.NetworkConfigPayload) error {
+	log.MaestroInfof("NetworkManager: Initializing %v\n", networkconfig)
 	inst := GetInstance()
-	inst.ddbConnConfig = ddbconfig
 
 	//Setup the config with the given network config
 	if networkconfig != nil {

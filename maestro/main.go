@@ -407,7 +407,7 @@ func main() {
 
 	}
 
-	neterr := networking.InitNetworkManager(config.Network, config.DDBConnConfig)
+	neterr := networking.InitNetworkManager(config.Network)
 	if neterr != nil {
 		Log.MaestroErrorf("Error starting networking subsystem! %s\n", neterr.Error())
 		log.Errorf("Error starting networking subsystem! %s\n", neterr.Error())

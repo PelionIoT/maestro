@@ -72,7 +72,6 @@ type YAMLMaestroConfig struct {
 	GatewayCapabilities  *GcdConfig                              `yaml:"gateway_capabilities"`
 	Processes            *configs.ProcessesConfig                `yaml:"processes"`
 	DebugOpts            *DebugOptions                           `yaml:"debug_opts"`
-	DDBConnConfig        *DeviceDBConnConfig                     `yaml:"devicedb_conn_config"`
 	ConfigEnd            bool                                    `yaml:"config_end"`
 }
 
@@ -100,19 +99,6 @@ type GatewayResource struct {
 	Name           string `yaml:"name"`
 	Enable         bool   `yaml:"enable"`
 	ConfigFilePath string `yaml:"config_filepath"`
-}
-
-type DeviceDBConnConfig struct {
-	// The URI of the relay's local DeviceDB instance
-	DeviceDBUri string `yaml:"devicedb_uri"`
-	// The prefix where keys related to configuration are stored
-	DeviceDBPrefix string `yaml:"devicedb_prefix"`
-	// The devicedb bucket where configurations are stored
-	DeviceDBBucket string `yaml:"devicedb_bucket"`
-	// The ID of the relay whose configuration should be monitored
-	RelayId string `yaml:"relay_id"`
-	// The file path to a PEM encoded CA chain used to validate the server certificate used by the DeviceDB instance
-	CaChainCert string `yaml:"ca_chain"`
 }
 
 type PlatformReader struct {
