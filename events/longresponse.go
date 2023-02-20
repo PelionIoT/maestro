@@ -1,6 +1,8 @@
 package events
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,7 +67,7 @@ type DeferredResponseManager struct {
 	evchans []chan *MaestroEvent
 	cases   []reflect.SelectCase
 	//	responders []*DeferredResponder
-	// a slice of Subscription IDs which is maintained exaclty in the same order as above
+	// a slice of Subscription IDs which is maintained exactly in the same order as above
 	evIDs             []string
 	waitingOnChannels bool
 	running           bool
@@ -392,11 +394,11 @@ mainLoop:
 			// if i == 0 - then this was just a wakeup  - skip it
 			if i != 0 {
 				// look weird? read (5) here https://golang.org/pkg/unsafe/#Pointer
-				// doing gymanstics b/c go hates real pointers
+				// doing gymnastics b/c go hates real pointers
 				ev := (*MaestroEvent)(unsafe.Pointer(value.Pointer()))
 				// append the first event we got through select
 				events = append(events, ev)
-				// FIXME actually we should use the ID on the event object, which has no likelyhood of race problem
+				// FIXME actually we should use the ID on the event object, which has no likelihood of race problem
 				// versus the evIDs array
 				_, closed, resp := checkSub(id, events)
 				if closed {
@@ -572,7 +574,7 @@ func (mymanager *DeferredResponseManager) MakeSubscriptionHttpHandler(pathid str
 		//		subhttphandler, _ = baton.subs.LoadOrStore(id,subhttphandler)
 		subhttphandler.timedout = false
 
-		// lookup handlerList or make if not existant and then
+		// lookup handlerList or make if not existent and then
 		// put the subhttphandler there
 		var loaded bool
 		var handlerlistI interface{}
@@ -695,7 +697,7 @@ func (mymanager *DeferredResponseManager) MakeSubscriptionHttprouterHandler(path
 		//		subhttphandler, _ = baton.subs.LoadOrStore(id,subhttphandler)
 		subhttphandler.timedout = false
 
-		// lookup handlerList or make if not existant and then
+		// lookup handlerList or make if not existent and then
 		// put the subhttphandler there
 		var loaded bool
 		var handlerlistI interface{}

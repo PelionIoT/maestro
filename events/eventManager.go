@@ -1,6 +1,8 @@
 package events
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +37,7 @@ An event manager, with a different methodology than
 the 'go' channels. By default every event will go to all
 subscribers of that event (so "fan out")
 
-Peristent events will survive Maestro restarts.
+Persistent events will survive Maestro restarts.
 
 ******************************/
 

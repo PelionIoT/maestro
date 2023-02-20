@@ -1,8 +1,11 @@
+//go:build debug
 // +build debug
 
 package debugging
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +47,6 @@ const DebugEnabled = true
 func DEBUG_OUT(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
-
 
 func DumpMemStats() {
 	var stats runtime.MemStats

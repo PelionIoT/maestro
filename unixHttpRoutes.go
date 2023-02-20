@@ -1,6 +1,8 @@
 package maestro
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -110,7 +112,7 @@ func init() {
 			return
 			// timeout is 20 seconds --> In 20 seconds, if no events, the handler will return StatusNoContent
 		}, func(w http.ResponseWriter, req *http.Request) {
-			log.MaestroError("Error ocurred in longpoll handler for network events.")
+			log.MaestroError("Error occurred in longpoll handler for network events.")
 		}, nil, 20*time.Second)
 
 		return nil

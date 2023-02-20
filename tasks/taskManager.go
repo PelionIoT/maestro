@@ -1,6 +1,8 @@
 package tasks
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -625,7 +627,7 @@ func GetTaskStatus(id string) (step uint32, ok bool) {
 }
 
 // Informs the TaskManager that a request ACK for specific Task
-// failed to send or be recieved by the original caller of the Task
+// failed to send or be received by the original caller of the Task
 // This is typically a remote server.
 // In this case, the TaskManager will again ask for an ACK at some point
 // in the future
@@ -634,7 +636,7 @@ func TaskAckFailed(taskId string, err error) {
 }
 
 // Informs the TaskManager that a request ACK for specific Task
-// was successful sent and recieved by the original caller of the Task
+// was successful sent and received by the original caller of the Task
 // This is typically a remote server
 func TaskAckOK(taskid string) {
 

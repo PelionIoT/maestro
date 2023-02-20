@@ -26,9 +26,9 @@ Advantages:
 - less memory footprint
 - less installation on disk
 - cloud connectivity
-- managment via local API
+- management via local API
 
-Maestro communicates to Pelion Cloud over https outbouund. It stores its config locally in a private database, but can also use DeviceDB for storage of applications, network settings, configs and other data when used in conjuction with standard Pelion Cloud services.
+Maestro communicates to Pelion Cloud over HTTPS outbound. It stores its config locally in a private database, but can also use DeviceDB for storage of applications, network settings, configs and other data when used in conjunction with standard Pelion Cloud services.
 
 If you are locally on a gateway / edge system using maestro, you should explore [maestro-shell](https://github.com/PelionIoT/maestro-shell) which will let you interact with maestro directly using the local API.
 

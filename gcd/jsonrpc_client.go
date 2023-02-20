@@ -1,5 +1,7 @@
 /*
 Copyright (c) 2020, Arm Limited and affiliates.
+Copyright (c) 2023 Izuma Networks
+
 SPDX-License-Identifier: Apache-2.0
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +16,13 @@ limitations under the License.
 package gcd
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"bytes"
 	"net"
 	"net/url"
 	"sync"
@@ -192,7 +194,7 @@ func (c *Client) CancelRequestReceiver() {
 }
 
 // Call initializes a background context and performs a JSON-RPC call with the given
-// arguments and unmarshals into result if no error occured
+// arguments and unmarshals into result if no error occurred
 //
 // The result must be a pointer so that package json can unmarshal into it. Nil object
 // should not be passed into
@@ -203,7 +205,7 @@ func (c *Client) Call(method string, args interface{}, result interface{}) error
 }
 
 // CallWithContext performs a JSON-RPC call with the given arguments and unmarshals into
-// result if no error occured
+// result if no error occurred
 func (c *Client) CallWithContext(ctx context.Context, method string, args interface{}, result interface{}) error {
 	id := generateCallID(32)
 
@@ -244,7 +246,7 @@ func (c *Client) CallWithContext(ctx context.Context, method string, args interf
 }
 
 // CallWithTimeout performs a JSON-RPC call with the given arguments and unmarshals into
-// result if no error occured within the given timeout
+// result if no error occurred within the given timeout
 func (c *Client) CallWithTimeout(method string, args interface{}, result interface{}, duration time.Duration) error {
 	id := generateCallID(32)
 

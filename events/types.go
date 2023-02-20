@@ -1,6 +1,8 @@
 package events
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +38,7 @@ type eventChannel struct {
 	// the event entirely.
 	// So it depends on the application. If events should be delivered in real-time
 	// and are time sensitive, the use fanout false (default)
-	// If events should always be recieved, but are not real-time, meaning recievers
+	// If events should always be received, but are not real-time, meaning receivers
 	// can deal with getting such events at entirely different times, then use
 	// fanout true.
 	// Fanout true - is similar to the node.js event emitter, but with the fact

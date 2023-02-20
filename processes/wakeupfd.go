@@ -3,6 +3,8 @@
 package processes
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,7 +74,7 @@ func (this *WakeupFd) ReadWakeup() (ret uint64, errno error) {
 
 // Wake's up a wakeup-use FD. Always write a non-zero integer
 // to force the FD to wake up epoll(), select() etc.
-// This 64-bit int size is to accomodate eventfd on Linux
+// This 64-bit int size is to accommodate eventfd on Linux
 
 // eventfd() is Linux specific
 // C def: int eventfd(unsigned int initval, int flags);
