@@ -20,7 +20,7 @@ jobs:
         run: | 
           git config --global url."https://${{ secrets.ACCESS_TOKEN }}@github.com/".insteadOf "git@github.com:"
           git config --global url."https://${{ secrets.ACCESS_TOKEN }}@github".insteadOf "https://github"
-      - run: git clone git@github.com:PelionIoT/scripts-internal.git -b go-build-all
+      - run: git clone git@github.com:PelionIoT/scripts-internal.git
       - name: Build all
         run:  scripts-internal/golang/go_build_script.sh --all
 
@@ -37,7 +37,7 @@ jobs:
 #        run: | 
 #          git config --global url."https://${{ secrets.ACCESS_TOKEN }}@github.com/".insteadOf "git@github.com:"
 #          git config --global url."https://${{ secrets.ACCESS_TOKEN }}@github".insteadOf "https://github"
-#      - run: git clone git@github.com:PelionIoT/scripts-internal.git -b go-build-all
+#      - run: git clone git@github.com:PelionIoT/scripts-internal.git
 #      - name: Go test --all
 #        run:  scripts-internal/golang/go-test-script.sh --all
 
