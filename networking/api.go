@@ -365,7 +365,7 @@ func ReleaseFromServer(ifname string, leasinfo *DhcpLeaseInfo) (ok bool, err err
 }
 
 /**
- * RenewFromServer renews from the server directy - a packet sent direct to the server, vs. a broadcast
+ * RenewFromServer renews from the server directly - a packet sent direct to the server, vs. a broadcast
  * @param {[type]} ifname   string                           [description]
  * @param {[type]} leasinfo *DhcpLeaseInfo                   [description]
  * @param {[type]} opts     *dhcp4client.DhcpRequestOptions) (outleaseinfo *DhcpLeaseInfo, err error [description]
@@ -491,7 +491,7 @@ func RenewFromServer(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp4client.
 			}
 			err = iferr
 		}
-		//     test.Error("We didn't sucessfully get a DHCP Lease?")
+		//     test.Error("We didn't successfully get a DHCP Lease?")
 		// } else {
 		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
@@ -585,7 +585,7 @@ func InitRebootDhcpLease(ifname string, currentIP net.IP, opts *dhcp4client.Dhcp
 			}
 			err = iferr
 		}
-		//     test.Error("We didn't sucessfully get a DHCP Lease?")
+		//     test.Error("We didn't successfully get a DHCP Lease?")
 		// } else {
 		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
@@ -695,7 +695,7 @@ func GetFreshDhcpLease(ifname string, opts *dhcp4client.DhcpRequestOptions) (suc
 			}
 			err = iferr
 		}
-		//     test.Error("We didn't sucessfully get a DHCP Lease?")
+		//     test.Error("We didn't successfully get a DHCP Lease?")
 		// } else {
 		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
@@ -820,7 +820,7 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 	}
 
 	// if !success {
-	//     log.MaestroError("We didn't sucessfully Renew a DHCP Lease?")
+	//     log.MaestroError("We didn't successfully Renew a DHCP Lease?")
 	// } else {
 	//     log.MaestroSuccessf("IP Received:%v\n", acknowledgementpacket.YIAddr().String())
 	// }
@@ -840,7 +840,7 @@ func RequestOrRenewDhcpLease(ifname string, leaseinfo *DhcpLeaseInfo, opts *dhcp
 			}
 			err = iferr
 		}
-		//     test.Error("We didn't sucessfully get a DHCP Lease?")
+		//     test.Error("We didn't successfully get a DHCP Lease?")
 		// } else {
 		debugging.DEBUG_OUT("DHCP IP Received:%v - renewal time: %d rebind time: %d\n", acknowledgementpacket.YIAddr().String(), outleaseinfo.renewalTime, outleaseinfo.rebindTime)
 		ok, ip := outleaseinfo.GetRouter()
@@ -1492,7 +1492,7 @@ func SetupStaticInterfaces(ifs []*maestroSpecs.NetIfConfigPayload) (results []In
 						IPNet: ipnetaddr,
 						Label: configif.IfName,
 						Scope: unix.RT_SCOPE_UNIVERSE,
-						Flags: unix.IFA_F_PERMANENT, // | unix.IFA_F_OPTIMISTIC, // Optimisitc doc here (all I can find):  https://lwn.net/Articles/218597/
+						Flags: unix.IFA_F_PERMANENT, // | unix.IFA_F_OPTIMISTIC, // Optimistic doc here (all I can find):  https://lwn.net/Articles/218597/
 					}
 					err2 := netlink.AddrReplace(links[n], addr)
 					if err2 != nil {

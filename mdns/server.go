@@ -1,6 +1,8 @@
 package mdns
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,14 +21,15 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"strings"
+	"sync"
+
 	"github.com/PelionIoT/maestro/debugging"
 	"github.com/PelionIoT/maestro/log"
 	"github.com/PelionIoT/maestro/storage"
 	"github.com/PelionIoT/stow"
 	"github.com/PelionIoT/zeroconf"
 	"github.com/boltdb/bolt"
-	"strings"
-	"sync"
 )
 
 // This package implements a small mdns server which is programatically controllable
@@ -177,7 +180,7 @@ func (mgr *Manager) RefreshInterfaces() (err error) {
 }
 
 // PublishEntry publishes one or multiple mDNS records to the network
-// on the interfaces specifed (or all interfaces) - if NotPersistent is not set
+// on the interfaces specified (or all interfaces) - if NotPersistent is not set
 // publications will be published again on restart of maestro when they are
 // re-read from the database
 func (mgr *Manager) PublishEntry(entry *ConfigEntry) (err error) {

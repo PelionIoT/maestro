@@ -9,9 +9,10 @@ import (
 	"unsafe"
 )
 
-// This subpackage while adapted, is orignally from code from Google's Seesaw
+// This subpackage while adapted, is originally from code from Google's Seesaw
 // modified by: edhemphill@wigwag.com
 // Github link here: https://github.com/google/seesaw
+//
 // see original copyright notice below:
 
 // Copyright 2013 Google Inc. All Rights Reserved.

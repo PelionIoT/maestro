@@ -1,6 +1,8 @@
 package watchdog
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -244,7 +246,7 @@ func Disable() (err error) {
 	return
 }
 
-// Start will start the intervalRunner() internal go routine whcih will ping the active watchdog
+// Start will start the intervalRunner() inernal go routine which will ping the active watchdog
 // periodically based on CriticalInterval()
 func Start() {
 	status = dogok

@@ -1,6 +1,8 @@
 package processes
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -788,7 +790,7 @@ func _internalStartProcess(proc_status *processStatus, orig_event *processEvent,
 		msg = originatingJob.GetMessageForProcess()
 		if len(msg) > 0 {
 			if len(sendthis) > 0 {
-				procLogWarnf("NOTE: the .message option was configured for Job %s - but this Job is part of a composite process. The config object will take precendence.\n", proc_status.job.GetJobName())
+				procLogWarnf("NOTE: the .message option was configured for Job %s - but this Job is part of a composite process. The config object will take precedence.\n", proc_status.job.GetJobName())
 			} else {
 				opts.SetMessageString(msg)
 			}
@@ -962,7 +964,7 @@ func _startCompositeProcessJobs(proc *processStatus, ev *processEvent) (err erro
 			_innerStart()
 			// if it is running, then shut it down.
 			// emit event for all jobs that were shutdown
-			// upon succesful shutdown, start composite process again
+			// upon succesfull shutdown, start composite process again
 
 			// _innerStart()
 
@@ -1557,7 +1559,7 @@ func _findMasterProcessAddChild(child maestroSpecs.JobDefinition) (masterP *proc
 				err := new(JobError)
 				err.Code = JOBERROR_INTERNAL_ERROR
 				err.JobName = child.GetJobName()
-				err.Aux = "Composite proces record exists, but it's container template does not?? Can't attach child job: " + child.GetJobName()
+				err.Aux = "Composite process record exists, but it's container template does not?? Can't attach child job: " + child.GetJobName()
 				reterr = err
 				return
 			}

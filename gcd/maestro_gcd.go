@@ -1,5 +1,7 @@
 /*
 Copyright (c) 2020, Arm Limited and affiliates.
+Copyright (c) 2023 Izuma Networks
+
 SPDX-License-Identifier: Apache-2.0
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,10 +19,11 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/PelionIoT/maestro/log"
-	"github.com/PelionIoT/maestro/maestroConfig"
 	"io/ioutil"
 	"os"
+
+	"github.com/PelionIoT/maestro/log"
+	"github.com/PelionIoT/maestro/maestroConfig"
 )
 
 type gwResourceManagerRegisterArgs struct {

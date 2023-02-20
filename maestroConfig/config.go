@@ -1,6 +1,8 @@
 package maestroConfig
 
 // Copyright (c) 2018, Arm Limited and affiliates.
+// Copyright (c) 2023 Izuma Networks
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -181,7 +183,7 @@ func subInEnvVars(in string, varmap map[string]string) (out string) {
 }
 
 // This goes through the "var_defs" section,
-// and swaps out any ${SOMEENVVAR} for and environemntal variable
+// and swaps out any ${SOMEENVVAR} for and environmental variable
 // if that env var exists. It also allows: ${SOMEENVVAR|default}
 // where if SOMEENVVAR is not set, then 'default' is instead
 // replaced.
