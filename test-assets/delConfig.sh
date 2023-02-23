@@ -29,8 +29,8 @@ ARG7="$7"
 #\"Daemonize\":true}"
 
 if [ -z $ARG1 ]; then
-	echo "Usage $0 job-name config-name"
-	exit 1
+    echo "Usage $0 job-name config-name"
+    exit 1
 fi
 
 echo "Call------->"
