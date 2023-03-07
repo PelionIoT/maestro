@@ -32,7 +32,7 @@ require (
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/gorilla/mux v1.6.3-0.20181228004216-ef912dd76ebe // indirect
-	github.com/gorilla/websocket v1.4.1-0.20181206070239-95ba29eb981b
+	github.com/gorilla/websocket v1.4.1
 	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mholt/archiver v3.1.2-0.20181212200041-4e41ad6272dc+incompatible
