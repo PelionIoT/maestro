@@ -36,7 +36,7 @@ require (
 	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mholt/archiver v3.1.2-0.20181212200041-4e41ad6272dc+incompatible
-	github.com/miekg/dns v1.1.2-0.20181219162826-5f5f2380fc10 // indirect
+	github.com/miekg/dns v1.1.25 // indirect
 	github.com/nwaples/rardecode v1.0.1-0.20181025094117-197ef08ef68c // indirect
 	github.com/onsi/gomega v1.14.0 // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
